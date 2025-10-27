@@ -1,0 +1,34 @@
+{
+  "spriteSheetURL": "./img/birds_enemies.png",
+  "type": "character",
+  "size": [
+    16,
+    16
+  ],
+  "sprites": [
+    {
+      "name": "goomba_walk1",
+      "x": 0,
+      "y": 0,
+      "scalefactor": 2,
+      "colorKey": -1,
+      "collision": false
+    },
+    {
+      "name": "goomba_walk2",
+      "x": 16,
+      "y": 0,
+      "scalefactor": 2,
+      "colorKey": -1,
+      "collision": false
+    },
+    {
+      "name": "goomba_dead",
+      "x": 32,
+      "y": 0,
+      "scalefactor": 2,
+      "colorKey": -1,
+      "collision": false
+    }
+  ]
+}

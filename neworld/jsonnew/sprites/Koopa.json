@@ -1,0 +1,50 @@
+{
+  "spriteSheetURL": "./img/birds_enemies.png",
+  "type": "character",
+  "size": [
+    17,
+    32
+  ],
+  "sprites": [
+    {
+      "name": "koopa_walk1",
+      "x": 0,
+      "y": 16,
+      "xsize": 17,
+      "ysize": 32,
+      "scalefactor": 2,
+      "colorKey": -1,
+      "collision": false
+    },
+    {
+      "name": "koopa_walk2",
+      "x": 17,
+      "y": 16,
+      "xsize": 17,
+      "ysize": 32,
+      "scalefactor": 2,
+      "colorKey": -1,
+      "collision": false
+    },
+    {
+      "name": "koopa_shell",
+      "x": 34,
+      "y": 16,
+      "xsize": 17,
+      "ysize": 32,
+      "scalefactor": 2,
+      "colorKey": -1,
+      "collision": false
+    },
+    {
+      "name": "koopa_shell_moving",
+      "x": 51,
+      "y": 16,
+      "xsize": 17,
+      "ysize": 32,
+      "scalefactor": 2,
+      "colorKey": -1,
+      "collision": false
+    }
+  ]
+}

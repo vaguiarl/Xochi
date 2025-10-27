@@ -1,0 +1,41 @@
+{
+  "spriteSheetURL": "./img/xochi_items.png",
+  "type": "animation",
+  "sprites": [
+    {
+      "name": "coin_spin",
+      "images": [
+        {
+          "x": 0,
+          "y": 0,
+          "scale": 2
+        },
+        {
+          "x": 16,
+          "y": 0,
+          "scale": 2
+        },
+        {
+          "x": 32,
+          "y": 0,
+          "scale": 2
+        },
+        {
+          "x": 48,
+          "y": 0,
+          "scale": 2
+        }
+      ],
+      "deltaTime": 90,
+      "colorKey": -1
+    },
+    {
+      "name": "shrine",
+      "x": 0,
+      "y": 16,
+      "xsize": 16,
+      "ysize": 32,
+      "colorKey": -1
+    }
+  ]
+}

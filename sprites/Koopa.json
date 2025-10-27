@@ -1,12 +1,14 @@
 {
-    "spriteSheetURL": "./img/koopas.png",
+    "spriteSheetURL": "./img/birds_enemies.png",
     "type":"character",
     "size":[17,32],
     "sprites":[
         {
             "name":"koopa-1",
-            "x":1, 
-            "y":0,
+            "x":0, 
+            "y":16,
+            "xsize":17,
+            "ysize":32,
             "scalefactor":2,
             "colorKey":-1,
             "collision":false
@@ -14,23 +16,29 @@
         {
             "name":"koopa-2",
             "x":17, 
-            "y":0,
+            "y":16,
+            "xsize":17,
+            "ysize":32,
             "scalefactor":2,
             "colorKey":-1,
             "collision":false
         },
         {
             "name":"koopa-hiding",
-            "x":45, 
-            "y":80,
+            "x":34, 
+            "y":16,
+            "xsize":17,
+            "ysize":32,
             "scalefactor":2,
             "colorKey":-1,
             "collision":false
         },
         {
             "name":"koopa-hiding-with-legs",
-            "x":163, 
-            "y":206,
+            "x":51, 
+            "y":16,
+            "xsize":17,
+            "ysize":32,
             "scalefactor":2,
             "colorKey":-1,
             "collision":false

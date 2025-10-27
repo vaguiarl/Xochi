@@ -1,28 +1,28 @@
 {
-    "spriteSheetURL": "./img/characters.gif",
+    "spriteSheetURL": "./img/birds_enemies.png",
     "type":"character",
     "size":[16,16],
     "sprites":[
         {
             "name":"goomba-1",
-            "x":296, 
-            "y":187,
+            "x":0, 
+            "y":0,
             "scalefactor":2,
             "colorKey":-1,
             "collision":false
         },
         {
             "name":"goomba-2",
-            "x":315, 
-            "y":187,
+            "x":16, 
+            "y":0,
             "scalefactor":2,
             "colorKey":-1,
             "collision":false
         },
         {
             "name":"goomba-flat",
-            "x":277, 
-            "y":187,
+            "x":32, 
+            "y":0,
             "scalefactor":2,
             "colorKey":-1,
             "collision":false

@@ -1,0 +1,94 @@
+{
+  "spriteSheetURL": "./img/xochi_fx.png",
+  "type": "animation",
+  "sprites": [
+    {
+      "name": "fx_splash",
+      "images": [
+        {
+          "x": 0,
+          "y": 0,
+          "scale": 2
+        },
+        {
+          "x": 16,
+          "y": 0,
+          "scale": 2
+        },
+        {
+          "x": 32,
+          "y": 0,
+          "scale": 2
+        }
+      ],
+      "deltaTime": 90,
+      "colorKey": -1
+    },
+    {
+      "name": "fx_sparks",
+      "images": [
+        {
+          "x": 0,
+          "y": 16,
+          "scale": 2
+        },
+        {
+          "x": 16,
+          "y": 16,
+          "scale": 2
+        },
+        {
+          "x": 32,
+          "y": 16,
+          "scale": 2
+        }
+      ],
+      "deltaTime": 80,
+      "colorKey": -1
+    },
+    {
+      "name": "fx_petals",
+      "images": [
+        {
+          "x": 0,
+          "y": 32,
+          "scale": 2
+        },
+        {
+          "x": 16,
+          "y": 32,
+          "scale": 2
+        },
+        {
+          "x": 32,
+          "y": 32,
+          "scale": 2
+        },
+        {
+          "x": 48,
+          "y": 32,
+          "scale": 2
+        }
+      ],
+      "deltaTime": 90,
+      "colorKey": -1
+    },
+    {
+      "name": "fx_dash",
+      "images": [
+        {
+          "x": 0,
+          "y": 48,
+          "scale": 2
+        },
+        {
+          "x": 16,
+          "y": 48,
+          "scale": 2
+        }
+      ],
+      "deltaTime": 60,
+      "colorKey": -1
+    }
+  ]
+}
