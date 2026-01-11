@@ -1,0 +1,114 @@
+{
+  "spriteSheetURL": "./img/xochi_char_glow_v3.png",
+  "type": "character_glow",
+  "size": [
+    16,
+    16
+  ],
+  "sprites": [
+    {
+      "name": "mario_idle",
+      "x": 0,
+      "y": 0,
+      "xsize": 16,
+      "ysize": 16,
+      "colorKey": -1
+    },
+    {
+      "name": "mario_run1",
+      "x": 32,
+      "y": 0,
+      "xsize": 16,
+      "ysize": 16,
+      "colorKey": -1
+    },
+    {
+      "name": "mario_run2",
+      "x": 48,
+      "y": 0,
+      "xsize": 16,
+      "ysize": 16,
+      "colorKey": -1
+    },
+    {
+      "name": "mario_run3",
+      "x": 64,
+      "y": 0,
+      "xsize": 16,
+      "ysize": 16,
+      "colorKey": -1
+    },
+    {
+      "name": "mario_break",
+      "x": 80,
+      "y": 0,
+      "xsize": 16,
+      "ysize": 16,
+      "colorKey": -1
+    },
+    {
+      "name": "mario_jump",
+      "x": 96,
+      "y": 0,
+      "xsize": 16,
+      "ysize": 16,
+      "colorKey": -1
+    },
+    {
+      "name": "mario_dead",
+      "x": 112,
+      "y": 0,
+      "xsize": 16,
+      "ysize": 16,
+      "colorKey": -1
+    },
+    {
+      "name": "mario_big_idle",
+      "x": 0,
+      "y": 16,
+      "xsize": 16,
+      "ysize": 32,
+      "colorKey": -1
+    },
+    {
+      "name": "mario_big_run1",
+      "x": 32,
+      "y": 16,
+      "xsize": 16,
+      "ysize": 32,
+      "colorKey": -1
+    },
+    {
+      "name": "mario_big_run2",
+      "x": 48,
+      "y": 16,
+      "xsize": 16,
+      "ysize": 32,
+      "colorKey": -1
+    },
+    {
+      "name": "mario_big_run3",
+      "x": 64,
+      "y": 16,
+      "xsize": 16,
+      "ysize": 32,
+      "colorKey": -1
+    },
+    {
+      "name": "mario_big_jump",
+      "x": 80,
+      "y": 16,
+      "xsize": 16,
+      "ysize": 32,
+      "colorKey": -1
+    },
+    {
+      "name": "mario_big_break",
+      "x": 96,
+      "y": 16,
+      "xsize": 16,
+      "ysize": 32,
+      "colorKey": -1
+    }
+  ]
+}

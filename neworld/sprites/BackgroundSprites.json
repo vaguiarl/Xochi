@@ -1,0 +1,166 @@
+{
+  "spriteSheetURL": "./img/xochi_tiles_v3.png",
+  "type": "background",
+  "sprites": [
+    {
+      "name": "ground_soil_0",
+      "x": 0,
+      "y": 0,
+      "xsize": 16,
+      "ysize": 16,
+      "colorKey": -1
+    },
+    {
+      "name": "ground_soil_1",
+      "x": 16,
+      "y": 0,
+      "xsize": 16,
+      "ysize": 16,
+      "colorKey": -1
+    },
+    {
+      "name": "ground_soil_2",
+      "x": 32,
+      "y": 0,
+      "xsize": 16,
+      "ysize": 16,
+      "colorKey": -1
+    },
+    {
+      "name": "pier_wood",
+      "x": 0,
+      "y": 16,
+      "xsize": 16,
+      "ysize": 16,
+      "colorKey": -1
+    },
+    {
+      "name": "pier_wood_1",
+      "x": 16,
+      "y": 16,
+      "xsize": 16,
+      "ysize": 16,
+      "colorKey": -1
+    },
+    {
+      "name": "pier_wood_2",
+      "x": 32,
+      "y": 16,
+      "xsize": 16,
+      "ysize": 16,
+      "colorKey": -1
+    },
+    {
+      "name": "stone_dock_0",
+      "x": 0,
+      "y": 32,
+      "xsize": 16,
+      "ysize": 16,
+      "colorKey": -1
+    },
+    {
+      "name": "stone_dock_1",
+      "x": 16,
+      "y": 32,
+      "xsize": 16,
+      "ysize": 16,
+      "colorKey": -1
+    },
+    {
+      "name": "stone_dock_2",
+      "x": 32,
+      "y": 32,
+      "xsize": 16,
+      "ysize": 16,
+      "colorKey": -1
+    },
+    {
+      "name": "water_surface_0",
+      "x": 0,
+      "y": 48,
+      "xsize": 16,
+      "ysize": 16,
+      "colorKey": -1
+    },
+    {
+      "name": "water_surface_1",
+      "x": 16,
+      "y": 48,
+      "xsize": 16,
+      "ysize": 16,
+      "colorKey": -1
+    },
+    {
+      "name": "water_surface_2",
+      "x": 32,
+      "y": 48,
+      "xsize": 16,
+      "ysize": 16,
+      "colorKey": -1
+    },
+    {
+      "name": "reeds_0",
+      "x": 0,
+      "y": 64,
+      "xsize": 16,
+      "ysize": 16,
+      "colorKey": -1
+    },
+    {
+      "name": "reeds_1",
+      "x": 16,
+      "y": 64,
+      "xsize": 16,
+      "ysize": 16,
+      "colorKey": -1
+    },
+    {
+      "name": "reeds_2",
+      "x": 32,
+      "y": 64,
+      "xsize": 16,
+      "ysize": 16,
+      "colorKey": -1
+    },
+    {
+      "name": "rope_bridge_0",
+      "x": 0,
+      "y": 80,
+      "xsize": 16,
+      "ysize": 16,
+      "colorKey": -1
+    },
+    {
+      "name": "rope_bridge_1",
+      "x": 16,
+      "y": 80,
+      "xsize": 16,
+      "ysize": 16,
+      "colorKey": -1
+    },
+    {
+      "name": "rope_bridge_2",
+      "x": 32,
+      "y": 80,
+      "xsize": 16,
+      "ysize": 16,
+      "colorKey": -1
+    },
+    {
+      "name": "sluice_gate",
+      "x": 0,
+      "y": 96,
+      "xsize": 16,
+      "ysize": 16,
+      "colorKey": -1
+    },
+    {
+      "name": "lever_tile",
+      "x": 16,
+      "y": 96,
+      "xsize": 16,
+      "ysize": 16,
+      "colorKey": -1
+    }
+  ]
+}
