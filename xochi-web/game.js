@@ -1460,6 +1460,10 @@ class GameScene extends Phaser.Scene {
     this.cursors = this.input.keyboard.createCursorKeys();
     this.keys = this.input.keyboard.addKeys({ W: 'W', A: 'A', D: 'D', SPACE: 'SPACE', SHIFT: 'SHIFT', X: 'X' });
 
+    // ============ TOUCH CONTROLS FOR MOBILE ============
+    this.touchControls = { left: false, right: false, jump: false, superJump: false };
+    this.setupTouchControls();
+
     // UI
     this.scene.launch('UIScene', { levelNum: this.levelNum });
 
@@ -1479,6 +1483,114 @@ class GameScene extends Phaser.Scene {
     if (gameState.sfxEnabled) {
       this.sound.play(key, { volume: 0.5 });
     }
+  }
+
+  // ============ TOUCH CONTROLS SETUP ============
+  setupTouchControls() {
+    // Only show on touch devices
+    if (!this.sys.game.device.input.touch) return;
+
+    const { width, height } = this.cameras.main;
+    const btnSize = 70;
+    const btnAlpha = 0.5;
+    const margin = 20;
+
+    // Left arrow button
+    const leftBtn = this.add.circle(margin + btnSize/2, height - margin - btnSize/2, btnSize/2, 0x4ecdc4, btnAlpha)
+      .setScrollFactor(0).setDepth(1000).setInteractive();
+    this.add.triangle(margin + btnSize/2, height - margin - btnSize/2, 15, 0, -10, -15, -10, 15, 0xffffff)
+      .setScrollFactor(0).setDepth(1001).setAngle(-90);
+
+    leftBtn.on('pointerdown', () => { this.touchControls.left = true; });
+    leftBtn.on('pointerup', () => { this.touchControls.left = false; });
+    leftBtn.on('pointerout', () => { this.touchControls.left = false; });
+
+    // Right arrow button
+    const rightBtn = this.add.circle(margin + btnSize * 1.8, height - margin - btnSize/2, btnSize/2, 0x4ecdc4, btnAlpha)
+      .setScrollFactor(0).setDepth(1000).setInteractive();
+    this.add.triangle(margin + btnSize * 1.8, height - margin - btnSize/2, 15, 0, -10, -15, -10, 15, 0xffffff)
+      .setScrollFactor(0).setDepth(1001).setAngle(90);
+
+    rightBtn.on('pointerdown', () => { this.touchControls.right = true; });
+    rightBtn.on('pointerup', () => { this.touchControls.right = false; });
+    rightBtn.on('pointerout', () => { this.touchControls.right = false; });
+
+    // Jump button (right side) - tap to jump
+    const jumpBtn = this.add.circle(width - margin - btnSize/2, height - margin - btnSize/2, btnSize/2, 0xff6b9d, btnAlpha)
+      .setScrollFactor(0).setDepth(1000).setInteractive();
+    this.add.text(width - margin - btnSize/2, height - margin - btnSize/2, 'JUMP', {
+      fontFamily: 'Arial', fontSize: '14px', color: '#fff'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(1001);
+
+    jumpBtn.on('pointerdown', () => { this.touchControls.jump = true; });
+    jumpBtn.on('pointerup', () => { this.touchControls.jump = false; });
+    jumpBtn.on('pointerout', () => { this.touchControls.jump = false; });
+
+    // Super Jump button (above jump button)
+    const superBtn = this.add.circle(width - margin - btnSize/2, height - margin - btnSize * 1.6, btnSize/2, 0x00dddd, btnAlpha)
+      .setScrollFactor(0).setDepth(1000).setInteractive();
+    this.add.text(width - margin - btnSize/2, height - margin - btnSize * 1.6, 'SUPER', {
+      fontFamily: 'Arial', fontSize: '12px', color: '#fff'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(1001);
+
+    superBtn.on('pointerdown', () => {
+      this.touchControls.superJump = true;
+      // Trigger super jump immediately
+      if (gameState.superJumps > 0) {
+        gameState.superJumps--;
+        this.player.body.setVelocityY(-650);
+        this.playSound('sfx-superjump');
+        this.showText(this.player.x, this.player.y - 30, 'SUPER!', '#00ffff');
+        this.events.emit('updateUI');
+        // Visual burst
+        for (let i = 0; i < 8; i++) {
+          const angle = (i / 8) * Math.PI * 2;
+          const trail = this.add.circle(
+            this.player.x + Math.cos(angle) * 10,
+            this.player.y + Math.sin(angle) * 10,
+            6, 0x00ffff, 0.8
+          );
+          this.tweens.add({
+            targets: trail,
+            x: this.player.x + Math.cos(angle) * 40,
+            y: this.player.y + Math.sin(angle) * 40,
+            alpha: 0, scale: 0.5, duration: 300,
+            onComplete: () => trail.destroy()
+          });
+        }
+      }
+    });
+    superBtn.on('pointerup', () => { this.touchControls.superJump = false; });
+
+    // Double-tap anywhere on right side of screen for quick super jump
+    this.lastTapTime = 0;
+    this.input.on('pointerdown', (pointer) => {
+      if (pointer.x > width / 2) {
+        const now = this.time.now;
+        if (now - this.lastTapTime < 300) {
+          // Double tap detected - super jump!
+          if (gameState.superJumps > 0 && !this.player.getData('dead')) {
+            gameState.superJumps--;
+            this.player.body.setVelocityY(-650);
+            this.playSound('sfx-superjump');
+            this.showText(this.player.x, this.player.y - 30, 'SUPER!', '#00ffff');
+            this.events.emit('updateUI');
+          }
+        }
+        this.lastTapTime = now;
+      }
+    });
+
+    // Pause button (top right corner)
+    const pauseBtn = this.add.circle(width - 30, 70, 20, 0x666666, 0.6)
+      .setScrollFactor(0).setDepth(1000).setInteractive();
+    this.add.text(width - 30, 70, '||', {
+      fontFamily: 'Arial', fontSize: '16px', color: '#fff'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(1001);
+    pauseBtn.on('pointerdown', () => {
+      this.scene.launch('PauseScene');
+      this.scene.pause();
+    });
   }
 
   // Find platform at position (for platform enemy bounds)
@@ -1778,23 +1890,32 @@ class GameScene extends Phaser.Scene {
 
     const onGround = this.player.body.blocked.down;
     const speed = this.keys.SHIFT.isDown ? 280 : 180;
+    const tc = this.touchControls;
 
-    // Movement
-    if (this.cursors.left.isDown || this.keys.A.isDown) {
+    // Movement (keyboard + touch)
+    if (this.cursors.left.isDown || this.keys.A.isDown || tc.left) {
       this.player.body.setVelocityX(-speed);
       this.player.setFlipX(true);
-    } else if (this.cursors.right.isDown || this.keys.D.isDown) {
+    } else if (this.cursors.right.isDown || this.keys.D.isDown || tc.right) {
       this.player.body.setVelocityX(speed);
       this.player.setFlipX(false);
     } else {
       this.player.body.setVelocityX(this.player.body.velocity.x * 0.8);
     }
 
-    // Regular Jump (use JustDown to prevent repeated sounds)
+    // Regular Jump (keyboard + touch)
     const jumpPressed = Phaser.Input.Keyboard.JustDown(this.cursors.up) ||
                         Phaser.Input.Keyboard.JustDown(this.cursors.space) ||
                         Phaser.Input.Keyboard.JustDown(this.keys.W) ||
                         Phaser.Input.Keyboard.JustDown(this.keys.SPACE);
+
+    // Touch jump - check if just pressed this frame
+    if (!this.lastTouchJump && tc.jump && onGround) {
+      this.player.body.setVelocityY(-450);
+      this.playSound('sfx-jump');
+    }
+    this.lastTouchJump = tc.jump;
+
     if (jumpPressed && onGround) {
       this.player.body.setVelocityY(-450);
       this.playSound('sfx-jump');
