@@ -761,150 +761,6 @@ class BootScene extends Phaser.Scene {
   generateTextures() {
     let g = this.add.graphics();
 
-    // ============ SNES-STYLE XOCHI (pink axolotl) ============
-    // Body shadow
-    g.fillStyle(0xcc4477);
-    g.fillCircle(17, 17, 14);
-    // Body main
-    g.fillStyle(0xff6b9d);
-    g.fillCircle(16, 16, 13);
-    // Body highlight
-    g.fillStyle(0xff99bb);
-    g.fillCircle(13, 12, 7);
-    // Body top highlight
-    g.fillStyle(0xffbbcc);
-    g.fillCircle(12, 10, 4);
-    // Eye whites
-    g.fillStyle(0xffffff);
-    g.fillCircle(10, 13, 5);
-    g.fillCircle(22, 13, 5);
-    // Eye color (cute big eyes)
-    g.fillStyle(0x222244);
-    g.fillCircle(11, 13, 3);
-    g.fillCircle(23, 13, 3);
-    // Eye shine
-    g.fillStyle(0xffffff);
-    g.fillCircle(10, 12, 1);
-    g.fillCircle(22, 12, 1);
-    // Gills (feathery fronds) - left side
-    g.fillStyle(0xdd5588);
-    g.fillCircle(3, 5, 4);
-    g.fillCircle(1, 10, 3);
-    g.fillCircle(2, 15, 3);
-    g.fillStyle(0xff88aa);
-    g.fillCircle(4, 6, 3);
-    g.fillCircle(3, 11, 2);
-    // Gills - right side
-    g.fillStyle(0xdd5588);
-    g.fillCircle(29, 5, 4);
-    g.fillCircle(31, 10, 3);
-    g.fillCircle(30, 15, 3);
-    g.fillStyle(0xff88aa);
-    g.fillCircle(28, 6, 3);
-    g.fillCircle(29, 11, 2);
-    // Smile
-    g.lineStyle(2, 0xcc4477);
-    g.beginPath();
-    g.arc(16, 18, 5, 0.2, Math.PI - 0.2);
-    g.strokePath();
-    // Cheek blush
-    g.fillStyle(0xff8888, 0.4);
-    g.fillCircle(6, 18, 3);
-    g.fillCircle(26, 18, 3);
-    g.generateTexture('xochi', 32, 32);
-    g.clear();
-
-    // ============ BIG XOCHI ============
-    // Body shadow
-    g.fillStyle(0xcc4477);
-    g.fillEllipse(17, 36, 26, 52);
-    // Body main
-    g.fillStyle(0xff6b9d);
-    g.fillEllipse(16, 35, 24, 50);
-    // Body highlight
-    g.fillStyle(0xff99bb);
-    g.fillEllipse(12, 28, 14, 30);
-    // Head highlight
-    g.fillStyle(0xffbbcc);
-    g.fillCircle(12, 14, 6);
-    // Eyes
-    g.fillStyle(0xffffff);
-    g.fillCircle(10, 16, 5);
-    g.fillCircle(22, 16, 5);
-    g.fillStyle(0x222244);
-    g.fillCircle(11, 16, 3);
-    g.fillCircle(23, 16, 3);
-    g.fillStyle(0xffffff);
-    g.fillCircle(10, 15, 1);
-    g.fillCircle(22, 15, 1);
-    // Gills
-    g.fillStyle(0xdd5588);
-    g.fillCircle(3, 8, 5);
-    g.fillCircle(1, 14, 4);
-    g.fillCircle(29, 8, 5);
-    g.fillCircle(31, 14, 4);
-    g.fillStyle(0xff88aa);
-    g.fillCircle(4, 9, 3);
-    g.fillCircle(28, 9, 3);
-    g.generateTexture('xochi-big', 32, 64);
-    g.clear();
-
-    // ============ SNES-STYLE ENEMY (bird/gull) ============
-    // Shadow
-    g.fillStyle(0x444455);
-    g.fillEllipse(17, 19, 24, 20);
-    // Body
-    g.fillStyle(0x556677);
-    g.fillEllipse(16, 18, 22, 18);
-    // Body highlight
-    g.fillStyle(0x778899);
-    g.fillEllipse(14, 14, 14, 10);
-    // Wing shadow
-    g.fillStyle(0x445566);
-    g.fillTriangle(4, 18, 14, 12, 14, 24);
-    g.fillTriangle(28, 18, 18, 12, 18, 24);
-    // Beak
-    g.fillStyle(0xffbb44);
-    g.fillTriangle(16, 8, 10, 16, 22, 16);
-    g.fillStyle(0xffdd77);
-    g.fillTriangle(16, 10, 12, 15, 20, 15);
-    // Angry eyes
-    g.fillStyle(0xffffff);
-    g.fillCircle(11, 14, 4);
-    g.fillCircle(21, 14, 4);
-    g.fillStyle(0xcc0000);
-    g.fillCircle(12, 14, 2);
-    g.fillCircle(22, 14, 2);
-    g.fillStyle(0xff0000);
-    g.fillCircle(11, 13, 1);
-    g.fillCircle(21, 13, 1);
-    // Angry eyebrows
-    g.lineStyle(2, 0x333344);
-    g.lineBetween(7, 10, 14, 12);
-    g.lineBetween(25, 10, 18, 12);
-    g.generateTexture('enemy', 32, 32);
-    g.clear();
-
-    // ============ SNES-STYLE COIN ============
-    // Shadow
-    g.fillStyle(0xcc9900);
-    g.fillCircle(9, 9, 7);
-    // Main
-    g.fillStyle(0xffdd00);
-    g.fillCircle(8, 8, 7);
-    // Inner ring
-    g.lineStyle(1, 0xccaa00);
-    g.strokeCircle(8, 8, 5);
-    // Highlight
-    g.fillStyle(0xffff88);
-    g.fillCircle(5, 5, 3);
-    // Top shine
-    g.fillStyle(0xffffff);
-    g.fillCircle(5, 4, 1);
-    g.generateTexture('coin', 16, 16);
-    g.clear();
-
-    // ============ SNES-STYLE STAR ============
     // Helper to draw a star shape
     const drawStar = (gfx, cx, cy, points, outerR, innerR) => {
       gfx.beginPath();
@@ -919,118 +775,440 @@ class BootScene extends Phaser.Scene {
       gfx.closePath();
       gfx.fillPath();
     };
-    // Glow
-    g.fillStyle(0xffff00, 0.3);
+
+    // Helper to draw coral-like feathery gills
+    const drawGills = (gfx, x, y, flip, scale = 1) => {
+      const dir = flip ? -1 : 1;
+      // Multiple coral fronds with gradient coloring
+      const fronds = [
+        { ox: 0, oy: -8, r: 4 },   // Top frond
+        { ox: -2 * dir, oy: -4, r: 3.5 },
+        { ox: -3 * dir, oy: 0, r: 3 },
+        { ox: -2 * dir, oy: 4, r: 3 },
+        { ox: 0, oy: 7, r: 2.5 },  // Bottom frond
+      ];
+      // Dark coral base
+      gfx.fillStyle(0xcc3366);
+      fronds.forEach(f => {
+        gfx.fillCircle(x + f.ox * scale, y + f.oy * scale, f.r * scale);
+      });
+      // Mid coral layer
+      gfx.fillStyle(0xe85588);
+      fronds.forEach(f => {
+        gfx.fillCircle(x + f.ox * scale + dir, y + f.oy * scale - 0.5, (f.r - 0.5) * scale);
+      });
+      // Bright coral tips
+      gfx.fillStyle(0xff88aa);
+      fronds.forEach(f => {
+        gfx.fillCircle(x + f.ox * scale + dir * 1.5, y + f.oy * scale - 1, (f.r - 1.2) * scale);
+      });
+      // Tiny highlight dots
+      gfx.fillStyle(0xffccdd);
+      gfx.fillCircle(x + dir * 2, y - 7 * scale, 1.5 * scale);
+      gfx.fillCircle(x + dir, y - 2 * scale, 1 * scale);
+    };
+
+    // ============ AWARD-WINNING XOCHI (pink axolotl) ============
+    // Soft body shadow (ambient occlusion)
+    g.fillStyle(0xaa3366);
+    g.fillCircle(17, 18, 13);
+    // Body base - soft salmon pink
+    g.fillStyle(0xe8758f);
+    g.fillCircle(16, 16, 12);
+    // Body mid tone
+    g.fillStyle(0xf48aa0);
+    g.fillCircle(15, 15, 10);
+    // Body highlight - creamy pink
+    g.fillStyle(0xffaabb);
+    g.fillCircle(13, 12, 7);
+    // Body top specular
+    g.fillStyle(0xffccdd);
+    g.fillCircle(11, 9, 4);
+    // Tiny white specular
+    g.fillStyle(0xffffff, 0.6);
+    g.fillCircle(10, 8, 2);
+
+    // Feathery coral gills - LEFT
+    drawGills(g, 4, 10, false, 1);
+    // Feathery coral gills - RIGHT
+    drawGills(g, 28, 10, true, 1);
+
+    // Big expressive eyes - white with slight blue tint
+    g.fillStyle(0xf8f8ff);
+    g.fillCircle(10, 14, 5);
+    g.fillCircle(22, 14, 5);
+    // Eye dark outline (subtle)
+    g.lineStyle(1, 0x886688, 0.3);
+    g.strokeCircle(10, 14, 5);
+    g.strokeCircle(22, 14, 5);
+    // Large dark pupils
+    g.fillStyle(0x1a1a2e);
+    g.fillCircle(11, 14, 3.5);
+    g.fillCircle(23, 14, 3.5);
+    // Eye color ring (dark pink)
+    g.fillStyle(0x663355);
+    g.fillCircle(11, 14, 2.5);
+    g.fillCircle(23, 14, 2.5);
+    // Inner pupil
+    g.fillStyle(0x111122);
+    g.fillCircle(11, 14, 1.5);
+    g.fillCircle(23, 14, 1.5);
+    // Big sparkle highlight
+    g.fillStyle(0xffffff);
+    g.fillCircle(9, 12, 2);
+    g.fillCircle(21, 12, 2);
+    // Small secondary sparkle
+    g.fillStyle(0xffffff, 0.8);
+    g.fillCircle(12, 15, 1);
+    g.fillCircle(24, 15, 1);
+
+    // Cute happy smile
+    g.lineStyle(1.5, 0xcc4466);
+    g.beginPath();
+    g.arc(16, 19, 4, 0.3, Math.PI - 0.3);
+    g.strokePath();
+    // Smile ends (dimples)
+    g.fillStyle(0xcc4466);
+    g.fillCircle(12, 20, 0.8);
+    g.fillCircle(20, 20, 0.8);
+
+    // Rosy cheek blush
+    g.fillStyle(0xff6688, 0.35);
+    g.fillCircle(6, 18, 3);
+    g.fillCircle(26, 18, 3);
+
+    // Tiny feet hints at bottom
+    g.fillStyle(0xe8758f);
+    g.fillCircle(10, 28, 2);
+    g.fillCircle(22, 28, 2);
+
+    g.generateTexture('xochi', 32, 32);
+    g.clear();
+
+    // ============ BIG XOCHI (powered up) ============
+    // Body shadow
+    g.fillStyle(0xaa3366);
+    g.fillEllipse(16, 38, 24, 54);
+    // Body base
+    g.fillStyle(0xe8758f);
+    g.fillEllipse(16, 36, 22, 50);
+    // Body mid
+    g.fillStyle(0xf48aa0);
+    g.fillEllipse(14, 32, 18, 40);
+    // Body highlight
+    g.fillStyle(0xffaabb);
+    g.fillEllipse(12, 26, 12, 28);
+    // Top specular
+    g.fillStyle(0xffccdd);
+    g.fillCircle(10, 16, 6);
+    g.fillStyle(0xffffff, 0.5);
+    g.fillCircle(8, 12, 3);
+
+    // Big gills
+    drawGills(g, 3, 14, false, 1.3);
+    drawGills(g, 29, 14, true, 1.3);
+
+    // Big eyes
+    g.fillStyle(0xf8f8ff);
+    g.fillCircle(9, 18, 5);
+    g.fillCircle(23, 18, 5);
+    g.fillStyle(0x1a1a2e);
+    g.fillCircle(10, 18, 3.5);
+    g.fillCircle(24, 18, 3.5);
+    g.fillStyle(0x663355);
+    g.fillCircle(10, 18, 2.5);
+    g.fillCircle(24, 18, 2.5);
+    g.fillStyle(0xffffff);
+    g.fillCircle(8, 16, 2);
+    g.fillCircle(22, 16, 2);
+
+    // Smile
+    g.lineStyle(2, 0xcc4466);
+    g.beginPath();
+    g.arc(16, 24, 5, 0.3, Math.PI - 0.3);
+    g.strokePath();
+
+    // Cheeks
+    g.fillStyle(0xff6688, 0.35);
+    g.fillCircle(5, 22, 3);
+    g.fillCircle(27, 22, 3);
+
+    // Tail hint
+    g.fillStyle(0xe8758f);
+    g.fillEllipse(16, 58, 8, 6);
+    g.fillStyle(0xf48aa0);
+    g.fillEllipse(16, 57, 6, 4);
+
+    // Feet
+    g.fillStyle(0xe8758f);
+    g.fillCircle(8, 54, 3);
+    g.fillCircle(24, 54, 3);
+
+    g.generateTexture('xochi-big', 32, 64);
+    g.clear();
+
+    // ============ SEAGULL ENEMY (white/cream with attitude) ============
+    // Body shadow
+    g.fillStyle(0x999999);
+    g.fillEllipse(17, 20, 22, 18);
+    // Body base - creamy white
+    g.fillStyle(0xddddcc);
+    g.fillEllipse(16, 18, 20, 16);
+    // Body highlight
+    g.fillStyle(0xeeeeee);
+    g.fillEllipse(14, 14, 14, 10);
+    // White chest
+    g.fillStyle(0xfafafa);
+    g.fillEllipse(16, 16, 10, 8);
+    // Wing shadows (gray)
+    g.fillStyle(0x888899);
+    g.fillTriangle(3, 20, 12, 12, 12, 26);
+    g.fillTriangle(29, 20, 20, 12, 20, 26);
+    // Wing highlights
+    g.fillStyle(0xaaaaaa);
+    g.fillTriangle(5, 19, 12, 13, 12, 24);
+    g.fillTriangle(27, 19, 20, 13, 20, 24);
+
+    // Orange beak - chunky and angry
+    g.fillStyle(0xdd8800);
+    g.fillTriangle(16, 6, 9, 15, 23, 15);
+    g.fillStyle(0xffaa22);
+    g.fillTriangle(16, 8, 11, 14, 21, 14);
+    g.fillStyle(0xffcc66);
+    g.fillTriangle(16, 10, 13, 13, 19, 13);
+
+    // Angry eyes
+    g.fillStyle(0xffffff);
+    g.fillCircle(11, 14, 4);
+    g.fillCircle(21, 14, 4);
+    // Red angry pupils
+    g.fillStyle(0x222222);
+    g.fillCircle(12, 14, 2.5);
+    g.fillCircle(22, 14, 2.5);
+    g.fillStyle(0x880000);
+    g.fillCircle(12, 14, 1.5);
+    g.fillCircle(22, 14, 1.5);
+    // Tiny angry highlight
+    g.fillStyle(0xffffff);
+    g.fillCircle(11, 13, 1);
+    g.fillCircle(21, 13, 1);
+
+    // ANGRY eyebrows (V shape)
+    g.fillStyle(0x333333);
+    g.fillTriangle(6, 9, 14, 11, 14, 13);
+    g.fillTriangle(26, 9, 18, 11, 18, 13);
+
+    // Feet
+    g.fillStyle(0xdd8800);
+    g.fillRect(12, 28, 2, 4);
+    g.fillRect(18, 28, 2, 4);
+
+    g.generateTexture('enemy', 32, 32);
+    g.clear();
+
+    // ============ AZTEC-STYLE GOLD COIN ============
+    // Outer glow
+    g.fillStyle(0xffdd00, 0.2);
     g.fillCircle(8, 8, 8);
     // Shadow
+    g.fillStyle(0x996600);
+    g.fillCircle(9, 9, 7);
+    // Gold base
     g.fillStyle(0xddaa00);
-    drawStar(g, 9, 9, 5, 8, 4);
-    // Main star
-    g.fillStyle(0xffee00);
-    drawStar(g, 8, 8, 5, 8, 4);
-    // Inner highlight
+    g.fillCircle(8, 8, 7);
+    // Gold mid
+    g.fillStyle(0xffcc00);
+    g.fillCircle(8, 8, 6);
+    // Inner ring (carved)
+    g.lineStyle(1.5, 0xaa8800);
+    g.strokeCircle(8, 8, 4.5);
+    // Aztec sun pattern - center
+    g.fillStyle(0xaa7700);
+    g.fillCircle(8, 8, 2);
+    g.fillStyle(0xffdd44);
+    g.fillCircle(8, 8, 1.5);
+    // Sun rays (simple lines)
+    g.lineStyle(1, 0xaa7700);
+    for (let i = 0; i < 8; i++) {
+      const angle = (i / 8) * Math.PI * 2;
+      g.lineBetween(
+        8 + Math.cos(angle) * 2.5, 8 + Math.sin(angle) * 2.5,
+        8 + Math.cos(angle) * 4, 8 + Math.sin(angle) * 4
+      );
+    }
+    // Highlight arc
     g.fillStyle(0xffff88);
-    drawStar(g, 8, 8, 5, 5, 3);
-    // Center shine
+    g.fillCircle(5, 5, 2.5);
+    // Specular
+    g.fillStyle(0xffffff);
+    g.fillCircle(4, 4, 1);
+    g.generateTexture('coin', 16, 16);
+    g.clear();
+
+    // ============ SPARKLY GOLDEN STAR ============
+    // Outer glow
+    g.fillStyle(0xffff00, 0.25);
+    g.fillCircle(8, 8, 9);
+    // Star shadow
+    g.fillStyle(0xcc8800);
+    drawStar(g, 9, 9, 5, 7, 3);
+    // Star base
+    g.fillStyle(0xffbb00);
+    drawStar(g, 8, 8, 5, 7, 3);
+    // Star highlight
+    g.fillStyle(0xffdd44);
+    drawStar(g, 7.5, 7.5, 5, 5.5, 2.5);
+    // Inner glow
+    g.fillStyle(0xffee88);
+    drawStar(g, 7.5, 7.5, 5, 4, 2);
+    // Center sparkle
     g.fillStyle(0xffffff);
     g.fillCircle(7, 6, 2);
+    g.fillCircle(6, 5, 1);
+    // Tiny sparkle points
+    g.fillStyle(0xffffff, 0.8);
+    g.fillCircle(3, 3, 0.8);
+    g.fillCircle(12, 4, 0.8);
+    g.fillCircle(4, 11, 0.8);
     g.generateTexture('star', 16, 16);
     g.clear();
 
-    // ============ SNES-STYLE MUSHROOM ============
+    // ============ MUSHROOM POWERUP ============
     // Cap shadow
-    g.fillStyle(0xcc2222);
+    g.fillStyle(0xaa2222);
     g.fillEllipse(8, 7, 15, 11);
-    // Cap main
-    g.fillStyle(0xff4444);
+    // Cap base
+    g.fillStyle(0xdd3333);
     g.fillEllipse(8, 6, 14, 10);
+    // Cap mid
+    g.fillStyle(0xee4444);
+    g.fillEllipse(7, 5, 12, 8);
     // Cap highlight
     g.fillStyle(0xff6666);
-    g.fillEllipse(6, 4, 8, 5);
-    // White spots
-    g.fillStyle(0xffffff);
-    g.fillCircle(4, 4, 2);
+    g.fillEllipse(5, 3, 6, 4);
+    // White spots with depth
+    g.fillStyle(0xeeeeee);
+    g.fillCircle(4, 4, 2.5);
     g.fillCircle(11, 3, 2);
-    g.fillCircle(8, 7, 1);
-    // Stem shadow
+    g.fillCircle(7, 7, 1.5);
+    g.fillStyle(0xffffff);
+    g.fillCircle(3.5, 3.5, 1.5);
+    g.fillCircle(10.5, 2.5, 1.2);
+    // Stem
     g.fillStyle(0xddddcc);
     g.fillRect(5, 10, 7, 6);
-    // Stem
     g.fillStyle(0xffffee);
     g.fillRect(5, 10, 6, 5);
-    // Stem highlight
     g.fillStyle(0xffffff);
     g.fillRect(6, 10, 2, 4);
     g.generateTexture('mushroom', 16, 16);
     g.clear();
 
-    // ============ SNES-STYLE BABY AXOLOTL ============
+    // ============ CUTE BABY AXOLOTL ============
     // Shadow
-    g.fillStyle(0xdd88aa);
+    g.fillStyle(0xcc6699);
     g.fillCircle(9, 9, 6);
     // Body
     g.fillStyle(0xffaacc);
     g.fillCircle(8, 8, 6);
     // Highlight
     g.fillStyle(0xffccdd);
-    g.fillCircle(6, 6, 3);
-    // Eyes
+    g.fillCircle(6, 6, 3.5);
+    // Top specular
+    g.fillStyle(0xffeeff);
+    g.fillCircle(5, 5, 2);
+    // Mini gills
+    g.fillStyle(0xee77aa);
+    g.fillCircle(2, 4, 2.5);
+    g.fillCircle(1, 7, 2);
+    g.fillCircle(14, 4, 2.5);
+    g.fillCircle(15, 7, 2);
+    g.fillStyle(0xffaacc);
+    g.fillCircle(2.5, 4.5, 1.5);
+    g.fillCircle(13.5, 4.5, 1.5);
+    // Big sparkly eyes
     g.fillStyle(0xffffff);
-    g.fillCircle(6, 7, 2);
-    g.fillCircle(10, 7, 2);
+    g.fillCircle(5, 7, 2.5);
+    g.fillCircle(11, 7, 2.5);
     g.fillStyle(0x222244);
-    g.fillCircle(6, 7, 1);
-    g.fillCircle(10, 7, 1);
-    // Gills
-    g.fillStyle(0xee99bb);
-    g.fillCircle(2, 4, 3);
-    g.fillCircle(14, 4, 3);
-    g.fillStyle(0xffbbcc);
-    g.fillCircle(3, 5, 2);
-    g.fillCircle(13, 5, 2);
+    g.fillCircle(5.5, 7, 1.5);
+    g.fillCircle(11.5, 7, 1.5);
+    g.fillStyle(0xffffff);
+    g.fillCircle(4.5, 6, 1);
+    g.fillCircle(10.5, 6, 1);
+    // Tiny smile
+    g.lineStyle(1, 0xdd6699);
+    g.beginPath();
+    g.arc(8, 10, 2, 0.3, Math.PI - 0.3);
+    g.strokePath();
     // Blush
-    g.fillStyle(0xff8888, 0.3);
-    g.fillCircle(4, 10, 2);
-    g.fillCircle(12, 10, 2);
+    g.fillStyle(0xff8899, 0.4);
+    g.fillCircle(3, 10, 1.5);
+    g.fillCircle(13, 10, 1.5);
     g.generateTexture('baby', 16, 16);
     g.clear();
 
-    // ============ SNES-STYLE SUPER JUMP POWERUP ============
-    // Glow
-    g.fillStyle(0x00ffff, 0.3);
+    // ============ MAGICAL SUPER JUMP FEATHER ============
+    // Outer magic glow
+    g.fillStyle(0x00ffff, 0.2);
     g.fillCircle(8, 8, 8);
-    // Wing shadow
-    g.fillStyle(0x0099aa);
-    g.fillTriangle(8, 1, 2, 10, 14, 10);
-    // Wing
-    g.fillStyle(0x00ddee);
-    g.fillTriangle(8, 2, 3, 9, 13, 9);
-    // Wing highlight
-    g.fillStyle(0x88ffff);
-    g.fillTriangle(8, 4, 5, 8, 11, 8);
-    // Feather lines
-    g.lineStyle(1, 0x00aacc);
-    g.lineBetween(8, 3, 5, 8);
-    g.lineBetween(8, 3, 11, 8);
-    // Base crystal
+    // Inner glow
+    g.fillStyle(0x44ffff, 0.3);
+    g.fillCircle(8, 7, 6);
+    // Feather shadow
     g.fillStyle(0x0088aa);
-    g.fillRect(4, 9, 8, 6);
-    g.fillStyle(0x00bbcc);
-    g.fillRect(5, 9, 6, 5);
-    g.fillStyle(0x00ffff);
-    g.fillRect(6, 10, 2, 3);
+    g.fillTriangle(8, 1, 1, 12, 15, 12);
+    // Feather base
+    g.fillStyle(0x00bbdd);
+    g.fillTriangle(8, 2, 2, 11, 14, 11);
+    // Feather highlight
+    g.fillStyle(0x44ddee);
+    g.fillTriangle(8, 3, 4, 10, 12, 10);
+    // Inner feather
+    g.fillStyle(0x88eeff);
+    g.fillTriangle(8, 5, 5, 9, 11, 9);
+    // Feather spine
+    g.lineStyle(1, 0x008899);
+    g.lineBetween(8, 2, 8, 11);
+    // Feather veins
+    g.lineStyle(0.5, 0x00aacc, 0.5);
+    g.lineBetween(8, 4, 5, 8);
+    g.lineBetween(8, 4, 11, 8);
+    g.lineBetween(8, 6, 4, 10);
+    g.lineBetween(8, 6, 12, 10);
+    // Magic sparkles
+    g.fillStyle(0xffffff);
+    g.fillCircle(5, 5, 1);
+    g.fillCircle(11, 5, 1);
+    g.fillCircle(8, 3, 1.5);
+    // Crystal base
+    g.fillStyle(0x006688);
+    g.fillRect(5, 11, 6, 4);
+    g.fillStyle(0x00aacc);
+    g.fillRect(6, 11, 4, 3);
+    g.fillStyle(0x66eeff);
+    g.fillRect(7, 11, 2, 2);
     g.generateTexture('superjump', 16, 16);
     g.clear();
 
-    // ============ PROJECTILE (red orb) ============
+    // ============ ENEMY PROJECTILE (angry red orb) ============
+    // Outer glow
     g.fillStyle(0xff0000, 0.3);
     g.fillCircle(6, 6, 6);
-    g.fillStyle(0xcc0000);
+    // Fire ring
+    g.fillStyle(0xff4400);
     g.fillCircle(6, 6, 5);
-    g.fillStyle(0xff3333);
-    g.fillCircle(5, 5, 3);
-    g.fillStyle(0xff8888);
-    g.fillCircle(4, 4, 1);
+    // Core
+    g.fillStyle(0xff6600);
+    g.fillCircle(6, 6, 4);
+    // Hot center
+    g.fillStyle(0xffaa00);
+    g.fillCircle(5, 5, 2.5);
+    // White hot
+    g.fillStyle(0xffdd88);
+    g.fillCircle(4, 4, 1.5);
+    g.fillStyle(0xffffff);
+    g.fillCircle(4, 4, 0.8);
     g.generateTexture('projectile', 12, 12);
     g.clear();
 
