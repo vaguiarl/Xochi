@@ -753,15 +753,13 @@ class BootScene extends Phaser.Scene {
     this.load.audio('sfx-hurt', 'public/assets/audio/bump.ogg');
     this.load.audio('sfx-superjump', 'public/assets/audio/powerup_appears.ogg');
 
-    // Load Xochi (Aztec axolotl warrior) animation frames
-    this.load.image('xochi_idle', 'public/assets/xochi_main_asset/xochi_walk2.png');   // Standing pose
-    this.load.image('xochi_walk1', 'public/assets/xochi_main_asset/xochi_walk1.png');  // Walk frame 1
-    this.load.image('xochi_walk2', 'public/assets/xochi_main_asset/xochi_walk2.png');  // Walk frame 2
-    this.load.image('xochi_walk3', 'public/assets/xochi_main_asset/xochi_walk3.png');  // Walk frame 3
-    this.load.image('xochi_jump', 'public/assets/xochi_main_asset/xochi_jump.png');    // Jump/air pose
-    // Legacy key for compatibility
-    this.load.image('xochi', 'public/assets/xochi_main_asset/xochi_walk2.png');
-    this.load.image('xochi-attack', 'public/assets/xochi_main_asset/xochi_walk3.png');
+    // Load Xochi (Aztec axolotl warrior) animation frames from pack
+    this.load.image('xochi_walk', 'public/assets/xochi_main_asset/xochi_walk.png');     // Walk pose
+    this.load.image('xochi_run', 'public/assets/xochi_main_asset/xochi_run.png');       // Run pose
+    this.load.image('xochi_jump', 'public/assets/xochi_main_asset/xochi_jump.png');     // Jump pose
+    this.load.image('xochi_attack', 'public/assets/xochi_main_asset/xochi_attack.png'); // Attack pose
+    // Default/legacy keys
+    this.load.image('xochi', 'public/assets/xochi_main_asset/xochi_walk.png');
   }
 
   create() {
@@ -1396,7 +1394,7 @@ class MenuScene extends Phaser.Scene {
     const glow = this.add.circle(width/2, 170, 35, 0xff6b9d, 0.3);
     this.tweens.add({ targets: glow, scale: 1.2, alpha: 0.1, duration: 1000, yoyo: true, repeat: -1 });
     // Character
-    const xochi = this.add.sprite(width/2, 170, 'xochi').setScale(0.24);
+    const xochi = this.add.sprite(width/2, 170, 'xochi_walk').setScale(0.28);
     this.tweens.add({ targets: xochi, y: 160, duration: 800, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
 
     // ============ SNES-STYLE SCOREBOARD ============
@@ -1707,12 +1705,12 @@ class GameScene extends Phaser.Scene {
       });
     }
 
-    // Player (Aztec axolotl warrior - ~500x574 sprite frames at 0.12 scale)
-    this.player = this.physics.add.sprite(ld.playerSpawn.x, ld.playerSpawn.y, 'xochi').setScale(0.12);
+    // Player (Aztec axolotl warrior - ~420x450 sprite frames at 0.15 scale)
+    this.player = this.physics.add.sprite(ld.playerSpawn.x, ld.playerSpawn.y, 'xochi_walk').setScale(0.15);
     this.player.setCollideWorldBounds(true);
-    // Hitbox for ~500x574 frames: body is roughly center, feet at bottom
-    this.player.body.setSize(280, 400);
-    this.player.body.setOffset(110, 150); // Center hitbox, feet touch ground
+    // Hitbox for ~420x450 frames: smaller box for body, feet at bottom
+    this.player.body.setSize(200, 350);
+    this.player.body.setOffset(110, 100); // Center hitbox, feet touch ground
     this.player.setData('big', false);
     this.player.setData('invincible', false);
     this.player.setData('dead', false);
@@ -2278,26 +2276,13 @@ class GameScene extends Phaser.Scene {
       this.isAttacking = true;
       this.attackCooldown = 500; // 0.5 second cooldown for regular swing
 
-      // MACE SWING ANIMATION - use attack frame + rotation
+      // MACE SWING ANIMATION - use attack frame
       const dir = this.player.flipX ? -1 : 1;
 
       // Switch to attack frame (mace raised)
-      this.player.setTexture('xochi_walk3');
+      this.player.setTexture('xochi_attack');
 
-      // Swing rotation
-      this.tweens.add({
-        targets: this.player,
-        rotation: dir * 0.4,
-        duration: 100,
-        ease: 'Power3',
-        yoyo: true,
-        onComplete: () => {
-          this.player.setRotation(0);
-          this.player.setTexture('xochi_idle');
-        }
-      });
-
-      this.playSound('sfx-jump'); // Whoosh sound
+      this.playSound('sfx-stomp'); // Attack sound
 
       // Melee hit enemies very close (no thunderbolt)
       const meleeRange = 60;
@@ -2386,39 +2371,31 @@ class GameScene extends Phaser.Scene {
       });
     }
 
-    // ============ SIMPLE FRAME ANIMATION ============
+    // ============ FRAME ANIMATION ============
     const isMoving = Math.abs(this.player.body.velocity.x) > 10;
     const isInAir = !onGround;
-
-    // Walk animation frames
-    const walkFrames = ['xochi_walk1', 'xochi_walk2', 'xochi_walk3', 'xochi_walk2'];
-    const walkFrameSpeed = this.keys.SHIFT.isDown ? 80 : 120;
-
-    // WALKING - cycle through frames
-    if (isMoving && onGround && !this.isAttacking) {
-      this.walkFrameTime += 16;
-      if (this.walkFrameTime >= walkFrameSpeed) {
-        this.walkFrameTime = 0;
-        this.walkFrame = (this.walkFrame + 1) % walkFrames.length;
-        this.player.setTexture(walkFrames[this.walkFrame]);
-      }
-      this.player.setRotation(0);
+    const isRunning = this.keys.SHIFT.isDown;
 
     // JUMPING - use jump frame
-    } else if (isInAir && !this.isAttacking) {
+    if (isInAir && !this.isAttacking) {
       this.player.setTexture('xochi_jump');
-      this.player.setRotation(0);
 
-    // IDLE - standing pose
+    // RUNNING (SHIFT held) - use run frame
+    } else if (isMoving && isRunning && onGround && !this.isAttacking) {
+      this.player.setTexture('xochi_run');
+
+    // WALKING - use walk frame
+    } else if (isMoving && onGround && !this.isAttacking) {
+      this.player.setTexture('xochi_walk');
+
+    // IDLE - use walk frame (standing pose)
     } else if (!this.isAttacking) {
-      this.player.setTexture('xochi_walk2'); // Idle pose
-      this.player.setRotation(0);
-      this.walkFrame = 0;
-      this.walkFrameTime = 0;
+      this.player.setTexture('xochi_walk');
     }
 
-    // Keep scale constant
-    this.player.setScale(0.12);
+    // Keep scale and rotation constant
+    this.player.setScale(0.15);
+    this.player.setRotation(0);
 
     // Enemies patrol
     const now = this.time.now;
@@ -2647,7 +2624,7 @@ class EndScene extends Phaser.Scene {
     }
 
     // Xochi
-    const x = this.add.sprite(width/2, 300, 'xochi').setScale(0.26);
+    const x = this.add.sprite(width/2, 300, 'xochi_walk').setScale(0.30);
     this.tweens.add({ targets: x, y: 285, duration: 800, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
 
     // Stats

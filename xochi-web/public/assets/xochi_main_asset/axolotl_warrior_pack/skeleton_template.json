@@ -1,0 +1,144 @@
+{
+  "skeleton": {
+    "name": "axolotl_warrior",
+    "units": "pixels",
+    "reference_pose": "idle_like",
+    "recommended_tooling": [
+      "Spine",
+      "DragonBones",
+      "Unity 2D Animation",
+      "Godot Skeleton2D"
+    ]
+  },
+  "bones": [
+    {
+      "name": "root",
+      "parent": null
+    },
+    {
+      "name": "hips",
+      "parent": "root"
+    },
+    {
+      "name": "spine",
+      "parent": "hips"
+    },
+    {
+      "name": "head",
+      "parent": "spine"
+    },
+    {
+      "name": "gills_L",
+      "parent": "head"
+    },
+    {
+      "name": "gills_R",
+      "parent": "head"
+    },
+    {
+      "name": "tail_1",
+      "parent": "hips"
+    },
+    {
+      "name": "tail_2",
+      "parent": "tail_1"
+    },
+    {
+      "name": "arm_L_upper",
+      "parent": "spine"
+    },
+    {
+      "name": "arm_L_lower",
+      "parent": "arm_L_upper"
+    },
+    {
+      "name": "hand_L",
+      "parent": "arm_L_lower"
+    },
+    {
+      "name": "weapon",
+      "parent": "hand_L"
+    },
+    {
+      "name": "arm_R_upper",
+      "parent": "spine"
+    },
+    {
+      "name": "arm_R_lower",
+      "parent": "arm_R_upper"
+    },
+    {
+      "name": "hand_R",
+      "parent": "arm_R_lower"
+    },
+    {
+      "name": "shield",
+      "parent": "hand_R"
+    },
+    {
+      "name": "leg_L_upper",
+      "parent": "hips"
+    },
+    {
+      "name": "leg_L_lower",
+      "parent": "leg_L_upper"
+    },
+    {
+      "name": "foot_L",
+      "parent": "leg_L_lower"
+    },
+    {
+      "name": "leg_R_upper",
+      "parent": "hips"
+    },
+    {
+      "name": "leg_R_lower",
+      "parent": "leg_R_upper"
+    },
+    {
+      "name": "foot_R",
+      "parent": "leg_R_lower"
+    }
+  ],
+  "slots": [
+    {
+      "name": "body",
+      "bone": "spine",
+      "attachment": null
+    },
+    {
+      "name": "head",
+      "bone": "head",
+      "attachment": null
+    },
+    {
+      "name": "tail",
+      "bone": "tail_2",
+      "attachment": null
+    },
+    {
+      "name": "weapon",
+      "bone": "weapon",
+      "attachment": "weapon_mace.png"
+    },
+    {
+      "name": "shield",
+      "bone": "shield",
+      "attachment": "shield.png"
+    }
+  ],
+  "animations": {
+    "walk": {
+      "notes": "Typically 6-8 frames at 10-12 fps; keep hips bob small; add tail/gill overlap."
+    },
+    "run": {
+      "notes": "Higher cadence; larger hip bob; stronger tail swing; shield lag slightly."
+    },
+    "jump": {
+      "notes": "Split into jump_start / jump_loop / jump_land; add squash/stretch if style allows."
+    },
+    "attack": {
+      "notes": "Windup->hit->recovery; weapon arc; shield counter-rotation for balance."
+    }
+  }
+}
