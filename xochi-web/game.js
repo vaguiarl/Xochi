@@ -1,4 +1,4 @@
-// Xochi - Axolotl Adventure
+// Xochi - Aztec Warrior Adventure
 // A Phaser 3 platformer game
 
 // ============== LA CUCARACHA MUSIC ==============
@@ -750,6 +750,10 @@ class BootScene extends Phaser.Scene {
     this.load.audio('sfx-powerup', 'public/assets/audio/powerup.ogg');
     this.load.audio('sfx-hurt', 'public/assets/audio/bump.ogg');
     this.load.audio('sfx-superjump', 'public/assets/audio/powerup_appears.ogg');
+
+    // Load Xochi (Aztec warrior girl) sprites
+    this.load.image('xochi', 'public/assets/xochi_main_asset/xochi_new_1.png');
+    this.load.image('xochi-attack', 'public/assets/xochi_main_asset/xochi_new_2.png');
   }
 
   create() {
@@ -808,9 +812,11 @@ class BootScene extends Phaser.Scene {
       gfx.fillCircle(x + dir, y - 2 * scale, 1 * scale);
     };
 
-    // ============ DKC-STYLE XOCHI (cute 3/4 side view axolotl) ============
-    // This creates a pre-rendered 3D look like Donkey Kong Country
+    // ============ XOCHI SPRITE (loaded from PNG) ============
+    // Xochi is now an Aztec warrior girl - sprite loaded in preload()
+    // Skip procedural generation for 'xochi' texture
 
+    /* REMOVED - now using PNG sprite
     // TAIL (behind body, extending right)
     g.fillStyle(0xbb5577);
     g.fillEllipse(24, 18, 10, 4);
@@ -949,10 +955,11 @@ class BootScene extends Phaser.Scene {
     g.fillStyle(0xaa4466);
     g.fillCircle(3, 10, 0.5);
 
-    g.generateTexture('xochi', 32, 32);
+    g.generateTexture('xochi-procedural-backup', 32, 32);
+    */ // END OF REMOVED PROCEDURAL XOCHI
     g.clear();
 
-    // ============ BIG XOCHI (powered up - DKC style) ============
+    // ============ BIG XOCHI (powered up - uses same sprite scaled) ============
     // Tail
     g.fillStyle(0xbb5577);
     g.fillEllipse(26, 38, 12, 5);
@@ -1371,7 +1378,7 @@ class MenuScene extends Phaser.Scene {
     this.tweens.add({ targets: title, scaleX: 1.02, scaleY: 1.02, duration: 1500, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
 
     // Subtitle with glow
-    this.add.text(width/2, 108, 'Axolotl Adventure', {
+    this.add.text(width/2, 108, 'Aztec Warrior Adventure', {
       fontFamily: 'Georgia', fontSize: '20px', color: '#66ddcc',
       stroke: '#224444', strokeThickness: 2
     }).setOrigin(0.5);
@@ -1381,7 +1388,7 @@ class MenuScene extends Phaser.Scene {
     const glow = this.add.circle(width/2, 170, 35, 0xff6b9d, 0.3);
     this.tweens.add({ targets: glow, scale: 1.2, alpha: 0.1, duration: 1000, yoyo: true, repeat: -1 });
     // Character
-    const xochi = this.add.sprite(width/2, 170, 'xochi').setScale(3.5);
+    const xochi = this.add.sprite(width/2, 170, 'xochi').setScale(0.12);
     this.tweens.add({ targets: xochi, y: 160, duration: 800, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
 
     // ============ SNES-STYLE SCOREBOARD ============
@@ -1648,11 +1655,12 @@ class GameScene extends Phaser.Scene {
     const isBossLevel = (this.levelNum === 5 || this.levelNum === 10);
     if (isBossLevel && !gameState.rescuedBabies.includes(`baby-${this.levelNum}`)) {
       // Dark Xochi spawns at level start position
-      this.darkXochi = this.physics.add.sprite(ld.playerSpawn.x + 100, ld.playerSpawn.y, 'xochi').setScale(1.5);
+      this.darkXochi = this.physics.add.sprite(ld.playerSpawn.x + 100, ld.playerSpawn.y, 'xochi').setScale(0.06);
       this.darkXochi.setTint(0x440044); // Dark purple evil Xochi!
       this.darkXochi.setData('alive', true);
       this.darkXochi.setData('speed', this.levelNum === 10 ? 140 : 110);
-      this.darkXochi.body.setSize(12, 14);
+      this.darkXochi.body.setSize(400, 500);
+      this.darkXochi.body.setOffset(300, 250);
 
       // Boss timer - race against time!
       this.bossTimeLeft = this.levelNum === 10 ? 60 : 45; // 45 sec level 5, 60 sec level 10
@@ -1691,10 +1699,11 @@ class GameScene extends Phaser.Scene {
       });
     }
 
-    // Player
-    this.player = this.physics.add.sprite(ld.playerSpawn.x, ld.playerSpawn.y, 'xochi').setScale(1.5);
+    // Player (Aztec warrior girl - 1024x1024 sprite scaled down)
+    this.player = this.physics.add.sprite(ld.playerSpawn.x, ld.playerSpawn.y, 'xochi').setScale(0.06);
     this.player.setCollideWorldBounds(true);
-    this.player.body.setSize(12, 14);
+    this.player.body.setSize(400, 500); // Hitbox for 1024px sprite
+    this.player.body.setOffset(300, 250); // Center hitbox on character
     this.player.setData('big', false);
     this.player.setData('invincible', false);
     this.player.setData('dead', false);
@@ -2444,7 +2453,7 @@ class EndScene extends Phaser.Scene {
     }
 
     // Xochi
-    const x = this.add.sprite(width/2, 300, 'xochi').setScale(4);
+    const x = this.add.sprite(width/2, 300, 'xochi').setScale(0.13);
     this.tweens.add({ targets: x, y: 285, duration: 800, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
 
     // Stats
