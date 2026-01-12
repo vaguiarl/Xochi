@@ -1704,8 +1704,10 @@ class GameScene extends Phaser.Scene {
     // Player (Aztec axolotl warrior - 1024x1024 sprite scaled to 2x size)
     this.player = this.physics.add.sprite(ld.playerSpawn.x, ld.playerSpawn.y, 'xochi').setScale(0.12);
     this.player.setCollideWorldBounds(true);
-    this.player.body.setSize(350, 450); // Hitbox for larger sprite
-    this.player.body.setOffset(340, 300); // Center hitbox on character
+    // Hitbox: smaller box centered on character body (not headdress)
+    // 1024px sprite, character body is roughly 400px wide, 500px tall in the lower-center
+    this.player.body.setSize(300, 400);
+    this.player.body.setOffset(362, 450); // Center on body, feet at bottom
     this.player.setData('big', false);
     this.player.setData('invincible', false);
     this.player.setData('dead', false);
@@ -2268,21 +2270,18 @@ class GameScene extends Phaser.Scene {
       this.isAttacking = true;
       this.attackCooldown = 500; // 0.5 second cooldown for regular swing
 
-      // MACE SWING ANIMATION - DKC style rotation!
+      // MACE SWING ANIMATION - rotation only (no scale to preserve physics)
       const dir = this.player.flipX ? -1 : 1;
-      const swingDirection = dir * 0.4; // Swing in facing direction
+      const swingDirection = dir * 0.5; // Big swing rotation
 
       this.tweens.add({
         targets: this.player,
         rotation: swingDirection,
-        scaleX: 0.14 * (this.player.flipX ? -1 : 1), // Stretch during swing
-        scaleY: 0.10,
-        duration: 100,
-        ease: 'Power2',
+        duration: 120,
+        ease: 'Power3',
         yoyo: true,
         onComplete: () => {
           this.player.setRotation(0);
-          this.player.setScale(0.12);
         }
       });
 
@@ -2375,10 +2374,15 @@ class GameScene extends Phaser.Scene {
       });
     }
 
-    // ============ DKC-STYLE ANIMATIONS ============
+    // ============ DKC-STYLE ANIMATIONS (using rotation, not scale to preserve physics) ============
     const isMoving = Math.abs(this.player.body.velocity.x) > 10;
     const isInAir = !onGround;
     const baseScale = 0.12;
+
+    // Always maintain base scale to keep physics stable
+    if (!this.isAttacking) {
+      this.player.setScale(baseScale);
+    }
 
     // Track landing for squash effect
     if (!this.wasInAir && isInAir) {
@@ -2386,43 +2390,41 @@ class GameScene extends Phaser.Scene {
     }
     if (this.wasInAir && onGround) {
       this.wasInAir = false;
-      // SQUASH on landing! DKC style
+      // Landing dust puff instead of squash (squash breaks physics)
       if (!this.isAttacking) {
-        this.tweens.add({
-          targets: this.player,
-          scaleX: baseScale * 1.3,
-          scaleY: baseScale * 0.7,
-          duration: 80,
-          yoyo: true,
-          ease: 'Bounce.out'
-        });
+        for (let i = 0; i < 5; i++) {
+          const dust = this.add.circle(
+            this.player.x + (Math.random() - 0.5) * 30,
+            this.player.y + 20,
+            5, 0xccaa88, 0.7
+          );
+          this.tweens.add({
+            targets: dust,
+            y: dust.y - 10,
+            x: dust.x + (Math.random() - 0.5) * 20,
+            alpha: 0,
+            scale: 2,
+            duration: 250,
+            onComplete: () => dust.destroy()
+          });
+        }
       }
     }
 
-    // ============ WALKING ANIMATION - DKC LEG MOVEMENT ============
+    // ============ WALKING ANIMATION - DKC LEG MOVEMENT (rotation only) ============
     if (isMoving && onGround && !this.isAttacking) {
       this.walkTime += 20; // Faster cycle
 
-      // DKC-style bouncy walk with visible "leg" movement
-      const walkCycle = Math.sin(this.walkTime * 0.025);
+      // DKC-style bouncy walk using ROTATION to simulate leg movement
+      const walkCycle = Math.sin(this.walkTime * 0.03);
       const runMultiplier = this.keys.SHIFT.isDown ? 1.5 : 1;
 
-      // Vertical bounce (simulates legs pushing off ground)
-      const bounce = Math.abs(walkCycle) * 4 * runMultiplier;
-
-      // Horizontal squash/stretch (body compression during walk)
-      const squashX = 1 + walkCycle * 0.08 * runMultiplier;
-      const squashY = 1 - Math.abs(walkCycle) * 0.06 * runMultiplier;
-
-      // Rotation tilt (body leans into movement)
-      const tilt = walkCycle * 0.08 * runMultiplier;
-
-      // Apply DKC walk animation
-      this.player.setScale(baseScale * squashX, baseScale * squashY);
+      // Rotation tilt (body rocks side to side like walking)
+      const tilt = walkCycle * 0.12 * runMultiplier;
       this.player.setRotation(tilt);
 
       // Dust particles when running
-      if (this.keys.SHIFT.isDown && Math.random() < 0.1) {
+      if (this.keys.SHIFT.isDown && Math.random() < 0.15) {
         const dust = this.add.circle(
           this.player.x + (Math.random() - 0.5) * 20,
           this.player.y + 25,
@@ -2430,7 +2432,7 @@ class GameScene extends Phaser.Scene {
         );
         this.tweens.add({
           targets: dust,
-          y: dust.y + 10,
+          y: dust.y + 15,
           alpha: 0,
           scale: 2,
           duration: 300,
@@ -2439,22 +2441,17 @@ class GameScene extends Phaser.Scene {
       }
 
     } else if (isInAir && !this.isAttacking) {
-      // ============ JUMP/FALL ANIMATION - DKC STRETCH ============
+      // ============ JUMP/FALL ANIMATION - rotation only ============
       const velY = this.player.body.velocity.y;
 
       if (velY < -100) {
-        // Jumping up - STRETCH vertically (like DKC)
-        const stretchAmount = Math.min(Math.abs(velY) / 500, 0.25);
-        this.player.setScale(baseScale * (1 - stretchAmount * 0.3), baseScale * (1 + stretchAmount));
-        this.player.setRotation(-0.1 * (this.player.flipX ? -1 : 1)); // Lean back
+        // Jumping up - lean back
+        this.player.setRotation(-0.15 * (this.player.flipX ? -1 : 1));
       } else if (velY > 100) {
-        // Falling down - slight stretch, arms up pose
-        const fallStretch = Math.min(velY / 400, 0.2);
-        this.player.setScale(baseScale * (1 - fallStretch * 0.2), baseScale * (1 + fallStretch * 0.5));
-        this.player.setRotation(0.1 * (this.player.flipX ? -1 : 1)); // Lean forward
+        // Falling down - lean forward
+        this.player.setRotation(0.15 * (this.player.flipX ? -1 : 1));
       } else {
-        // Peak of jump - normal scale
-        this.player.setScale(baseScale);
+        // Peak of jump
         this.player.setRotation(0);
       }
 
@@ -2463,74 +2460,51 @@ class GameScene extends Phaser.Scene {
       this.walkTime = 0;
       this.idleTime += 16;
 
-      // Constant bouncy breathing - DKC characters always feel alive!
-      const breathe = Math.sin(this.idleTime * 0.004);
-      const bounce = Math.sin(this.idleTime * 0.006) * 0.5; // Subtle body bounce
+      // Gentle rotation breathing - subtle sway
+      const breathe = Math.sin(this.idleTime * 0.003) * 0.03;
+      this.player.setRotation(breathe);
 
-      // Breathing squash/stretch
-      const breatheX = 1 + breathe * 0.03;
-      const breatheY = 1 - breathe * 0.02;
-
-      this.player.setScale(baseScale * breatheX, baseScale * breatheY);
-
-      // Subtle constant movement
-      if (Math.abs(this.player.rotation) > 0.001) {
-        this.player.setRotation(this.player.rotation * 0.95);
-      }
-
-      // Every 2 seconds, do a DKC-style idle move
-      if (this.idleTime - this.lastIdleMove > 2000) {
+      // Every 2.5 seconds, do a DKC-style idle move
+      if (this.idleTime - this.lastIdleMove > 2500) {
         this.lastIdleMove = this.idleTime;
-        const moveType = Math.floor(Math.random() * 5);
+        const moveType = Math.floor(Math.random() * 4);
 
         switch (moveType) {
-          case 0: // Mace flourish - quick swing
+          case 0: // Mace flourish - quick rotation swing
             this.tweens.add({
               targets: this.player,
-              rotation: 0.2,
-              scaleX: baseScale * 1.1,
+              rotation: 0.25,
               duration: 150,
               yoyo: true,
               ease: 'Back.out'
             });
             break;
-          case 1: // Look around - turn slightly
+          case 1: // Look back - rotation
             this.tweens.add({
               targets: this.player,
-              scaleX: baseScale * 0.9,
+              rotation: -0.2,
               duration: 400,
               yoyo: true,
               ease: 'Sine.easeInOut'
             });
             break;
-          case 2: // Ready bounce - DKC anticipation
+          case 2: // Ready stance - double bob
             this.tweens.add({
               targets: this.player,
-              scaleY: baseScale * 0.85,
-              scaleX: baseScale * 1.15,
-              duration: 120,
+              rotation: 0.1,
+              duration: 100,
               yoyo: true,
-              repeat: 1,
+              repeat: 2,
               ease: 'Bounce.out'
             });
             break;
-          case 3: // Shield check - slight rotation
+          case 3: // Shield raise - rotation
             this.tweens.add({
               targets: this.player,
               rotation: -0.15,
               duration: 200,
               yoyo: true,
               ease: 'Sine.easeInOut'
-            });
-            break;
-          case 4: // Happy hop - tiny jump
-            this.tweens.add({
-              targets: this.player,
-              y: this.player.y - 5,
-              scaleY: baseScale * 1.1,
-              duration: 150,
-              yoyo: true,
-              ease: 'Quad.out'
             });
             break;
         }
