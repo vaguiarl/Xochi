@@ -1738,10 +1738,17 @@ class GameScene extends Phaser.Scene {
 
     // Input
     this.cursors = this.input.keyboard.createCursorKeys();
-    this.keys = this.input.keyboard.addKeys({ W: 'W', A: 'A', D: 'D', SPACE: 'SPACE', SHIFT: 'SHIFT', X: 'X' });
+    this.keys = this.input.keyboard.addKeys({ W: 'W', A: 'A', D: 'D', SPACE: 'SPACE', SHIFT: 'SHIFT', X: 'X', C: 'C' });
+
+    // ============ ANIMATION STATE ============
+    this.walkTime = 0;           // For walk animation cycle
+    this.idleTime = 0;           // For idle animation cycle
+    this.isAttacking = false;    // Mace attack state
+    this.attackCooldown = 0;     // Cooldown between attacks
+    this.lastIdleMove = 0;       // Time of last idle pose change
 
     // ============ TOUCH CONTROLS FOR MOBILE ============
-    this.touchControls = { left: false, right: false, jump: false, superJump: false };
+    this.touchControls = { left: false, right: false, jump: false, superJump: false, attack: false };
     this.setupTouchControls();
 
     // UI
@@ -1812,6 +1819,17 @@ class GameScene extends Phaser.Scene {
     this.add.text(width - margin - btnSize/2, height - margin - btnSize * 1.6, 'SUPER', {
       fontFamily: 'Arial', fontSize: '12px', color: '#fff'
     }).setOrigin(0.5).setScrollFactor(0).setDepth(1001);
+
+    // Attack button (left of jump button) - THUNDERSHOCK!
+    const attackBtn = this.add.circle(width - margin - btnSize * 1.7, height - margin - btnSize/2, btnSize/2, 0xffff00, btnAlpha)
+      .setScrollFactor(0).setDepth(1000).setInteractive();
+    this.add.text(width - margin - btnSize * 1.7, height - margin - btnSize/2, '⚡ATK', {
+      fontFamily: 'Arial', fontSize: '12px', color: '#000'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(1001);
+
+    attackBtn.on('pointerdown', () => { this.touchControls.attack = true; });
+    attackBtn.on('pointerup', () => { this.touchControls.attack = false; });
+    attackBtn.on('pointerout', () => { this.touchControls.attack = false; });
 
     superBtn.on('pointerdown', () => {
       this.touchControls.superJump = true;
@@ -2229,6 +2247,174 @@ class GameScene extends Phaser.Scene {
           });
         });
       }
+    }
+
+    // ============ MACE ATTACK (C key) - THUNDERSHOCK! ============
+    if (this.attackCooldown > 0) this.attackCooldown -= 16;
+
+    // Touch attack - only trigger on first frame of touch
+    const touchAttackJustPressed = tc.attack && !this.lastTouchAttack;
+    this.lastTouchAttack = tc.attack;
+
+    const attackPressed = Phaser.Input.Keyboard.JustDown(this.keys.C) || touchAttackJustPressed;
+    if (attackPressed && this.attackCooldown <= 0 && !this.isAttacking) {
+      this.isAttacking = true;
+      this.attackCooldown = 800; // 0.8 second cooldown
+
+      // Switch to attack sprite
+      this.player.setTexture('xochi-attack');
+
+      // Play attack sound
+      this.playSound('sfx-stomp');
+
+      // Create THUNDERSHOCK lightning rays!
+      const dir = this.player.flipX ? -1 : 1;
+      const startX = this.player.x + dir * 30;
+      const startY = this.player.y;
+
+      // Main lightning bolt
+      for (let i = 0; i < 8; i++) {
+        this.time.delayedCall(i * 20, () => {
+          const boltX = startX + dir * (i * 25 + Math.random() * 10);
+          const boltY = startY + (Math.random() - 0.5) * 30;
+
+          // Lightning segment
+          const bolt = this.add.rectangle(boltX, boltY, 20, 4, 0xffff00);
+          bolt.setRotation((Math.random() - 0.5) * 0.5);
+
+          // Electric glow
+          const glow = this.add.circle(boltX, boltY, 12, 0x88ffff, 0.6);
+
+          // Spark particles
+          for (let s = 0; s < 3; s++) {
+            const spark = this.add.circle(
+              boltX + (Math.random() - 0.5) * 20,
+              boltY + (Math.random() - 0.5) * 20,
+              2, 0xffffff
+            );
+            this.tweens.add({
+              targets: spark,
+              alpha: 0, scale: 0,
+              duration: 150,
+              onComplete: () => spark.destroy()
+            });
+          }
+
+          this.tweens.add({
+            targets: [bolt, glow],
+            alpha: 0,
+            duration: 100,
+            onComplete: () => { bolt.destroy(); glow.destroy(); }
+          });
+        });
+      }
+
+      // Damage enemies in range
+      const attackRange = 200;
+      this.enemies.getChildren().forEach(enemy => {
+        if (!enemy.getData('alive')) return;
+        const dist = Math.abs(enemy.x - this.player.x);
+        const sameDirection = (enemy.x - this.player.x) * dir > 0;
+        if (dist < attackRange && sameDirection) {
+          // Hit by thundershock!
+          enemy.setData('alive', false);
+          enemy.body.setVelocity(dir * 200, -200);
+          enemy.setTint(0xffff00);
+          this.playSound('sfx-stomp');
+          gameState.score += 200;
+          this.showText(enemy.x, enemy.y - 20, '+200', '#ffff00');
+          this.time.delayedCall(500, () => enemy.destroy());
+        }
+      });
+
+      // Return to idle sprite after attack
+      this.time.delayedCall(300, () => {
+        this.isAttacking = false;
+        this.player.setTexture('xochi');
+      });
+    }
+
+    // ============ WALKING ANIMATION (leg movement simulation) ============
+    const isMoving = Math.abs(this.player.body.velocity.x) > 10;
+    const isInAir = !onGround;
+
+    if (isMoving && onGround && !this.isAttacking) {
+      this.walkTime += 16;
+      // Bobbing motion - simulates walking
+      const bobAmount = Math.sin(this.walkTime * 0.02) * 2;
+      const tiltAmount = Math.sin(this.walkTime * 0.02) * 0.05;
+      this.player.setRotation(tiltAmount);
+      // Slight vertical bounce
+      if (!this.walkTween) {
+        this.walkTween = true;
+      }
+    } else if (isInAir) {
+      // In-air pose - slight backward tilt
+      const tilt = this.player.body.velocity.y < 0 ? -0.1 : 0.1;
+      this.player.setRotation(tilt * (this.player.flipX ? -1 : 1));
+    } else {
+      this.walkTime = 0;
+      this.walkTween = false;
+    }
+
+    // ============ IDLE ANIMATION (cool poses when standing still) ============
+    if (!isMoving && onGround && !this.isAttacking) {
+      this.idleTime += 16;
+
+      // Breathing animation - gentle scale pulse
+      const breathe = 1 + Math.sin(this.idleTime * 0.003) * 0.02;
+      this.player.setScale(0.06 * breathe);
+
+      // Every 3 seconds, do a cool idle move
+      if (this.idleTime - this.lastIdleMove > 3000) {
+        this.lastIdleMove = this.idleTime;
+        const moveType = Math.floor(Math.random() * 4);
+
+        switch (moveType) {
+          case 0: // Weapon flourish - quick rotation
+            this.tweens.add({
+              targets: this.player,
+              rotation: 0.15,
+              duration: 150,
+              yoyo: true,
+              ease: 'Sine.easeInOut'
+            });
+            break;
+          case 1: // Look around - slight scale change
+            this.tweens.add({
+              targets: this.player,
+              scaleX: this.player.flipX ? -0.065 : 0.065,
+              duration: 300,
+              yoyo: true,
+              ease: 'Sine.easeInOut'
+            });
+            break;
+          case 2: // Battle stance - quick crouch
+            this.tweens.add({
+              targets: this.player,
+              y: this.player.y + 3,
+              duration: 100,
+              yoyo: true,
+              repeat: 1,
+              ease: 'Sine.easeInOut'
+            });
+            break;
+          case 3: // Ready pose - show attack sprite briefly
+            this.player.setTexture('xochi-attack');
+            this.time.delayedCall(400, () => {
+              if (!this.isAttacking) this.player.setTexture('xochi');
+            });
+            break;
+        }
+      }
+
+      // Reset rotation when idle
+      if (Math.abs(this.player.rotation) > 0.01) {
+        this.player.setRotation(this.player.rotation * 0.9);
+      }
+    } else {
+      this.idleTime = 0;
+      this.lastIdleMove = 0;
     }
 
     // Enemies patrol
