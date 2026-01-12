@@ -1707,13 +1707,12 @@ class GameScene extends Phaser.Scene {
       });
     }
 
-    // Player (Aztec axolotl warrior - 1024x1024 sprite scaled to 2x size)
+    // Player (Aztec axolotl warrior - ~500x574 sprite frames at 0.12 scale)
     this.player = this.physics.add.sprite(ld.playerSpawn.x, ld.playerSpawn.y, 'xochi').setScale(0.12);
     this.player.setCollideWorldBounds(true);
-    // Hitbox: smaller box centered on character body (not headdress)
-    // 1024px sprite, character body is roughly 400px wide, 500px tall in the lower-center
-    this.player.body.setSize(300, 400);
-    this.player.body.setOffset(362, 450); // Center on body, feet at bottom
+    // Hitbox for ~500x574 frames: body is roughly center, feet at bottom
+    this.player.body.setSize(280, 400);
+    this.player.body.setOffset(110, 150); // Center hitbox, feet touch ground
     this.player.setData('big', false);
     this.player.setData('invincible', false);
     this.player.setData('dead', false);
@@ -2387,127 +2386,39 @@ class GameScene extends Phaser.Scene {
       });
     }
 
-    // ============ DKC-STYLE FRAME ANIMATION ============
+    // ============ SIMPLE FRAME ANIMATION ============
     const isMoving = Math.abs(this.player.body.velocity.x) > 10;
     const isInAir = !onGround;
-    const baseScale = 0.12;
 
-    // Walk animation frames: idle → walk1 → walk2 → walk3 → walk2 → walk1 (cycle)
+    // Walk animation frames
     const walkFrames = ['xochi_walk1', 'xochi_walk2', 'xochi_walk3', 'xochi_walk2'];
-    const walkFrameSpeed = this.keys.SHIFT.isDown ? 80 : 120; // Faster when running
+    const walkFrameSpeed = this.keys.SHIFT.isDown ? 80 : 120;
 
-    // Track landing for dust effect
-    if (!this.wasInAir && isInAir) {
-      this.wasInAir = true;
-    }
-    if (this.wasInAir && onGround) {
-      this.wasInAir = false;
-      // Landing dust puff
-      for (let i = 0; i < 5; i++) {
-        const dust = this.add.circle(
-          this.player.x + (Math.random() - 0.5) * 30,
-          this.player.y + 30,
-          5, 0xccaa88, 0.7
-        );
-        this.tweens.add({
-          targets: dust,
-          y: dust.y - 15,
-          x: dust.x + (Math.random() - 0.5) * 20,
-          alpha: 0,
-          scale: 2,
-          duration: 250,
-          onComplete: () => dust.destroy()
-        });
-      }
-    }
-
-    // ============ WALKING ANIMATION - REAL FRAME CYCLING! ============
+    // WALKING - cycle through frames
     if (isMoving && onGround && !this.isAttacking) {
-      this.currentAnim = 'walk';
-      this.walkFrameTime += 16; // ~60fps
-
-      // Cycle through walk frames
+      this.walkFrameTime += 16;
       if (this.walkFrameTime >= walkFrameSpeed) {
         this.walkFrameTime = 0;
         this.walkFrame = (this.walkFrame + 1) % walkFrames.length;
         this.player.setTexture(walkFrames[this.walkFrame]);
       }
+      this.player.setRotation(0);
 
-      // Slight rotation for extra bounce feel
-      const tilt = Math.sin(this.walkFrame * Math.PI / 2) * 0.05;
-      this.player.setRotation(tilt);
-
-      // Dust particles when running
-      if (this.keys.SHIFT.isDown && Math.random() < 0.15) {
-        const dust = this.add.circle(
-          this.player.x + (Math.random() - 0.5) * 20,
-          this.player.y + 30,
-          4, 0xccaa88, 0.6
-        );
-        this.tweens.add({
-          targets: dust,
-          y: dust.y + 15,
-          alpha: 0,
-          scale: 2,
-          duration: 300,
-          onComplete: () => dust.destroy()
-        });
-      }
-
+    // JUMPING - use jump frame
     } else if (isInAir && !this.isAttacking) {
-      // ============ JUMP ANIMATION - USE JUMP FRAME ============
-      if (this.currentAnim !== 'jump') {
-        this.currentAnim = 'jump';
-        this.player.setTexture('xochi_jump');
-      }
+      this.player.setTexture('xochi_jump');
+      this.player.setRotation(0);
 
-      // Slight rotation based on velocity
-      const velY = this.player.body.velocity.y;
-      if (velY < -50) {
-        this.player.setRotation(-0.1 * (this.player.flipX ? -1 : 1));
-      } else if (velY > 50) {
-        this.player.setRotation(0.1 * (this.player.flipX ? -1 : 1));
-      } else {
-        this.player.setRotation(0);
-      }
-
+    // IDLE - standing pose
     } else if (!this.isAttacking) {
-      // ============ IDLE ANIMATION - SUBTLE BREATHING ============
-      if (this.currentAnim !== 'idle') {
-        this.currentAnim = 'idle';
-        this.player.setTexture('xochi_idle');
-        this.walkFrame = 0;
-        this.walkFrameTime = 0;
-      }
-
-      this.idleTime += 16;
-
-      // Gentle breathing rotation
-      const breathe = Math.sin(this.idleTime * 0.003) * 0.02;
-      this.player.setRotation(breathe);
-
-      // Every 3 seconds, do a quick idle flourish
-      if (this.idleTime - this.lastIdleMove > 3000) {
-        this.lastIdleMove = this.idleTime;
-        // Quick weapon check animation
-        this.tweens.add({
-          targets: this.player,
-          rotation: 0.15,
-          duration: 150,
-          yoyo: true,
-          ease: 'Back.out'
-        });
-      }
+      this.player.setTexture('xochi_walk2'); // Idle pose
+      this.player.setRotation(0);
+      this.walkFrame = 0;
+      this.walkFrameTime = 0;
     }
 
-    // Reset idle timer when not idle
-    if (this.currentAnim !== 'idle') {
-      this.idleTime = 0;
-      this.lastIdleMove = 0;
-    }
-
-    // Ensure scale stays constant for physics
-    this.player.setScale(baseScale);
+    // Keep scale constant
+    this.player.setScale(0.12);
 
     // Enemies patrol
     const now = this.time.now;
