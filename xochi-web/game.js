@@ -232,6 +232,7 @@ const gameState = {
   stars: [],
   rescuedBabies: [],
   superJumps: 0,
+  maceAttacks: 0,  // Thunderbolt attacks (like super jumps, need power-up)
   score: 0,
   highScore: 0,
   musicEnabled: true,
@@ -259,6 +260,7 @@ function resetGame() {
   gameState.stars = [];
   gameState.rescuedBabies = [];
   gameState.superJumps = 0;
+  gameState.maceAttacks = 0;
   gameState.score = 0;
   saveGame();
 }
@@ -1943,9 +1945,10 @@ class GameScene extends Phaser.Scene {
 
   collectPowerup(player, powerup) {
     powerup.destroy();
-    gameState.superJumps += 3;
+    gameState.superJumps += 2;
+    gameState.maceAttacks += 2;  // Also get thunder attacks!
     this.playSound('sfx-powerup');
-    this.showBigText('+3 SUPER JUMPS!', '#00ffff');
+    this.showBigText('+2 SUPER! +2 THUNDER!', '#00ffff');
     this.events.emit('updateUI');
   }
 
@@ -1971,7 +1974,8 @@ class GameScene extends Phaser.Scene {
 
   collectStar(player, star) {
     gameState.stars.push(star.starId);
-    gameState.superJumps += 2;
+    gameState.superJumps += 1;
+    gameState.maceAttacks += 1;  // Stars also give thunder!
     gameState.score += 500; // +500 points per star!
     star.destroy();
     this.playSound('sfx-powerup');
@@ -2250,6 +2254,7 @@ class GameScene extends Phaser.Scene {
     }
 
     // ============ MACE ATTACK (C key) - THUNDERSHOCK! ============
+    // NOW REQUIRES POWER-UP like super jumps!
     if (this.attackCooldown > 0) this.attackCooldown -= 16;
 
     // Touch attack - only trigger on first frame of touch
@@ -2257,160 +2262,278 @@ class GameScene extends Phaser.Scene {
     this.lastTouchAttack = tc.attack;
 
     const attackPressed = Phaser.Input.Keyboard.JustDown(this.keys.C) || touchAttackJustPressed;
+
+    // Regular mace swing (no thunderbolt) - always available
     if (attackPressed && this.attackCooldown <= 0 && !this.isAttacking) {
       this.isAttacking = true;
-      this.attackCooldown = 800; // 0.8 second cooldown
+      this.attackCooldown = 500; // 0.5 second cooldown for regular swing
 
-      // Switch to attack sprite
-      this.player.setTexture('xochi-attack');
-
-      // Play attack sound
-      this.playSound('sfx-stomp');
-
-      // Create THUNDERSHOCK lightning rays!
+      // MACE SWING ANIMATION - DKC style rotation!
       const dir = this.player.flipX ? -1 : 1;
-      const startX = this.player.x + dir * 30;
-      const startY = this.player.y;
+      const swingDirection = dir * 0.4; // Swing in facing direction
 
-      // Main lightning bolt
-      for (let i = 0; i < 8; i++) {
-        this.time.delayedCall(i * 20, () => {
-          const boltX = startX + dir * (i * 25 + Math.random() * 10);
-          const boltY = startY + (Math.random() - 0.5) * 30;
+      this.tweens.add({
+        targets: this.player,
+        rotation: swingDirection,
+        scaleX: 0.14 * (this.player.flipX ? -1 : 1), // Stretch during swing
+        scaleY: 0.10,
+        duration: 100,
+        ease: 'Power2',
+        yoyo: true,
+        onComplete: () => {
+          this.player.setRotation(0);
+          this.player.setScale(0.12);
+        }
+      });
 
-          // Lightning segment
-          const bolt = this.add.rectangle(boltX, boltY, 20, 4, 0xffff00);
-          bolt.setRotation((Math.random() - 0.5) * 0.5);
+      this.playSound('sfx-jump'); // Whoosh sound
 
-          // Electric glow
-          const glow = this.add.circle(boltX, boltY, 12, 0x88ffff, 0.6);
-
-          // Spark particles
-          for (let s = 0; s < 3; s++) {
-            const spark = this.add.circle(
-              boltX + (Math.random() - 0.5) * 20,
-              boltY + (Math.random() - 0.5) * 20,
-              2, 0xffffff
-            );
-            this.tweens.add({
-              targets: spark,
-              alpha: 0, scale: 0,
-              duration: 150,
-              onComplete: () => spark.destroy()
-            });
-          }
-
-          this.tweens.add({
-            targets: [bolt, glow],
-            alpha: 0,
-            duration: 100,
-            onComplete: () => { bolt.destroy(); glow.destroy(); }
-          });
-        });
-      }
-
-      // Damage enemies in range
-      const attackRange = 200;
+      // Melee hit enemies very close (no thunderbolt)
+      const meleeRange = 60;
       this.enemies.getChildren().forEach(enemy => {
         if (!enemy.getData('alive')) return;
         const dist = Math.abs(enemy.x - this.player.x);
         const sameDirection = (enemy.x - this.player.x) * dir > 0;
-        if (dist < attackRange && sameDirection) {
-          // Hit by thundershock!
+        if (dist < meleeRange && sameDirection && Math.abs(enemy.y - this.player.y) < 40) {
           enemy.setData('alive', false);
-          enemy.body.setVelocity(dir * 200, -200);
-          enemy.setTint(0xffff00);
+          enemy.body.setVelocity(dir * 150, -150);
           this.playSound('sfx-stomp');
-          gameState.score += 200;
-          this.showText(enemy.x, enemy.y - 20, '+200', '#ffff00');
+          gameState.score += 100;
+          this.showText(enemy.x, enemy.y - 20, '+100', '#ffffff');
           this.time.delayedCall(500, () => enemy.destroy());
         }
       });
 
-      // Return to idle sprite after attack
-      this.time.delayedCall(300, () => {
+      // THUNDERBOLT - only if we have mace attacks!
+      if (gameState.maceAttacks > 0) {
+        gameState.maceAttacks--;
+        this.events.emit('updateUI');
+        this.showText(this.player.x, this.player.y - 40, 'THUNDER!', '#ffff00');
+
+        // Create THUNDERSHOCK lightning rays!
+        const startX = this.player.x + dir * 40;
+        const startY = this.player.y;
+
+        // Main lightning bolt - more dramatic!
+        for (let i = 0; i < 10; i++) {
+          this.time.delayedCall(i * 25, () => {
+            const boltX = startX + dir * (i * 30 + Math.random() * 15);
+            const boltY = startY + (Math.random() - 0.5) * 40;
+
+            // Forked lightning bolt
+            const bolt = this.add.rectangle(boltX, boltY, 25, 5, 0xffff00);
+            bolt.setRotation((Math.random() - 0.5) * 0.6);
+
+            // Electric glow
+            const glow = this.add.circle(boltX, boltY, 15, 0x88ffff, 0.7);
+
+            // More spark particles
+            for (let s = 0; s < 5; s++) {
+              const spark = this.add.circle(
+                boltX + (Math.random() - 0.5) * 30,
+                boltY + (Math.random() - 0.5) * 30,
+                3, 0xffffff
+              );
+              this.tweens.add({
+                targets: spark,
+                alpha: 0, scale: 0,
+                duration: 200,
+                onComplete: () => spark.destroy()
+              });
+            }
+
+            this.tweens.add({
+              targets: [bolt, glow],
+              alpha: 0,
+              duration: 150,
+              onComplete: () => { bolt.destroy(); glow.destroy(); }
+            });
+          });
+        }
+
+        // Damage enemies in thunderbolt range
+        const attackRange = 250;
+        this.enemies.getChildren().forEach(enemy => {
+          if (!enemy.getData('alive')) return;
+          const dist = Math.abs(enemy.x - this.player.x);
+          const sameDirection = (enemy.x - this.player.x) * dir > 0;
+          if (dist < attackRange && sameDirection) {
+            enemy.setData('alive', false);
+            enemy.body.setVelocity(dir * 250, -250);
+            enemy.setTint(0xffff00);
+            this.playSound('sfx-stomp');
+            gameState.score += 300;
+            this.showText(enemy.x, enemy.y - 20, '+300', '#ffff00');
+            this.time.delayedCall(500, () => enemy.destroy());
+          }
+        });
+      }
+
+      // Return to normal after attack
+      this.time.delayedCall(250, () => {
         this.isAttacking = false;
-        this.player.setTexture('xochi');
       });
     }
 
-    // ============ WALKING ANIMATION (leg movement simulation) ============
+    // ============ DKC-STYLE ANIMATIONS ============
     const isMoving = Math.abs(this.player.body.velocity.x) > 10;
     const isInAir = !onGround;
+    const baseScale = 0.12;
 
-    if (isMoving && onGround && !this.isAttacking) {
-      this.walkTime += 16;
-      // Bobbing motion - simulates walking
-      const bobAmount = Math.sin(this.walkTime * 0.02) * 2;
-      const tiltAmount = Math.sin(this.walkTime * 0.02) * 0.05;
-      this.player.setRotation(tiltAmount);
-      // Slight vertical bounce
-      if (!this.walkTween) {
-        this.walkTween = true;
+    // Track landing for squash effect
+    if (!this.wasInAir && isInAir) {
+      this.wasInAir = true;
+    }
+    if (this.wasInAir && onGround) {
+      this.wasInAir = false;
+      // SQUASH on landing! DKC style
+      if (!this.isAttacking) {
+        this.tweens.add({
+          targets: this.player,
+          scaleX: baseScale * 1.3,
+          scaleY: baseScale * 0.7,
+          duration: 80,
+          yoyo: true,
+          ease: 'Bounce.out'
+        });
       }
-    } else if (isInAir) {
-      // In-air pose - slight backward tilt
-      const tilt = this.player.body.velocity.y < 0 ? -0.1 : 0.1;
-      this.player.setRotation(tilt * (this.player.flipX ? -1 : 1));
-    } else {
-      this.walkTime = 0;
-      this.walkTween = false;
     }
 
-    // ============ IDLE ANIMATION (cool poses when standing still) ============
-    if (!isMoving && onGround && !this.isAttacking) {
+    // ============ WALKING ANIMATION - DKC LEG MOVEMENT ============
+    if (isMoving && onGround && !this.isAttacking) {
+      this.walkTime += 20; // Faster cycle
+
+      // DKC-style bouncy walk with visible "leg" movement
+      const walkCycle = Math.sin(this.walkTime * 0.025);
+      const runMultiplier = this.keys.SHIFT.isDown ? 1.5 : 1;
+
+      // Vertical bounce (simulates legs pushing off ground)
+      const bounce = Math.abs(walkCycle) * 4 * runMultiplier;
+
+      // Horizontal squash/stretch (body compression during walk)
+      const squashX = 1 + walkCycle * 0.08 * runMultiplier;
+      const squashY = 1 - Math.abs(walkCycle) * 0.06 * runMultiplier;
+
+      // Rotation tilt (body leans into movement)
+      const tilt = walkCycle * 0.08 * runMultiplier;
+
+      // Apply DKC walk animation
+      this.player.setScale(baseScale * squashX, baseScale * squashY);
+      this.player.setRotation(tilt);
+
+      // Dust particles when running
+      if (this.keys.SHIFT.isDown && Math.random() < 0.1) {
+        const dust = this.add.circle(
+          this.player.x + (Math.random() - 0.5) * 20,
+          this.player.y + 25,
+          4, 0xccaa88, 0.6
+        );
+        this.tweens.add({
+          targets: dust,
+          y: dust.y + 10,
+          alpha: 0,
+          scale: 2,
+          duration: 300,
+          onComplete: () => dust.destroy()
+        });
+      }
+
+    } else if (isInAir && !this.isAttacking) {
+      // ============ JUMP/FALL ANIMATION - DKC STRETCH ============
+      const velY = this.player.body.velocity.y;
+
+      if (velY < -100) {
+        // Jumping up - STRETCH vertically (like DKC)
+        const stretchAmount = Math.min(Math.abs(velY) / 500, 0.25);
+        this.player.setScale(baseScale * (1 - stretchAmount * 0.3), baseScale * (1 + stretchAmount));
+        this.player.setRotation(-0.1 * (this.player.flipX ? -1 : 1)); // Lean back
+      } else if (velY > 100) {
+        // Falling down - slight stretch, arms up pose
+        const fallStretch = Math.min(velY / 400, 0.2);
+        this.player.setScale(baseScale * (1 - fallStretch * 0.2), baseScale * (1 + fallStretch * 0.5));
+        this.player.setRotation(0.1 * (this.player.flipX ? -1 : 1)); // Lean forward
+      } else {
+        // Peak of jump - normal scale
+        this.player.setScale(baseScale);
+        this.player.setRotation(0);
+      }
+
+    } else if (!this.isAttacking) {
+      // ============ IDLE ANIMATION - DKC ALIVE FEEL ============
+      this.walkTime = 0;
       this.idleTime += 16;
 
-      // Breathing animation - gentle scale pulse
-      const breathe = 1 + Math.sin(this.idleTime * 0.003) * 0.02;
-      this.player.setScale(0.12 * breathe);
+      // Constant bouncy breathing - DKC characters always feel alive!
+      const breathe = Math.sin(this.idleTime * 0.004);
+      const bounce = Math.sin(this.idleTime * 0.006) * 0.5; // Subtle body bounce
 
-      // Every 3 seconds, do a cool idle move
-      if (this.idleTime - this.lastIdleMove > 3000) {
+      // Breathing squash/stretch
+      const breatheX = 1 + breathe * 0.03;
+      const breatheY = 1 - breathe * 0.02;
+
+      this.player.setScale(baseScale * breatheX, baseScale * breatheY);
+
+      // Subtle constant movement
+      if (Math.abs(this.player.rotation) > 0.001) {
+        this.player.setRotation(this.player.rotation * 0.95);
+      }
+
+      // Every 2 seconds, do a DKC-style idle move
+      if (this.idleTime - this.lastIdleMove > 2000) {
         this.lastIdleMove = this.idleTime;
-        const moveType = Math.floor(Math.random() * 4);
+        const moveType = Math.floor(Math.random() * 5);
 
         switch (moveType) {
-          case 0: // Weapon flourish - quick rotation
+          case 0: // Mace flourish - quick swing
             this.tweens.add({
               targets: this.player,
-              rotation: 0.15,
+              rotation: 0.2,
+              scaleX: baseScale * 1.1,
               duration: 150,
               yoyo: true,
-              ease: 'Sine.easeInOut'
+              ease: 'Back.out'
             });
             break;
-          case 1: // Look around - slight scale change
+          case 1: // Look around - turn slightly
             this.tweens.add({
               targets: this.player,
-              scaleX: this.player.flipX ? -0.065 : 0.065,
-              duration: 300,
+              scaleX: baseScale * 0.9,
+              duration: 400,
               yoyo: true,
               ease: 'Sine.easeInOut'
             });
             break;
-          case 2: // Battle stance - quick crouch
+          case 2: // Ready bounce - DKC anticipation
             this.tweens.add({
               targets: this.player,
-              y: this.player.y + 3,
-              duration: 100,
+              scaleY: baseScale * 0.85,
+              scaleX: baseScale * 1.15,
+              duration: 120,
               yoyo: true,
               repeat: 1,
+              ease: 'Bounce.out'
+            });
+            break;
+          case 3: // Shield check - slight rotation
+            this.tweens.add({
+              targets: this.player,
+              rotation: -0.15,
+              duration: 200,
+              yoyo: true,
               ease: 'Sine.easeInOut'
             });
             break;
-          case 3: // Ready pose - show attack sprite briefly
-            this.player.setTexture('xochi-attack');
-            this.time.delayedCall(400, () => {
-              if (!this.isAttacking) this.player.setTexture('xochi');
+          case 4: // Happy hop - tiny jump
+            this.tweens.add({
+              targets: this.player,
+              y: this.player.y - 5,
+              scaleY: baseScale * 1.1,
+              duration: 150,
+              yoyo: true,
+              ease: 'Quad.out'
             });
             break;
         }
-      }
-
-      // Reset rotation when idle
-      if (Math.abs(this.player.rotation) > 0.01) {
-        this.player.setRotation(this.player.rotation * 0.9);
       }
     } else {
       this.idleTime = 0;
@@ -2545,8 +2668,12 @@ class UIScene extends Phaser.Scene {
     this.starsText = this.add.text(130, 32, `Stars: ${gameState.stars.length}/30`, { fontFamily: 'Arial', fontSize: '11px', color: '#ffff00' });
 
     // Super Jump counter (cyan)
-    this.superJumpText = this.add.text(250, 12, `Super: ${gameState.superJumps}`, { fontFamily: 'Arial', fontSize: '11px', color: '#00ffff' });
-    this.add.text(250, 32, '[X] key', { fontFamily: 'Arial', fontSize: '9px', color: '#00aaaa' });
+    this.superJumpText = this.add.text(230, 12, `Super: ${gameState.superJumps}`, { fontFamily: 'Arial', fontSize: '11px', color: '#00ffff' });
+    this.add.text(230, 32, '[X] key', { fontFamily: 'Arial', fontSize: '9px', color: '#00aaaa' });
+
+    // Thunder/Mace attack counter (yellow)
+    this.maceText = this.add.text(320, 12, `Thunder: ${gameState.maceAttacks}`, { fontFamily: 'Arial', fontSize: '11px', color: '#ffff00' });
+    this.add.text(320, 32, '[C] key', { fontFamily: 'Arial', fontSize: '9px', color: '#aaaa00' });
 
     // Level names - 10 levels across 5 worlds
     const names = [
@@ -2568,6 +2695,7 @@ class UIScene extends Phaser.Scene {
       this.coinsText.setText(`Coins: ${gameState.coins}`);
       this.starsText.setText(`Stars: ${gameState.stars.length}/30`);
       this.superJumpText.setText(`Super: ${gameState.superJumps}`);
+      this.maceText.setText(`Thunder: ${gameState.maceAttacks}`);
     });
   }
 }
