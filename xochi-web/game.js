@@ -751,9 +751,9 @@ class BootScene extends Phaser.Scene {
     this.load.audio('sfx-hurt', 'public/assets/audio/bump.ogg');
     this.load.audio('sfx-superjump', 'public/assets/audio/powerup_appears.ogg');
 
-    // Load Xochi (Aztec axolotl warrior) sprites
-    this.load.image('xochi', 'public/assets/xochi_main_asset/xochi_new_3.png');
-    this.load.image('xochi-attack', 'public/assets/xochi_main_asset/xochi_new_3.png'); // Same sprite for now
+    // Load Xochi (Aztec axolotl warrior) sprites - transparent background
+    this.load.image('xochi', 'public/assets/xochi_main_asset/xochi_transparent.png');
+    this.load.image('xochi-attack', 'public/assets/xochi_main_asset/xochi_transparent.png'); // Same sprite for now
   }
 
   create() {
