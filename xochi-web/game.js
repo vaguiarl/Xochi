@@ -2276,16 +2276,36 @@ class GameScene extends Phaser.Scene {
       this.isAttacking = true;
       this.attackCooldown = 500; // 0.5 second cooldown for regular swing
 
-      // MACE SWING ANIMATION - use attack frame
       const dir = this.player.flipX ? -1 : 1;
 
-      // Switch to attack frame (mace raised)
-      this.player.setTexture('xochi_attack');
+      // Only use attack frame if we have thunderbolt (to avoid physics issues)
+      // Regular swing just shows a visual effect
+      if (gameState.maceAttacks > 0) {
+        this.player.setTexture('xochi_attack');
+      }
 
       this.playSound('sfx-stomp'); // Attack sound
 
+      // Visual swing effect (arc)
+      const swingArc = this.add.arc(
+        this.player.x + dir * 30,
+        this.player.y,
+        40,
+        dir > 0 ? 200 : 340,
+        dir > 0 ? 340 : 200,
+        false,
+        0xffaa00, 0.6
+      );
+      this.tweens.add({
+        targets: swingArc,
+        alpha: 0,
+        scale: 1.5,
+        duration: 150,
+        onComplete: () => swingArc.destroy()
+      });
+
       // Melee hit enemies very close (no thunderbolt)
-      const meleeRange = 60;
+      const meleeRange = 70;
       this.enemies.getChildren().forEach(enemy => {
         if (!enemy.getData('alive')) return;
         const dist = Math.abs(enemy.x - this.player.x);
