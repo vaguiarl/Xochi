@@ -2319,23 +2319,53 @@ class GameScene extends Phaser.Scene {
       this.player.body.setVelocityX(this.player.body.velocity.x * 0.8);
     }
 
-    // Regular Jump (keyboard + touch)
-    const jumpPressed = Phaser.Input.Keyboard.JustDown(this.cursors.up) ||
-                        Phaser.Input.Keyboard.JustDown(this.cursors.space) ||
-                        Phaser.Input.Keyboard.JustDown(this.keys.W) ||
-                        Phaser.Input.Keyboard.JustDown(this.keys.SPACE);
+    // ============ RESPONSIVE JUMP SYSTEM ============
+    // Jump buffer: if you press jump slightly before landing, it still works
+    // Coyote time: if you walk off a ledge, you can still jump briefly
 
-    // Touch jump - check if just pressed this frame
-    if (!this.lastTouchJump && tc.jump && onGround) {
+    // Initialize jump timers if not set
+    if (this.jumpBufferTime === undefined) this.jumpBufferTime = 0;
+    if (this.coyoteTime === undefined) this.coyoteTime = 0;
+    if (this.wasOnGround === undefined) this.wasOnGround = false;
+
+    // Check if jump key is currently held (not just pressed)
+    const jumpKeyDown = this.cursors.up.isDown || this.cursors.space.isDown ||
+                        this.keys.W.isDown || this.keys.SPACE.isDown || tc.jump;
+
+    // Check if jump was JUST pressed this frame
+    const jumpJustPressed = Phaser.Input.Keyboard.JustDown(this.cursors.up) ||
+                            Phaser.Input.Keyboard.JustDown(this.cursors.space) ||
+                            Phaser.Input.Keyboard.JustDown(this.keys.W) ||
+                            Phaser.Input.Keyboard.JustDown(this.keys.SPACE) ||
+                            (!this.lastTouchJump && tc.jump);
+
+    // Update coyote time (150ms grace period after leaving ground)
+    if (onGround) {
+      this.coyoteTime = 150;
+    } else if (this.wasOnGround && !onGround) {
+      // Just left ground - start coyote timer
+    }
+    if (this.coyoteTime > 0) this.coyoteTime -= delta;
+
+    // Update jump buffer (150ms window to press jump before landing)
+    if (jumpJustPressed) {
+      this.jumpBufferTime = 150;
+    }
+    if (this.jumpBufferTime > 0) this.jumpBufferTime -= delta;
+
+    // Can jump if: on ground OR within coyote time
+    const canJump = onGround || this.coyoteTime > 0;
+
+    // Execute jump if: (just pressed OR buffered) AND can jump
+    if ((jumpJustPressed || this.jumpBufferTime > 0) && canJump) {
       this.player.body.setVelocityY(-450);
       this.playSound('sfx-jump');
+      this.jumpBufferTime = 0; // Clear buffer
+      this.coyoteTime = 0; // Clear coyote time
     }
+
     this.lastTouchJump = tc.jump;
-
-    if (jumpPressed && onGround) {
-      this.player.body.setVelocityY(-450);
-      this.playSound('sfx-jump');
-    }
+    this.wasOnGround = onGround;
 
     // SUPER JUMP (X key) - can be used MID-AIR! Like a double jump!
     if (Phaser.Input.Keyboard.JustDown(this.keys.X) && gameState.superJumps > 0) {
