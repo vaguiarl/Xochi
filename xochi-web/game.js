@@ -2301,8 +2301,11 @@ class GameScene extends Phaser.Scene {
     this.tweens.add({ targets: t, scale: 1.3, alpha: 0, duration: 1000, onComplete: () => t.destroy() });
   }
 
-  update() {
+  update(time, delta) {
     if (this.player.getData('dead')) return;
+
+    // Default delta to 16ms (~60fps) if not provided
+    if (!delta) delta = 16;
 
     const onGround = this.player.body.blocked.down;
     const speed = this.keys.SHIFT.isDown ? 280 : 180;
