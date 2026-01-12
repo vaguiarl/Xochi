@@ -751,9 +751,9 @@ class BootScene extends Phaser.Scene {
     this.load.audio('sfx-hurt', 'public/assets/audio/bump.ogg');
     this.load.audio('sfx-superjump', 'public/assets/audio/powerup_appears.ogg');
 
-    // Load Xochi (Aztec warrior girl) sprites
-    this.load.image('xochi', 'public/assets/xochi_main_asset/xochi_new_1.png');
-    this.load.image('xochi-attack', 'public/assets/xochi_main_asset/xochi_new_2.png');
+    // Load Xochi (Aztec axolotl warrior) sprites
+    this.load.image('xochi', 'public/assets/xochi_main_asset/xochi_new_3.png');
+    this.load.image('xochi-attack', 'public/assets/xochi_main_asset/xochi_new_3.png'); // Same sprite for now
   }
 
   create() {
@@ -1388,7 +1388,7 @@ class MenuScene extends Phaser.Scene {
     const glow = this.add.circle(width/2, 170, 35, 0xff6b9d, 0.3);
     this.tweens.add({ targets: glow, scale: 1.2, alpha: 0.1, duration: 1000, yoyo: true, repeat: -1 });
     // Character
-    const xochi = this.add.sprite(width/2, 170, 'xochi').setScale(0.12);
+    const xochi = this.add.sprite(width/2, 170, 'xochi').setScale(0.24);
     this.tweens.add({ targets: xochi, y: 160, duration: 800, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
 
     // ============ SNES-STYLE SCOREBOARD ============
@@ -1655,12 +1655,12 @@ class GameScene extends Phaser.Scene {
     const isBossLevel = (this.levelNum === 5 || this.levelNum === 10);
     if (isBossLevel && !gameState.rescuedBabies.includes(`baby-${this.levelNum}`)) {
       // Dark Xochi spawns at level start position
-      this.darkXochi = this.physics.add.sprite(ld.playerSpawn.x + 100, ld.playerSpawn.y, 'xochi').setScale(0.06);
+      this.darkXochi = this.physics.add.sprite(ld.playerSpawn.x + 100, ld.playerSpawn.y, 'xochi').setScale(0.12);
       this.darkXochi.setTint(0x440044); // Dark purple evil Xochi!
       this.darkXochi.setData('alive', true);
       this.darkXochi.setData('speed', this.levelNum === 10 ? 140 : 110);
-      this.darkXochi.body.setSize(400, 500);
-      this.darkXochi.body.setOffset(300, 250);
+      this.darkXochi.body.setSize(350, 450);
+      this.darkXochi.body.setOffset(340, 300);
 
       // Boss timer - race against time!
       this.bossTimeLeft = this.levelNum === 10 ? 60 : 45; // 45 sec level 5, 60 sec level 10
@@ -1699,11 +1699,11 @@ class GameScene extends Phaser.Scene {
       });
     }
 
-    // Player (Aztec warrior girl - 1024x1024 sprite scaled down)
-    this.player = this.physics.add.sprite(ld.playerSpawn.x, ld.playerSpawn.y, 'xochi').setScale(0.06);
+    // Player (Aztec axolotl warrior - 1024x1024 sprite scaled to 2x size)
+    this.player = this.physics.add.sprite(ld.playerSpawn.x, ld.playerSpawn.y, 'xochi').setScale(0.12);
     this.player.setCollideWorldBounds(true);
-    this.player.body.setSize(400, 500); // Hitbox for 1024px sprite
-    this.player.body.setOffset(300, 250); // Center hitbox on character
+    this.player.body.setSize(350, 450); // Hitbox for larger sprite
+    this.player.body.setOffset(340, 300); // Center hitbox on character
     this.player.setData('big', false);
     this.player.setData('invincible', false);
     this.player.setData('dead', false);
@@ -2363,7 +2363,7 @@ class GameScene extends Phaser.Scene {
 
       // Breathing animation - gentle scale pulse
       const breathe = 1 + Math.sin(this.idleTime * 0.003) * 0.02;
-      this.player.setScale(0.06 * breathe);
+      this.player.setScale(0.12 * breathe);
 
       // Every 3 seconds, do a cool idle move
       if (this.idleTime - this.lastIdleMove > 3000) {
@@ -2639,7 +2639,7 @@ class EndScene extends Phaser.Scene {
     }
 
     // Xochi
-    const x = this.add.sprite(width/2, 300, 'xochi').setScale(0.13);
+    const x = this.add.sprite(width/2, 300, 'xochi').setScale(0.26);
     this.tweens.add({ targets: x, y: 285, duration: 800, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
 
     // Stats
