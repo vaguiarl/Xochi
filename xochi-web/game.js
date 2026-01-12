@@ -808,141 +808,234 @@ class BootScene extends Phaser.Scene {
       gfx.fillCircle(x + dir, y - 2 * scale, 1 * scale);
     };
 
-    // ============ AWARD-WINNING XOCHI (pink axolotl) ============
-    // Soft body shadow (ambient occlusion)
-    g.fillStyle(0xaa3366);
-    g.fillCircle(17, 18, 13);
-    // Body base - soft salmon pink
-    g.fillStyle(0xe8758f);
-    g.fillCircle(16, 16, 12);
-    // Body mid tone
-    g.fillStyle(0xf48aa0);
-    g.fillCircle(15, 15, 10);
-    // Body highlight - creamy pink
+    // ============ DKC-STYLE XOCHI (cute 3/4 side view axolotl) ============
+    // This creates a pre-rendered 3D look like Donkey Kong Country
+
+    // TAIL (behind body, extending right)
+    g.fillStyle(0xbb5577);
+    g.fillEllipse(24, 18, 10, 4);
+    g.fillStyle(0xd8708a);
+    g.fillEllipse(23, 17, 8, 3);
+    g.fillStyle(0xf08899);
+    g.fillEllipse(22, 17, 6, 2);
+
+    // BACK LEG (partially visible)
+    g.fillStyle(0xcc5577);
+    g.fillEllipse(18, 22, 4, 5);
+    g.fillStyle(0xe07090);
+    g.fillEllipse(18, 23, 3, 3);
+
+    // BODY - elongated oval, 3/4 view (DKC style smooth shading)
+    // Deep shadow
+    g.fillStyle(0x993355);
+    g.fillEllipse(13, 15, 16, 12);
+    // Body dark
+    g.fillStyle(0xcc5577);
+    g.fillEllipse(12, 14, 15, 11);
+    // Body mid
+    g.fillStyle(0xe07090);
+    g.fillEllipse(11, 13, 14, 10);
+    // Body light
+    g.fillStyle(0xf08899);
+    g.fillEllipse(10, 12, 12, 9);
+    // Body highlight (left side - light source)
     g.fillStyle(0xffaabb);
-    g.fillCircle(13, 12, 7);
-    // Body top specular
+    g.fillEllipse(8, 11, 8, 7);
+    // Specular highlight
     g.fillStyle(0xffccdd);
-    g.fillCircle(11, 9, 4);
-    // Tiny white specular
-    g.fillStyle(0xffffff, 0.6);
-    g.fillCircle(10, 8, 2);
+    g.fillEllipse(6, 9, 5, 4);
+    // Hot spot
+    g.fillStyle(0xffeeff, 0.7);
+    g.fillCircle(5, 8, 2);
 
-    // Feathery coral gills - LEFT
-    drawGills(g, 4, 10, false, 1);
-    // Feathery coral gills - RIGHT
-    drawGills(g, 28, 10, true, 1);
+    // FRONT LEG (visible, cute stubby)
+    g.fillStyle(0xcc5577);
+    g.fillEllipse(6, 21, 4, 5);
+    g.fillStyle(0xe07090);
+    g.fillEllipse(6, 22, 3, 4);
+    g.fillStyle(0xf08899);
+    g.fillEllipse(6, 22, 2, 3);
 
-    // Big expressive eyes - white with slight blue tint
-    g.fillStyle(0xf8f8ff);
-    g.fillCircle(10, 14, 5);
-    g.fillCircle(22, 14, 5);
-    // Eye dark outline (subtle)
-    g.lineStyle(1, 0x886688, 0.3);
-    g.strokeCircle(10, 14, 5);
-    g.strokeCircle(22, 14, 5);
-    // Large dark pupils
-    g.fillStyle(0x1a1a2e);
-    g.fillCircle(11, 14, 3.5);
-    g.fillCircle(23, 14, 3.5);
-    // Eye color ring (dark pink)
-    g.fillStyle(0x663355);
-    g.fillCircle(11, 14, 2.5);
-    g.fillCircle(23, 14, 2.5);
-    // Inner pupil
-    g.fillStyle(0x111122);
-    g.fillCircle(11, 14, 1.5);
-    g.fillCircle(23, 14, 1.5);
-    // Big sparkle highlight
-    g.fillStyle(0xffffff);
-    g.fillCircle(9, 12, 2);
-    g.fillCircle(21, 12, 2);
-    // Small secondary sparkle
-    g.fillStyle(0xffffff, 0.8);
-    g.fillCircle(12, 15, 1);
-    g.fillCircle(24, 15, 1);
+    // HEAD (slightly larger, facing 3/4 toward camera)
+    // Head shadow
+    g.fillStyle(0xbb4466);
+    g.fillCircle(9, 10, 8);
+    // Head base
+    g.fillStyle(0xdd6688);
+    g.fillCircle(8, 9, 7.5);
+    // Head mid
+    g.fillStyle(0xee7799);
+    g.fillCircle(7, 8, 6.5);
+    // Head light
+    g.fillStyle(0xff99aa);
+    g.fillCircle(6, 7, 5);
+    // Head specular
+    g.fillStyle(0xffbbcc);
+    g.fillCircle(5, 6, 3);
 
-    // Cute happy smile
-    g.lineStyle(1.5, 0xcc4466);
-    g.beginPath();
-    g.arc(16, 19, 4, 0.3, Math.PI - 0.3);
-    g.strokePath();
-    // Smile ends (dimples)
+    // GILLS (coral fronds on back of head - DKC pre-rendered look)
+    // Back gills (partially hidden)
+    g.fillStyle(0xaa3355);
+    g.fillCircle(16, 5, 3);
+    g.fillCircle(17, 8, 2.5);
+    g.fillCircle(16, 11, 2);
     g.fillStyle(0xcc4466);
-    g.fillCircle(12, 20, 0.8);
-    g.fillCircle(20, 20, 0.8);
+    g.fillCircle(15, 5, 2.5);
+    g.fillCircle(16, 8, 2);
+    g.fillStyle(0xee6688);
+    g.fillCircle(14, 5, 2);
+    g.fillCircle(15, 8, 1.5);
 
-    // Rosy cheek blush
-    g.fillStyle(0xff6688, 0.35);
-    g.fillCircle(6, 18, 3);
-    g.fillCircle(26, 18, 3);
+    // Side gills (more visible, feathery)
+    g.fillStyle(0xbb3355);
+    g.fillCircle(13, 3, 3.5);
+    g.fillCircle(11, 2, 3);
+    g.fillCircle(9, 2, 2.5);
+    g.fillStyle(0xdd5577);
+    g.fillCircle(12, 3, 3);
+    g.fillCircle(10, 2, 2.5);
+    g.fillCircle(8, 2, 2);
+    g.fillStyle(0xff7799);
+    g.fillCircle(11, 3, 2);
+    g.fillCircle(9, 2.5, 1.8);
+    g.fillCircle(7, 3, 1.5);
+    // Gill highlights
+    g.fillStyle(0xffaacc);
+    g.fillCircle(10, 3, 1);
+    g.fillCircle(8, 3, 0.8);
 
-    // Tiny feet hints at bottom
-    g.fillStyle(0xe8758f);
-    g.fillCircle(10, 28, 2);
-    g.fillCircle(22, 28, 2);
+    // BIG EYE (front eye - large and cute, 3/4 view)
+    // Eye white
+    g.fillStyle(0xffffff);
+    g.fillEllipse(6, 9, 5, 5.5);
+    // Eye outline
+    g.lineStyle(0.5, 0x663355, 0.3);
+    g.strokeEllipse(6, 9, 5, 5.5);
+    // Pupil
+    g.fillStyle(0x221133);
+    g.fillEllipse(7, 9, 3, 3.5);
+    // Iris color
+    g.fillStyle(0x442244);
+    g.fillEllipse(7, 9, 2.5, 3);
+    // Inner pupil
+    g.fillStyle(0x110011);
+    g.fillCircle(7, 9, 1.5);
+    // Big sparkle
+    g.fillStyle(0xffffff);
+    g.fillCircle(5, 7.5, 1.8);
+    // Small sparkle
+    g.fillStyle(0xffffff, 0.8);
+    g.fillCircle(8, 10.5, 0.8);
+
+    // SMALL EYE (back eye - partially visible in 3/4 view)
+    g.fillStyle(0xeeeeff);
+    g.fillEllipse(12, 8, 2.5, 3);
+    g.fillStyle(0x332233);
+    g.fillEllipse(12.5, 8, 1.5, 2);
+    g.fillStyle(0xffffff, 0.7);
+    g.fillCircle(11.5, 7, 0.8);
+
+    // CUTE SMILE (small, happy)
+    g.lineStyle(1, 0xaa3355);
+    g.beginPath();
+    g.arc(7, 13, 2.5, 0.2, Math.PI - 0.5);
+    g.strokePath();
+
+    // BLUSH (rosy cheek)
+    g.fillStyle(0xff6688, 0.4);
+    g.fillCircle(4, 12, 2);
+
+    // NOSTRIL (tiny dot)
+    g.fillStyle(0xaa4466);
+    g.fillCircle(3, 10, 0.5);
 
     g.generateTexture('xochi', 32, 32);
     g.clear();
 
-    // ============ BIG XOCHI (powered up) ============
-    // Body shadow
-    g.fillStyle(0xaa3366);
-    g.fillEllipse(16, 38, 24, 54);
-    // Body base
-    g.fillStyle(0xe8758f);
-    g.fillEllipse(16, 36, 22, 50);
-    // Body mid
-    g.fillStyle(0xf48aa0);
-    g.fillEllipse(14, 32, 18, 40);
-    // Body highlight
+    // ============ BIG XOCHI (powered up - DKC style) ============
+    // Tail
+    g.fillStyle(0xbb5577);
+    g.fillEllipse(26, 38, 12, 5);
+    g.fillStyle(0xe07090);
+    g.fillEllipse(25, 37, 10, 4);
+
+    // Back leg
+    g.fillStyle(0xcc5577);
+    g.fillEllipse(20, 52, 5, 8);
+    g.fillStyle(0xe07090);
+    g.fillEllipse(20, 53, 4, 6);
+
+    // Body
+    g.fillStyle(0x993355);
+    g.fillEllipse(14, 36, 18, 30);
+    g.fillStyle(0xcc5577);
+    g.fillEllipse(13, 35, 17, 28);
+    g.fillStyle(0xe07090);
+    g.fillEllipse(12, 34, 16, 26);
+    g.fillStyle(0xf08899);
+    g.fillEllipse(10, 32, 14, 22);
     g.fillStyle(0xffaabb);
-    g.fillEllipse(12, 26, 12, 28);
-    // Top specular
+    g.fillEllipse(8, 28, 10, 16);
     g.fillStyle(0xffccdd);
-    g.fillCircle(10, 16, 6);
-    g.fillStyle(0xffffff, 0.5);
-    g.fillCircle(8, 12, 3);
+    g.fillCircle(6, 22, 5);
 
-    // Big gills
-    drawGills(g, 3, 14, false, 1.3);
-    drawGills(g, 29, 14, true, 1.3);
+    // Front leg
+    g.fillStyle(0xcc5577);
+    g.fillEllipse(6, 52, 5, 8);
+    g.fillStyle(0xe07090);
+    g.fillEllipse(6, 53, 4, 6);
 
-    // Big eyes
-    g.fillStyle(0xf8f8ff);
-    g.fillCircle(9, 18, 5);
-    g.fillCircle(23, 18, 5);
-    g.fillStyle(0x1a1a2e);
-    g.fillCircle(10, 18, 3.5);
-    g.fillCircle(24, 18, 3.5);
-    g.fillStyle(0x663355);
-    g.fillCircle(10, 18, 2.5);
-    g.fillCircle(24, 18, 2.5);
+    // Head
+    g.fillStyle(0xbb4466);
+    g.fillCircle(10, 16, 10);
+    g.fillStyle(0xdd6688);
+    g.fillCircle(9, 15, 9);
+    g.fillStyle(0xee7799);
+    g.fillCircle(8, 14, 8);
+    g.fillStyle(0xff99aa);
+    g.fillCircle(7, 12, 6);
+    g.fillStyle(0xffbbcc);
+    g.fillCircle(5, 10, 4);
+
+    // Gills
+    g.fillStyle(0xbb3355);
+    g.fillCircle(18, 8, 5);
+    g.fillCircle(15, 5, 4);
+    g.fillCircle(12, 4, 3.5);
+    g.fillStyle(0xdd5577);
+    g.fillCircle(17, 8, 4);
+    g.fillCircle(14, 5, 3);
+    g.fillCircle(11, 4, 2.5);
+    g.fillStyle(0xff7799);
+    g.fillCircle(16, 8, 3);
+    g.fillCircle(13, 5, 2);
+    g.fillCircle(10, 5, 2);
+
+    // Big eye
     g.fillStyle(0xffffff);
-    g.fillCircle(8, 16, 2);
-    g.fillCircle(22, 16, 2);
+    g.fillEllipse(7, 14, 6, 7);
+    g.fillStyle(0x221133);
+    g.fillEllipse(8, 14, 4, 5);
+    g.fillStyle(0x442244);
+    g.fillEllipse(8, 14, 3, 4);
+    g.fillStyle(0xffffff);
+    g.fillCircle(6, 12, 2.2);
+
+    // Small eye
+    g.fillStyle(0xeeeeff);
+    g.fillEllipse(15, 12, 3, 4);
+    g.fillStyle(0x332233);
+    g.fillEllipse(15.5, 12, 2, 2.5);
 
     // Smile
-    g.lineStyle(2, 0xcc4466);
+    g.lineStyle(1.5, 0xaa3355);
     g.beginPath();
-    g.arc(16, 24, 5, 0.3, Math.PI - 0.3);
+    g.arc(8, 20, 4, 0.2, Math.PI - 0.4);
     g.strokePath();
 
-    // Cheeks
-    g.fillStyle(0xff6688, 0.35);
-    g.fillCircle(5, 22, 3);
-    g.fillCircle(27, 22, 3);
-
-    // Tail hint
-    g.fillStyle(0xe8758f);
-    g.fillEllipse(16, 58, 8, 6);
-    g.fillStyle(0xf48aa0);
-    g.fillEllipse(16, 57, 6, 4);
-
-    // Feet
-    g.fillStyle(0xe8758f);
-    g.fillCircle(8, 54, 3);
-    g.fillCircle(24, 54, 3);
+    // Blush
+    g.fillStyle(0xff6688, 0.4);
+    g.fillCircle(4, 18, 3);
 
     g.generateTexture('xochi-big', 32, 64);
     g.clear();
@@ -1555,7 +1648,7 @@ class GameScene extends Phaser.Scene {
     const isBossLevel = (this.levelNum === 5 || this.levelNum === 10);
     if (isBossLevel && !gameState.rescuedBabies.includes(`baby-${this.levelNum}`)) {
       // Dark Xochi spawns at level start position
-      this.darkXochi = this.physics.add.sprite(ld.playerSpawn.x + 100, ld.playerSpawn.y, 'xochi').setScale(2);
+      this.darkXochi = this.physics.add.sprite(ld.playerSpawn.x + 100, ld.playerSpawn.y, 'xochi').setScale(1.5);
       this.darkXochi.setTint(0x440044); // Dark purple evil Xochi!
       this.darkXochi.setData('alive', true);
       this.darkXochi.setData('speed', this.levelNum === 10 ? 140 : 110);
@@ -1599,7 +1692,7 @@ class GameScene extends Phaser.Scene {
     }
 
     // Player
-    this.player = this.physics.add.sprite(ld.playerSpawn.x, ld.playerSpawn.y, 'xochi').setScale(2);
+    this.player = this.physics.add.sprite(ld.playerSpawn.x, ld.playerSpawn.y, 'xochi').setScale(1.5);
     this.player.setCollideWorldBounds(true);
     this.player.body.setSize(12, 14);
     this.player.setData('big', false);
