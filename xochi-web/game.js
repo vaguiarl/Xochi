@@ -1654,45 +1654,89 @@ class GameScene extends Phaser.Scene {
       enemy.setFlipX(enemy.getData('dir') > 0);
     });
 
-    // DARK XOCHI - Boss on levels 5 and 10 only!
+    // DARK XOCHI - Boss fight on levels 5 and 10!
     this.darkXochi = null;
-    this.bossTimer = null;
-    this.bossTimeLeft = 0;
+    this.bossHealth = 0;
+    this.bossMaxHealth = 0;
+    this.bossState = 'CHASE'; // CHASE, ATTACK, RETREAT, STUNNED
+    this.bossAttackCooldown = 0;
+    this.bossThunderbolts = 0;
+    this.bossInvincible = false;
+    this.bossStateTimer = 0;
+    this.bossHealthBar = null;
+    this.bossHealthBarBg = null;
+    this.bossNameText = null;
+
     const isBossLevel = (this.levelNum === 5 || this.levelNum === 10);
     if (isBossLevel && !gameState.rescuedBabies.includes(`baby-${this.levelNum}`)) {
-      // Dark Xochi spawns at level start position
-      this.darkXochi = this.physics.add.sprite(ld.playerSpawn.x + 100, ld.playerSpawn.y, 'xochi').setScale(0.12);
-      this.darkXochi.setTint(0x440044); // Dark purple evil Xochi!
-      this.darkXochi.setData('alive', true);
-      this.darkXochi.setData('speed', this.levelNum === 10 ? 140 : 110);
-      this.darkXochi.body.setSize(350, 450);
-      this.darkXochi.body.setOffset(340, 300);
+      // Boss stats based on level
+      this.bossMaxHealth = this.levelNum === 10 ? 8 : 5;
+      this.bossHealth = this.bossMaxHealth;
+      this.bossThunderbolts = this.levelNum === 10 ? 5 : 3;
+      const bossSpeed = this.levelNum === 10 ? 140 : 100;
 
-      // Boss timer - race against time!
-      this.bossTimeLeft = this.levelNum === 10 ? 60 : 45; // 45 sec level 5, 60 sec level 10
-      this.bossTimerText = this.add.text(this.cameras.main.width / 2, 60, '', {
-        fontFamily: 'Arial Black', fontSize: '28px', color: '#ff0000',
+      // Dark Xochi spawns on right side of arena
+      this.darkXochi = this.physics.add.sprite(ld.playerSpawn.x + 300, ld.playerSpawn.y - 100, 'xochi_walk').setScale(0.15);
+      this.darkXochi.setTint(0x220022); // Dark purple/black evil Xochi!
+      this.darkXochi.setData('alive', true);
+      this.darkXochi.setData('speed', bossSpeed);
+      this.darkXochi.body.setSize(200, 350);
+      this.darkXochi.body.setOffset(110, 100);
+      this.darkXochi.setFlipX(true); // Face player
+
+      // Boss health bar UI (top center)
+      this.bossNameText = this.add.text(this.cameras.main.width / 2, 50, 'DARK XOCHI', {
+        fontFamily: 'Arial Black', fontSize: '20px', color: '#ff00ff',
         stroke: '#000', strokeThickness: 3
       }).setOrigin(0.5).setScrollFactor(0).setDepth(100);
 
-      this.bossTimer = this.time.addEvent({
-        delay: 1000,
-        callback: () => {
-          this.bossTimeLeft--;
-          if (this.bossTimeLeft <= 0 && this.darkXochi && this.darkXochi.getData('alive')) {
-            // Time's up! Dark Xochi wins!
-            this.darkXochiWins();
-          }
-        },
-        loop: true
+      this.bossHealthBarBg = this.add.rectangle(this.cameras.main.width / 2, 75, 200, 20, 0x440044)
+        .setScrollFactor(0).setDepth(100);
+      this.bossHealthBar = this.add.rectangle(this.cameras.main.width / 2, 75, 200, 16, 0xff00ff)
+        .setScrollFactor(0).setDepth(101);
+
+      // Boss intro sequence
+      this.darkXochi.setAlpha(0);
+      this.bossNameText.setAlpha(0);
+      this.bossHealthBarBg.setAlpha(0);
+      this.bossHealthBar.setAlpha(0);
+
+      this.time.delayedCall(500, () => {
+        // "DARK XOCHI APPEARS!" text
+        const introText = this.add.text(this.cameras.main.width / 2, this.cameras.main.height / 2,
+          'DARK XOCHI\nAPPEARS!', {
+          fontFamily: 'Arial Black', fontSize: '48px', color: '#ff00ff',
+          stroke: '#000', strokeThickness: 6, align: 'center'
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(200);
+
+        // Boss drops in
+        this.tweens.add({
+          targets: this.darkXochi,
+          alpha: 1,
+          duration: 500
+        });
+
+        // Fade in health bar
+        this.tweens.add({
+          targets: [this.bossNameText, this.bossHealthBarBg, this.bossHealthBar],
+          alpha: 1,
+          duration: 500,
+          delay: 1000
+        });
+
+        // Remove intro text
+        this.time.delayedCall(2000, () => {
+          this.tweens.add({
+            targets: introText,
+            alpha: 0,
+            duration: 300,
+            onComplete: () => introText.destroy()
+          });
+        });
       });
 
       // Dark Xochi collides with platforms
       this.physics.add.collider(this.darkXochi, this.platforms);
-      if (this.baby) {
-        this.physics.add.overlap(this.darkXochi, this.baby, this.darkXochiGetsBaby, null, this);
-      }
-      // Player overlaps added after player is created below
     }
 
     // Super Jump Power-ups
@@ -2021,28 +2065,20 @@ class GameScene extends Phaser.Scene {
 
   // DARK XOCHI collision - player touches the boss
   hitDarkXochi(player, darkXochi) {
-    if (player.getData('invincible') || !darkXochi.getData('alive')) return;
+    if (player.getData('invincible') || !darkXochi.getData('alive') || this.bossInvincible) return;
 
     if (player.body.velocity.y > 0 && player.y < darkXochi.y - 10) {
-      // Stomp Dark Xochi! HUGE points!
-      darkXochi.setData('alive', false);
-      darkXochi.body.setVelocity(0);
-      darkXochi.setTint(0x222222);
-      if (this.bossTimer) this.bossTimer.remove();
-      if (this.bossTimerText) this.bossTimerText.destroy();
-      this.time.delayedCall(500, () => darkXochi.destroy());
+      // Stomp Dark Xochi - 1 damage + stun!
+      this.damageBoss(1, true);
       player.body.setVelocityY(-400);
       this.playSound('sfx-stomp');
-      gameState.score += 2000; // +2000 for defeating Dark Xochi!
-      this.showBigText('DARK XOCHI DEFEATED! +2000', '#ff00ff');
-      this.darkXochi = null;
     } else {
-      // Hit by Dark Xochi
+      // Hit by Dark Xochi body
       this.playSound('sfx-hurt');
       if (player.getData('big')) {
         player.setData('big', false);
-        player.setTexture('xochi');
-        player.body.setSize(12, 14);
+        player.setTexture('xochi_walk');
+        player.body.setSize(200, 350);
         this.setInvincible(2000);
       } else {
         this.playerDie();
@@ -2050,67 +2086,142 @@ class GameScene extends Phaser.Scene {
     }
   }
 
-  // Dark Xochi reaches the baby first!
-  darkXochiGetsBaby(darkXochi, baby) {
-    if (!darkXochi.getData('alive')) return;
-    baby.destroy();
-    this.baby = null;
-    darkXochi.setData('alive', false);
-    darkXochi.body.setVelocity(0);
-    if (this.bossTimer) this.bossTimer.remove();
-    if (this.bossTimerText) this.bossTimerText.destroy();
+  // Damage the boss
+  damageBoss(damage, stun = false) {
+    if (this.bossInvincible || !this.darkXochi || !this.darkXochi.getData('alive')) return;
 
-    this.showBigText('DARK XOCHI GOT THE BABY!', '#ff00ff');
-    this.playSound('sfx-hurt');
+    this.bossHealth -= damage;
+    this.playSound('sfx-stomp');
 
-    // Lose a life and restart
-    this.time.delayedCall(2000, () => {
-      gameState.lives--;
-      if (gameState.lives <= 0) {
-        gameState.lives = 3;
-        gameState.coins = 0;
-        mariachiMusic.stop();
-        this.scene.stop('UIScene');
-        this.scene.start('MenuScene');
-      } else {
-        this.scene.restart({ level: this.levelNum });
+    // Update health bar
+    const healthPercent = this.bossHealth / this.bossMaxHealth;
+    if (this.bossHealthBar) {
+      this.bossHealthBar.setScale(healthPercent, 1);
+      this.bossHealthBar.setX(this.cameras.main.width / 2 - (200 * (1 - healthPercent)) / 2);
+    }
+
+    // Show damage text
+    this.showText(this.darkXochi.x, this.darkXochi.y - 50, `HIT! -${damage}`, '#ffffff');
+
+    // Flash white
+    this.darkXochi.setTint(0xffffff);
+    this.time.delayedCall(100, () => {
+      if (this.darkXochi) this.darkXochi.setTint(0x220022);
+    });
+
+    // Knockback
+    const dir = this.player.x < this.darkXochi.x ? 1 : -1;
+    this.darkXochi.body.setVelocityX(dir * 200);
+
+    // Check for death
+    if (this.bossHealth <= 0) {
+      this.defeatBoss();
+      return;
+    }
+
+    // Stun or invincibility
+    if (stun) {
+      this.bossState = 'STUNNED';
+      this.bossStateTimer = 500;
+    }
+    this.bossInvincible = true;
+    this.time.delayedCall(500, () => {
+      this.bossInvincible = false;
+      if (this.bossState === 'STUNNED') {
+        this.bossState = 'RETREAT';
+        this.bossStateTimer = 1000;
       }
     });
   }
 
-  // Timer ran out - Dark Xochi wins by default
-  darkXochiWins() {
-    if (!this.darkXochi || !this.darkXochi.getData('alive')) return;
-    if (this.bossTimerText) this.bossTimerText.destroy();
+  // Boss defeat sequence
+  defeatBoss() {
+    if (!this.darkXochi) return;
 
-    this.showBigText('TIME UP! DARK XOCHI WINS!', '#ff0000');
-    this.playSound('sfx-hurt');
+    this.darkXochi.setData('alive', false);
+    this.darkXochi.body.setVelocity(0);
+    this.bossState = 'DEAD';
 
-    // Same as losing to Dark Xochi
-    this.time.delayedCall(2000, () => {
-      gameState.lives--;
-      if (gameState.lives <= 0) {
-        gameState.lives = 3;
-        gameState.coins = 0;
-        mariachiMusic.stop();
-        this.scene.stop('UIScene');
-        this.scene.start('MenuScene');
-      } else {
-        this.scene.restart({ level: this.levelNum });
-      }
+    // "NOOOOO!" text
+    this.showBigText('NOOOOO!', '#ff00ff');
+
+    // Flash rapidly
+    let flashCount = 0;
+    const flashInterval = this.time.addEvent({
+      delay: 100,
+      callback: () => {
+        if (this.darkXochi) {
+          this.darkXochi.setTint(flashCount % 2 === 0 ? 0xffffff : 0xff0000);
+        }
+        flashCount++;
+        if (flashCount > 10) {
+          flashInterval.remove();
+
+          // Explosion particles
+          for (let i = 0; i < 20; i++) {
+            const particle = this.add.circle(
+              this.darkXochi.x + Phaser.Math.Between(-30, 30),
+              this.darkXochi.y + Phaser.Math.Between(-30, 30),
+              Phaser.Math.Between(5, 15),
+              0xff00ff
+            );
+            this.tweens.add({
+              targets: particle,
+              x: particle.x + Phaser.Math.Between(-100, 100),
+              y: particle.y + Phaser.Math.Between(-100, 100),
+              alpha: 0,
+              scale: 0,
+              duration: 500,
+              onComplete: () => particle.destroy()
+            });
+          }
+
+          // Fade out boss
+          this.tweens.add({
+            targets: this.darkXochi,
+            alpha: 0,
+            duration: 500,
+            onComplete: () => {
+              if (this.darkXochi) this.darkXochi.destroy();
+              this.darkXochi = null;
+            }
+          });
+
+          // Award points
+          gameState.score += 5000;
+          this.showBigText('+5000 POINTS!', '#ffff00');
+
+          // Hide health bar
+          if (this.bossHealthBar) this.bossHealthBar.destroy();
+          if (this.bossHealthBarBg) this.bossHealthBarBg.destroy();
+          if (this.bossNameText) this.bossNameText.destroy();
+
+          // Spawn baby after victory (if not already there)
+          this.time.delayedCall(1500, () => {
+            if (!this.baby) {
+              const ld = this.levelData;
+              this.baby = this.physics.add.sprite(ld.babyPosition.x, ld.babyPosition.y, 'baby');
+              this.baby.babyId = `baby-${this.levelNum}`;
+              this.baby.body.allowGravity = false;
+              this.tweens.add({ targets: this.baby, y: ld.babyPosition.y - 10, duration: 400, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+              this.physics.add.overlap(this.player, this.baby, this.rescueBaby, null, this);
+            }
+          });
+        }
+      },
+      loop: true
     });
   }
+
 
   rescueBaby(player, baby) {
     gameState.rescuedBabies.push(baby.babyId);
 
-    // Boss level bonus! (levels 5 and 10)
+    // Award points for rescue
     const isBossLevel = (this.levelNum === 5 || this.levelNum === 10);
     let points = 1000;
-    if (isBossLevel && this.bossTimeLeft > 0) {
-      // Bonus points for time remaining!
-      points += this.bossTimeLeft * 50;
-      this.showBigText(`BOSS BEATEN! +${points}`, '#ff00ff');
+    if (isBossLevel) {
+      this.showBigText('BABY RESCUED! +1000', '#ff00ff');
     } else {
       this.showBigText('RESCUED! +1000', '#ff6b9d');
     }
@@ -2119,19 +2230,14 @@ class GameScene extends Phaser.Scene {
     baby.destroy();
     this.baby = null;
 
-    // Clean up Dark Xochi boss stuff
+    // Clean up Dark Xochi boss stuff (in case still around)
     if (this.darkXochi) {
       this.darkXochi.destroy();
       this.darkXochi = null;
     }
-    if (this.bossTimer) {
-      this.bossTimer.remove();
-      this.bossTimer = null;
-    }
-    if (this.bossTimerText) {
-      this.bossTimerText.destroy();
-      this.bossTimerText = null;
-    }
+    if (this.bossHealthBar) this.bossHealthBar.destroy();
+    if (this.bossHealthBarBg) this.bossHealthBarBg.destroy();
+    if (this.bossNameText) this.bossNameText.destroy();
 
     this.playSound('sfx-powerup');
     saveGame();
@@ -2317,6 +2423,15 @@ class GameScene extends Phaser.Scene {
         }
       });
 
+      // MELEE HIT BOSS - 1 damage!
+      if (this.darkXochi && this.darkXochi.getData('alive')) {
+        const bossDist = Math.abs(this.darkXochi.x - this.player.x);
+        const bossSameDir = (this.darkXochi.x - this.player.x) * dir > 0;
+        if (bossDist < meleeRange && bossSameDir && Math.abs(this.darkXochi.y - this.player.y) < 60) {
+          this.damageBoss(1, false);
+        }
+      }
+
       // THUNDERBOLT - only if we have mace attacks!
       if (gameState.maceAttacks > 0) {
         gameState.maceAttacks--;
@@ -2380,6 +2495,16 @@ class GameScene extends Phaser.Scene {
             this.time.delayedCall(500, () => enemy.destroy());
           }
         });
+
+        // THUNDERBOLT HIT BOSS - 2 damage!
+        if (this.darkXochi && this.darkXochi.getData('alive')) {
+          const bossDist = Math.abs(this.darkXochi.x - this.player.x);
+          const bossSameDir = (this.darkXochi.x - this.player.x) * dir > 0;
+          if (bossDist < attackRange && bossSameDir) {
+            this.damageBoss(2, false);
+            this.showText(this.darkXochi.x, this.darkXochi.y - 30, 'CRITICAL!', '#ffff00');
+          }
+        }
       }
 
       // Return to normal after attack
@@ -2512,31 +2637,160 @@ class GameScene extends Phaser.Scene {
       }
     });
 
-    // DARK XOCHI AI - races toward the baby on boss levels!
-    if (this.darkXochi && this.darkXochi.getData('alive') && this.baby) {
+    // DARK XOCHI AI - State machine boss fight!
+    if (this.darkXochi && this.darkXochi.getData('alive')) {
       const speed = this.darkXochi.getData('speed');
-      const dx = this.baby.x - this.darkXochi.x;
-      const dy = this.baby.y - this.darkXochi.y;
+      const dx = this.player.x - this.darkXochi.x;
+      const dy = this.player.y - this.darkXochi.y;
+      const distToPlayer = Math.abs(dx);
+      const onGround = this.darkXochi.body.blocked.down;
 
-      // Move toward baby
-      if (Math.abs(dx) > 10) {
-        this.darkXochi.body.setVelocityX(dx > 0 ? speed : -speed);
-        this.darkXochi.setFlipX(dx < 0);
+      // Decrease state timer
+      if (this.bossStateTimer > 0) {
+        this.bossStateTimer -= delta;
       }
 
-      // Jump if blocked or needs to go up
-      if (this.darkXochi.body.blocked.down) {
-        const needsJump = this.darkXochi.body.blocked.left || this.darkXochi.body.blocked.right || dy < -50;
-        if (needsJump) {
-          this.darkXochi.body.setVelocityY(-450);
-        }
+      // Decrease attack cooldown
+      if (this.bossAttackCooldown > 0) {
+        this.bossAttackCooldown -= delta;
       }
 
-      // Update boss timer display
-      if (this.bossTimerText) {
-        const color = this.bossTimeLeft <= 10 ? '#ff0000' : '#ffff00';
-        this.bossTimerText.setText(`TIME: ${this.bossTimeLeft}`);
-        this.bossTimerText.setColor(color);
+      // State machine
+      switch (this.bossState) {
+        case 'CHASE':
+          // Move toward player
+          if (Math.abs(dx) > 50) {
+            this.darkXochi.body.setVelocityX(dx > 0 ? speed : -speed);
+            this.darkXochi.setFlipX(dx < 0);
+          } else {
+            this.darkXochi.body.setVelocityX(0);
+          }
+
+          // Jump if blocked or player is above
+          if (onGround) {
+            const needsJump = this.darkXochi.body.blocked.left || this.darkXochi.body.blocked.right || dy < -100;
+            if (needsJump) {
+              this.darkXochi.body.setVelocityY(this.levelNum === 10 ? -450 : -400);
+            }
+          }
+
+          // Transition to ATTACK when close and cooldown ready
+          if (distToPlayer < 150 && this.bossAttackCooldown <= 0) {
+            this.bossState = 'ATTACK';
+            this.bossStateTimer = 300; // Windup time
+            this.darkXochi.body.setVelocityX(0);
+          }
+          break;
+
+        case 'ATTACK':
+          this.darkXochi.body.setVelocityX(0);
+
+          // Windup complete - execute attack
+          if (this.bossStateTimer <= 0) {
+            const dir = this.darkXochi.flipX ? -1 : 1;
+
+            // Choose attack: thunderbolt if far and has charges, else mace
+            if (this.bossThunderbolts > 0 && distToPlayer > 100 && Math.random() < 0.3) {
+              // THUNDERBOLT ATTACK
+              this.bossThunderbolts--;
+              this.darkXochi.setTint(0xffff00); // Yellow telegraph
+              this.time.delayedCall(200, () => {
+                if (this.darkXochi) this.darkXochi.setTint(0x220022);
+              });
+
+              // Lightning visual
+              const startX = this.darkXochi.x + dir * 40;
+              const startY = this.darkXochi.y;
+              for (let i = 0; i < 8; i++) {
+                const segment = this.add.rectangle(
+                  startX + dir * i * 30,
+                  startY + Phaser.Math.Between(-10, 10),
+                  25, 6, 0xff00ff
+                );
+                this.tweens.add({
+                  targets: segment,
+                  alpha: 0,
+                  duration: 200,
+                  delay: i * 20,
+                  onComplete: () => segment.destroy()
+                });
+              }
+
+              // Damage player if in range
+              if (distToPlayer < 250 && ((dx > 0 && dir > 0) || (dx < 0 && dir < 0))) {
+                if (!this.player.getData('invincible')) {
+                  this.playSound('sfx-hurt');
+                  if (this.player.getData('big')) {
+                    this.player.setData('big', false);
+                    this.player.setTexture('xochi_walk');
+                    this.setInvincible(2000);
+                  } else {
+                    this.playerDie();
+                  }
+                }
+              }
+
+              this.showText(this.darkXochi.x, this.darkXochi.y - 40, 'THUNDER!', '#ff00ff');
+            } else {
+              // MACE SWING ATTACK
+              const swingArc = this.add.arc(
+                this.darkXochi.x + dir * 30,
+                this.darkXochi.y,
+                40,
+                dir > 0 ? 200 : 340,
+                dir > 0 ? 340 : 200,
+                false,
+                0xff00ff, 0.6
+              );
+              this.tweens.add({
+                targets: swingArc,
+                alpha: 0,
+                scale: 1.5,
+                duration: 150,
+                onComplete: () => swingArc.destroy()
+              });
+
+              // Damage player if in melee range
+              if (distToPlayer < 80 && ((dx > 0 && dir > 0) || (dx < 0 && dir < 0))) {
+                if (!this.player.getData('invincible')) {
+                  this.playSound('sfx-hurt');
+                  if (this.player.getData('big')) {
+                    this.player.setData('big', false);
+                    this.player.setTexture('xochi_walk');
+                    this.setInvincible(2000);
+                  } else {
+                    this.playerDie();
+                  }
+                }
+              }
+            }
+
+            // Set cooldown and transition to retreat
+            this.bossAttackCooldown = this.levelNum === 10 ? 1500 : 2000;
+            this.bossState = 'RETREAT';
+            this.bossStateTimer = 800;
+          }
+          break;
+
+        case 'RETREAT':
+          // Jump backward away from player
+          const retreatDir = dx > 0 ? -1 : 1;
+          this.darkXochi.body.setVelocityX(retreatDir * speed * 0.7);
+
+          if (onGround && this.bossStateTimer > 600) {
+            this.darkXochi.body.setVelocityY(-300);
+          }
+
+          // Return to chase after timer
+          if (this.bossStateTimer <= 0) {
+            this.bossState = 'CHASE';
+          }
+          break;
+
+        case 'STUNNED':
+          this.darkXochi.body.setVelocity(0);
+          // Handled by damageBoss timeout
+          break;
       }
     }
 
