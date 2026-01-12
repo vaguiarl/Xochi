@@ -1745,7 +1745,7 @@ class GameScene extends Phaser.Scene {
 
     // Input
     this.cursors = this.input.keyboard.createCursorKeys();
-    this.keys = this.input.keyboard.addKeys({ W: 'W', A: 'A', D: 'D', SPACE: 'SPACE', SHIFT: 'SHIFT', X: 'X', C: 'C' });
+    this.keys = this.input.keyboard.addKeys({ W: 'W', A: 'A', D: 'D', SPACE: 'SPACE', SHIFT: 'SHIFT', X: 'X', Z: 'Z' });
 
     // ============ ANIMATION STATE ============
     this.walkTime = 0;           // For walk animation cycle
@@ -2269,7 +2269,7 @@ class GameScene extends Phaser.Scene {
     const touchAttackJustPressed = tc.attack && !this.lastTouchAttack;
     this.lastTouchAttack = tc.attack;
 
-    const attackPressed = Phaser.Input.Keyboard.JustDown(this.keys.C) || touchAttackJustPressed;
+    const attackPressed = Phaser.Input.Keyboard.JustDown(this.keys.Z) || touchAttackJustPressed;
 
     // Regular mace swing (no thunderbolt) - always available
     if (attackPressed && this.attackCooldown <= 0 && !this.isAttacking) {
@@ -2278,11 +2278,8 @@ class GameScene extends Phaser.Scene {
 
       const dir = this.player.flipX ? -1 : 1;
 
-      // Only use attack frame if we have thunderbolt (to avoid physics issues)
-      // Regular swing just shows a visual effect
-      if (gameState.maceAttacks > 0) {
-        this.player.setTexture('xochi_attack');
-      }
+      // Don't change texture during attack - causes physics issues due to different frame sizes
+      // Visual effects handle the attack animation instead
 
       this.playSound('sfx-stomp'); // Attack sound
 
@@ -2391,34 +2388,57 @@ class GameScene extends Phaser.Scene {
       });
     }
 
-    // ============ FRAME ANIMATION ============
+    // ============ FRAME ANIMATION (DKC-style) ============
     const isMoving = Math.abs(this.player.body.velocity.x) > 10;
     const isInAir = !onGround;
     const isRunning = this.keys.SHIFT.isDown;
+    const now = this.time.now;
+
+    // Walk animation timer (cycle every 200ms for walk, 120ms for run)
+    if (!this.walkAnimTime) this.walkAnimTime = 0;
 
     // JUMPING - use jump frame
     if (isInAir && !this.isAttacking) {
       this.player.setTexture('xochi_jump');
+      this.player.setScale(0.15);
+      this.player.setRotation(0);
 
-    // RUNNING (SHIFT held) - use run frame
+    // RUNNING (SHIFT held) - use run frame with fast bob
     } else if (isMoving && isRunning && onGround && !this.isAttacking) {
       this.player.setTexture('xochi_run');
+      // Fast bobbing for running
+      const runCycle = Math.sin(now * 0.025) * 0.5; // Faster cycle
+      const bobScale = 0.15 + runCycle * 0.008; // Subtle scale pulse
+      const tilt = Math.sin(now * 0.025) * 0.08; // Side-to-side tilt
+      this.player.setScale(bobScale);
+      this.player.setRotation(tilt);
 
-    // WALKING - use walk frame
+    // WALKING - use walk frame with bob animation
     } else if (isMoving && onGround && !this.isAttacking) {
       this.player.setTexture('xochi_walk');
+      // DKC-style walk bob - body bounces up/down, slight tilt
+      const walkCycle = Math.sin(now * 0.015); // Smooth cycle
+      const bobScale = 0.15 + walkCycle * 0.006; // Subtle vertical squash/stretch
+      const tilt = Math.sin(now * 0.015) * 0.05; // Gentle side lean
+      this.player.setScale(bobScale);
+      this.player.setRotation(tilt);
 
-    // IDLE - use walk frame (standing pose)
+    // IDLE - subtle breathing animation
     } else if (!this.isAttacking) {
       this.player.setTexture('xochi_walk');
+      // Gentle breathing effect
+      const breathe = Math.sin(now * 0.003) * 0.004;
+      this.player.setScale(0.15 + breathe);
+      this.player.setRotation(0);
     }
 
-    // Keep scale and rotation constant
-    this.player.setScale(0.15);
-    this.player.setRotation(0);
+    // ATTACKING - keep stable scale/rotation to prevent physics issues
+    if (this.isAttacking) {
+      this.player.setScale(0.15);
+      this.player.setRotation(0);
+    }
 
     // Enemies patrol
-    const now = this.time.now;
     this.enemies.getChildren().forEach(e => {
       if (!e.getData('alive')) return;
 
