@@ -276,80 +276,280 @@ const THEMES = [
   { name: 'Jungle', sky: [0x66ddcc, 0x55ccbb, 0x44bbaa, 0x33aa99, 0x229988, 0x118877], mountain: 0x225533, hill: 0x44cc44 }
 ];
 
+// ============== LEVEL GENERATION TENETS ==============
+// 1. SUPER JUMP enables huge gaps (300-500px) and sky-high platforms
+// 2. Powerups placed BEFORE difficult gaps, proportional to gap difficulty
+// 3. Multiple paths: main road (safe) + sky road (risky but rewarding)
+// 4. Risk/reward: harder platforms have more coins/stars
+// 5. Every level is completable without super jump (but slower/boring)
+// 6. Secret sky platforms require super jump, contain bonus stars
+
+// Calculate jump difficulty (how hard is this gap?)
+function calculateGapDifficulty(gapX, gapY) {
+  // Normal jump: ~200px horizontal, ~120px up
+  // Super jump: ~400px horizontal, ~250px up
+  const normalJumpX = 200;
+  const normalJumpY = 120;
+  const superJumpX = 400;
+  const superJumpY = 250;
+
+  const xDifficulty = gapX / normalJumpX;
+  const yDifficulty = Math.max(0, gapY) / normalJumpY; // Only count upward
+
+  // If beyond normal jump, it's a "super jump required" gap
+  const requiresSuper = gapX > normalJumpX * 1.2 || gapY > normalJumpY * 1.2;
+
+  return {
+    score: xDifficulty + yDifficulty * 0.8,
+    requiresSuper,
+    xDifficulty,
+    yDifficulty
+  };
+}
+
 // Generate a random level based on level number
 function generateLevel(levelNum) {
   const difficulty = Math.min(levelNum / 10, 1); // 0.1 to 1.0
-  const width = 1800 + levelNum * 150;
+  const width = 2000 + levelNum * 200;
   const height = 600;
   const groundY = height - 50;
 
   // Select random theme
   const theme = THEMES[Math.floor(Math.random() * THEMES.length)];
 
-  // Generate platforms using staircase algorithm
+  // ============ PLATFORM GENERATION ============
   const platforms = [];
+  const platformData = []; // Track metadata for powerup placement
 
-  // Always add ground
-  platforms.push({ x: 0, y: groundY, w: width, h: 50 });
-
-  // Generate floating platforms
-  let currentX = 150;
-  let currentY = groundY - 100;
-  let lastPlatY = currentY;
-
-  while (currentX < width - 300) {
-    // Platform size varies
-    const platW = 80 + Math.floor(Math.random() * 100);
-    const platH = 20;
-
-    // Add platform
-    platforms.push({ x: currentX, y: currentY, w: platW, h: platH });
-
-    // Calculate next position
-    const gapX = 120 + Math.floor(Math.random() * 100) + difficulty * 50;
-    currentX += platW + gapX;
-
-    // Vertical movement (ensure jumpable - max 120px up)
-    const roll = Math.random();
-    if (roll < 0.5 && currentY > 200) {
-      // Go up
-      currentY -= 50 + Math.floor(Math.random() * 70);
-    } else if (roll < 0.8) {
-      // Stay same height (small variation)
-      currentY += Math.floor(Math.random() * 40) - 20;
-    } else if (currentY < groundY - 150) {
-      // Go down
-      currentY += 50 + Math.floor(Math.random() * 50);
-    }
-
-    // Clamp height
-    currentY = Math.max(150, Math.min(groundY - 80, currentY));
-    lastPlatY = currentY;
+  // Always add ground (with gaps at higher difficulties!)
+  if (difficulty > 0.5 && Math.random() < 0.5) {
+    // Split ground with pit
+    const pitX = 600 + Math.floor(Math.random() * (width - 1200));
+    const pitW = 150 + Math.floor(difficulty * 150);
+    platforms.push({ x: 0, y: groundY, w: pitX, h: 50 });
+    platforms.push({ x: pitX + pitW, y: groundY, w: width - pitX - pitW, h: 50 });
+  } else {
+    platforms.push({ x: 0, y: groundY, w: width, h: 50 });
   }
 
-  // Add final platform near baby
-  platforms.push({ x: width - 250, y: lastPlatY, w: 150, h: 20 });
+  // ============ MAIN PATH (always completable with normal jumps) ============
+  let mainX = 150;
+  let mainY = groundY - 100;
+  let lastMainPlat = null;
 
-  // Generate coins on/near platforms
+  while (mainX < width - 400) {
+    const platW = 80 + Math.floor(Math.random() * 80);
+    const platH = 20;
+
+    // Calculate gap from previous platform
+    let gapX, gapY;
+    if (lastMainPlat) {
+      gapX = mainX - (lastMainPlat.x + lastMainPlat.w);
+      gapY = lastMainPlat.y - mainY; // Positive = going up
+    } else {
+      gapX = 0;
+      gapY = 0;
+    }
+
+    const gapInfo = calculateGapDifficulty(gapX, gapY);
+
+    // Store platform with metadata
+    const plat = { x: mainX, y: mainY, w: platW, h: platH };
+    platforms.push(plat);
+    platformData.push({
+      platform: plat,
+      gapDifficulty: gapInfo.score,
+      requiresSuper: gapInfo.requiresSuper,
+      type: 'main'
+    });
+
+    lastMainPlat = plat;
+
+    // Next position - keep gaps manageable for normal jump
+    const baseGap = 100 + Math.floor(Math.random() * 80);
+    const difficultyGap = Math.floor(difficulty * 40);
+    gapX = baseGap + difficultyGap;
+    mainX += platW + gapX;
+
+    // Vertical variety (stay within normal jump range)
+    const roll = Math.random();
+    if (roll < 0.35 && mainY > 250) {
+      // Go up (normal jump max ~120px)
+      mainY -= 40 + Math.floor(Math.random() * 60);
+    } else if (roll < 0.65) {
+      // Slight variation
+      mainY += Math.floor(Math.random() * 50) - 25;
+    } else if (mainY < groundY - 150) {
+      // Go down
+      mainY += 40 + Math.floor(Math.random() * 60);
+    }
+
+    // Keep in bounds
+    mainY = Math.max(200, Math.min(groundY - 80, mainY));
+  }
+
+  // Final platform for baby
+  const finalPlat = { x: width - 280, y: mainY, w: 180, h: 20 };
+  platforms.push(finalPlat);
+  platformData.push({ platform: finalPlat, gapDifficulty: 0.5, requiresSuper: false, type: 'main' });
+
+  // ============ SKY PATH (requires super jump, high reward) ============
+  const skyPlatforms = [];
+  let skyX = 300 + Math.floor(Math.random() * 200);
+  const skyY = 100 + Math.floor(Math.random() * 60); // Very high up!
+
+  // 2-4 sky platforms per level
+  const numSkyPlats = 2 + Math.floor(Math.random() * 3);
+  for (let i = 0; i < numSkyPlats && skyX < width - 400; i++) {
+    const platW = 60 + Math.floor(Math.random() * 60);
+    const plat = { x: skyX, y: skyY + Math.floor(Math.random() * 40), w: platW, h: 20 };
+    platforms.push(plat);
+    skyPlatforms.push(plat);
+    platformData.push({
+      platform: plat,
+      gapDifficulty: 2.5, // High difficulty = super jump required
+      requiresSuper: true,
+      type: 'sky'
+    });
+
+    // Big gaps between sky platforms (super jump territory)
+    skyX += platW + 300 + Math.floor(Math.random() * 200);
+  }
+
+  // ============ CHALLENGE PLATFORMS (medium height, tricky gaps) ============
+  const challengeY = 180 + Math.floor(Math.random() * 80);
+  let challengeX = 500 + Math.floor(Math.random() * 300);
+
+  // 1-3 challenge sequences
+  const numChallenges = 1 + Math.floor(difficulty * 2);
+  for (let c = 0; c < numChallenges && challengeX < width - 600; c++) {
+    // Small cluster of challenging platforms
+    for (let i = 0; i < 2 + Math.floor(Math.random() * 2); i++) {
+      const platW = 50 + Math.floor(Math.random() * 40);
+      const plat = { x: challengeX, y: challengeY + Math.floor(Math.random() * 60) - 30, w: platW, h: 20 };
+      platforms.push(plat);
+      platformData.push({
+        platform: plat,
+        gapDifficulty: 1.5 + Math.random() * 0.5,
+        requiresSuper: Math.random() < 0.3,
+        type: 'challenge'
+      });
+      challengeX += platW + 150 + Math.floor(Math.random() * 100);
+    }
+    // Skip ahead for next challenge area
+    challengeX += 400 + Math.floor(Math.random() * 300);
+  }
+
+  // ============ POWERUP PLACEMENT (proportional to upcoming gap difficulty) ============
+  const powerups = [];
+
+  // Sort platforms by X position
+  platformData.sort((a, b) => a.platform.x - b.platform.x);
+
+  // Calculate cumulative difficulty and place powerups
+  let cumulativeDifficulty = 0;
+  const difficultyThreshold = 2.0; // Place powerup every 2.0 difficulty points
+
+  platformData.forEach((pd, i) => {
+    cumulativeDifficulty += pd.gapDifficulty;
+
+    // Place powerup when difficulty accumulates enough
+    if (cumulativeDifficulty >= difficultyThreshold) {
+      powerups.push({
+        x: pd.platform.x + pd.platform.w / 2,
+        y: pd.platform.y - 40
+      });
+      cumulativeDifficulty = 0; // Reset
+    }
+
+    // Always place powerup before super-jump-required gaps
+    if (pd.requiresSuper && i > 0) {
+      const prevPlat = platformData[i - 1].platform;
+      // Check we don't already have one there
+      const nearby = powerups.some(p => Math.abs(p.x - prevPlat.x) < 100);
+      if (!nearby) {
+        powerups.push({
+          x: prevPlat.x + prevPlat.w / 2,
+          y: prevPlat.y - 40
+        });
+      }
+    }
+  });
+
+  // Ensure minimum powerups (at least 3 + difficulty bonus)
+  const minPowerups = 3 + Math.floor(difficulty * 3);
+  while (powerups.length < minPowerups) {
+    const randomPlat = platformData[Math.floor(Math.random() * platformData.length)].platform;
+    const nearby = powerups.some(p => Math.abs(p.x - randomPlat.x) < 150);
+    if (!nearby) {
+      powerups.push({ x: randomPlat.x + randomPlat.w / 2, y: randomPlat.y - 40 });
+    }
+  }
+
+  // ============ COINS (more on harder/sky platforms) ============
   const coins = [];
-  platforms.forEach((p, i) => {
-    if (i === 0) return; // Skip ground
-    // 2-4 coins per platform
-    const numCoins = 2 + Math.floor(Math.random() * 3);
+  platformData.forEach(pd => {
+    if (pd.platform.h > 30) return; // Skip ground
+
+    // Base coins + bonus for difficulty
+    const baseCoins = 2;
+    const difficultyBonus = Math.floor(pd.gapDifficulty);
+    const skyBonus = pd.type === 'sky' ? 3 : 0;
+    const numCoins = baseCoins + difficultyBonus + skyBonus;
+
     for (let c = 0; c < numCoins; c++) {
       coins.push({
-        x: p.x + 20 + c * 30,
-        y: p.y - 40
+        x: pd.platform.x + 15 + c * 25,
+        y: pd.platform.y - 35
       });
     }
   });
 
-  // Generate enemies
+  // Coin trails in the air (guide player through gaps)
+  platformData.forEach((pd, i) => {
+    if (i === 0) return;
+    const prevPlat = platformData[i - 1].platform;
+    const gap = pd.platform.x - (prevPlat.x + prevPlat.w);
+
+    // If gap is large, add floating coin trail
+    if (gap > 200) {
+      const midX = prevPlat.x + prevPlat.w + gap / 2;
+      const midY = (prevPlat.y + pd.platform.y) / 2 - 30;
+      coins.push({ x: midX - 40, y: midY });
+      coins.push({ x: midX, y: midY - 20 });
+      coins.push({ x: midX + 40, y: midY });
+    }
+  });
+
+  // ============ STARS (1 easy, 1 medium, 1 on sky platform) ============
+  const stars = [];
+  const mainPlats = platformData.filter(pd => pd.type === 'main');
+  const skyPlats = platformData.filter(pd => pd.type === 'sky');
+
+  // Easy star on early platform
+  if (mainPlats.length > 2) {
+    const easyPlat = mainPlats[1 + Math.floor(Math.random() * 2)].platform;
+    stars.push({ x: easyPlat.x + easyPlat.w / 2, y: easyPlat.y - 50 });
+  }
+
+  // Medium star on middle platform
+  if (mainPlats.length > 5) {
+    const midPlat = mainPlats[Math.floor(mainPlats.length / 2)].platform;
+    stars.push({ x: midPlat.x + midPlat.w / 2, y: midPlat.y - 50 });
+  }
+
+  // Secret star on sky platform (requires super jump!)
+  if (skyPlats.length > 0) {
+    const skyPlat = skyPlats[Math.floor(Math.random() * skyPlats.length)].platform;
+    stars.push({ x: skyPlat.x + skyPlat.w / 2, y: skyPlat.y - 50 });
+  }
+
+  // ============ ENEMIES ============
   const enemies = [];
-  const numEnemies = 4 + Math.floor(difficulty * 8);
 
   // Ground enemies
-  for (let i = 0; i < Math.ceil(numEnemies * 0.4); i++) {
+  const numGround = 2 + Math.floor(difficulty * 4);
+  for (let i = 0; i < numGround; i++) {
     enemies.push({
       x: 300 + Math.floor(Math.random() * (width - 600)),
       y: groundY - 30,
@@ -357,57 +557,41 @@ function generateLevel(levelNum) {
     });
   }
 
-  // Platform enemies
-  const floatingPlats = platforms.filter((p, i) => i > 0 && p.w > 80);
-  floatingPlats.forEach(p => {
-    if (Math.random() < 0.3 + difficulty * 0.2) {
+  // Platform enemies (more on main path)
+  mainPlats.forEach(pd => {
+    if (pd.platform.w > 70 && Math.random() < 0.25 + difficulty * 0.15) {
       enemies.push({
-        x: p.x + p.w / 2,
-        y: p.y - 30,
+        x: pd.platform.x + pd.platform.w / 2,
+        y: pd.platform.y - 30,
         type: 'platform'
       });
     }
   });
 
-  // Flying enemies (more at higher difficulty)
-  const numFlying = Math.floor(difficulty * 4);
+  // Flying enemies patrol between platform heights
+  const numFlying = 1 + Math.floor(difficulty * 4);
   for (let i = 0; i < numFlying; i++) {
     enemies.push({
       x: 400 + Math.floor(Math.random() * (width - 500)),
-      y: 200 + Math.floor(Math.random() * 200),
+      y: 150 + Math.floor(Math.random() * 250),
       type: 'flying',
-      amplitude: 50 + Math.floor(Math.random() * 40),
-      speed: 60 + Math.floor(Math.random() * 40),
+      amplitude: 40 + Math.floor(Math.random() * 50),
+      speed: 50 + Math.floor(Math.random() * 50),
       dir: Math.random() < 0.5 ? 1 : -1
     });
   }
-
-  // Generate stars (3 per level, one hidden)
-  const stars = [];
-  const starPlats = platforms.filter((p, i) => i > 0).sort(() => Math.random() - 0.5).slice(0, 3);
-  starPlats.forEach(p => {
-    stars.push({ x: p.x + p.w / 2, y: p.y - 50 });
-  });
-
-  // Generate powerups
-  const powerups = [];
-  const numPowerups = 2 + Math.floor(difficulty * 2);
-  const powerupPlats = platforms.filter((p, i) => i > 0).sort(() => Math.random() - 0.5).slice(0, numPowerups);
-  powerupPlats.forEach(p => {
-    powerups.push({ x: p.x + p.w / 2, y: p.y - 40 });
-  });
 
   return {
     width,
     height,
     playerSpawn: { x: 100, y: groundY - 50 },
-    babyPosition: { x: width - 180, y: lastPlatY - 50 },
+    babyPosition: { x: width - 200, y: mainY - 50 },
     platforms,
     coins,
     stars,
     enemies,
     powerups,
-    theme // Store theme for background rendering
+    theme
   };
 }
 
