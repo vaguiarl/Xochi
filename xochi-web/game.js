@@ -265,6 +265,182 @@ function resetGame() {
   saveGame();
 }
 
+// ============== PROCEDURAL LEVEL GENERATOR ==============
+
+// Background themes for visual variety
+const THEMES = [
+  { name: 'Dawn', sky: [0xffccaa, 0xffaa88, 0xff8866, 0xcc6644, 0x995533, 0x664422], mountain: 0x553366, hill: 0x886644 },
+  { name: 'Day', sky: [0x88ddff, 0x66ccff, 0x44bbff, 0x33aaee, 0x2299dd, 0x1188cc], mountain: 0x667788, hill: 0x55aa55 },
+  { name: 'Sunset', sky: [0xffaa66, 0xff8844, 0xff6633, 0xdd4422, 0xaa3311, 0x772200], mountain: 0x334466, hill: 0x99aa44 },
+  { name: 'Night', sky: [0x334455, 0x223344, 0x112233, 0x001122, 0x000011, 0x000000], mountain: 0x111122, hill: 0x224422 },
+  { name: 'Jungle', sky: [0x66ddcc, 0x55ccbb, 0x44bbaa, 0x33aa99, 0x229988, 0x118877], mountain: 0x225533, hill: 0x44cc44 }
+];
+
+// Generate a random level based on level number
+function generateLevel(levelNum) {
+  const difficulty = Math.min(levelNum / 10, 1); // 0.1 to 1.0
+  const width = 1800 + levelNum * 150;
+  const height = 600;
+  const groundY = height - 50;
+
+  // Select random theme
+  const theme = THEMES[Math.floor(Math.random() * THEMES.length)];
+
+  // Generate platforms using staircase algorithm
+  const platforms = [];
+
+  // Always add ground
+  platforms.push({ x: 0, y: groundY, w: width, h: 50 });
+
+  // Generate floating platforms
+  let currentX = 150;
+  let currentY = groundY - 100;
+  let lastPlatY = currentY;
+
+  while (currentX < width - 300) {
+    // Platform size varies
+    const platW = 80 + Math.floor(Math.random() * 100);
+    const platH = 20;
+
+    // Add platform
+    platforms.push({ x: currentX, y: currentY, w: platW, h: platH });
+
+    // Calculate next position
+    const gapX = 120 + Math.floor(Math.random() * 100) + difficulty * 50;
+    currentX += platW + gapX;
+
+    // Vertical movement (ensure jumpable - max 120px up)
+    const roll = Math.random();
+    if (roll < 0.5 && currentY > 200) {
+      // Go up
+      currentY -= 50 + Math.floor(Math.random() * 70);
+    } else if (roll < 0.8) {
+      // Stay same height (small variation)
+      currentY += Math.floor(Math.random() * 40) - 20;
+    } else if (currentY < groundY - 150) {
+      // Go down
+      currentY += 50 + Math.floor(Math.random() * 50);
+    }
+
+    // Clamp height
+    currentY = Math.max(150, Math.min(groundY - 80, currentY));
+    lastPlatY = currentY;
+  }
+
+  // Add final platform near baby
+  platforms.push({ x: width - 250, y: lastPlatY, w: 150, h: 20 });
+
+  // Generate coins on/near platforms
+  const coins = [];
+  platforms.forEach((p, i) => {
+    if (i === 0) return; // Skip ground
+    // 2-4 coins per platform
+    const numCoins = 2 + Math.floor(Math.random() * 3);
+    for (let c = 0; c < numCoins; c++) {
+      coins.push({
+        x: p.x + 20 + c * 30,
+        y: p.y - 40
+      });
+    }
+  });
+
+  // Generate enemies
+  const enemies = [];
+  const numEnemies = 4 + Math.floor(difficulty * 8);
+
+  // Ground enemies
+  for (let i = 0; i < Math.ceil(numEnemies * 0.4); i++) {
+    enemies.push({
+      x: 300 + Math.floor(Math.random() * (width - 600)),
+      y: groundY - 30,
+      type: 'ground'
+    });
+  }
+
+  // Platform enemies
+  const floatingPlats = platforms.filter((p, i) => i > 0 && p.w > 80);
+  floatingPlats.forEach(p => {
+    if (Math.random() < 0.3 + difficulty * 0.2) {
+      enemies.push({
+        x: p.x + p.w / 2,
+        y: p.y - 30,
+        type: 'platform'
+      });
+    }
+  });
+
+  // Flying enemies (more at higher difficulty)
+  const numFlying = Math.floor(difficulty * 4);
+  for (let i = 0; i < numFlying; i++) {
+    enemies.push({
+      x: 400 + Math.floor(Math.random() * (width - 500)),
+      y: 200 + Math.floor(Math.random() * 200),
+      type: 'flying',
+      amplitude: 50 + Math.floor(Math.random() * 40),
+      speed: 60 + Math.floor(Math.random() * 40),
+      dir: Math.random() < 0.5 ? 1 : -1
+    });
+  }
+
+  // Generate stars (3 per level, one hidden)
+  const stars = [];
+  const starPlats = platforms.filter((p, i) => i > 0).sort(() => Math.random() - 0.5).slice(0, 3);
+  starPlats.forEach(p => {
+    stars.push({ x: p.x + p.w / 2, y: p.y - 50 });
+  });
+
+  // Generate powerups
+  const powerups = [];
+  const numPowerups = 2 + Math.floor(difficulty * 2);
+  const powerupPlats = platforms.filter((p, i) => i > 0).sort(() => Math.random() - 0.5).slice(0, numPowerups);
+  powerupPlats.forEach(p => {
+    powerups.push({ x: p.x + p.w / 2, y: p.y - 40 });
+  });
+
+  return {
+    width,
+    height,
+    playerSpawn: { x: 100, y: groundY - 50 },
+    babyPosition: { x: width - 180, y: lastPlatY - 50 },
+    platforms,
+    coins,
+    stars,
+    enemies,
+    powerups,
+    theme // Store theme for background rendering
+  };
+}
+
+// Generate boss arena (fixed layout for fair fights)
+function generateBossArena(levelNum) {
+  const isFinalBoss = levelNum === 10;
+  const width = isFinalBoss ? 1000 : 800;
+  const height = 600;
+  const groundY = height - 50;
+
+  return {
+    width,
+    height,
+    playerSpawn: { x: 100, y: groundY - 50 },
+    babyPosition: { x: width / 2, y: 150 }, // Baby appears after boss defeated
+    platforms: [
+      { x: 0, y: groundY, w: width, h: 50 }, // Ground
+      { x: 100, y: groundY - 150, w: 120, h: 20 }, // Left platform
+      { x: width - 220, y: groundY - 150, w: 120, h: 20 }, // Right platform
+      { x: width / 2 - 80, y: groundY - 250, w: 160, h: 20 }, // Center high platform
+    ],
+    coins: [],
+    stars: [],
+    enemies: [],
+    powerups: [
+      { x: 160, y: groundY - 190 },
+      { x: width - 160, y: groundY - 190 }
+    ],
+    theme: THEMES[3], // Night theme for boss
+    isBossLevel: true
+  };
+}
+
 // ============== LEVEL DATA ==============
 const LEVELS = [
   // Level 1 - Tutorial
@@ -1484,7 +1660,9 @@ class GameScene extends Phaser.Scene {
 
   init(data) {
     this.levelNum = data.level || 1;
-    this.levelData = LEVELS[this.levelNum - 1];
+    // Use procedural generator for most levels, boss arenas for levels 5 and 10
+    const isBossLevel = this.levelNum === 5 || this.levelNum === 10;
+    this.levelData = isBossLevel ? generateBossArena(this.levelNum) : generateLevel(this.levelNum);
   }
 
   create() {
@@ -1493,10 +1671,10 @@ class GameScene extends Phaser.Scene {
     // World bounds
     this.physics.world.setBounds(0, 0, ld.width, ld.height);
 
-    // ============ SNES-STYLE SKY WITH GRADIENT ============
+    // ============ SNES-STYLE SKY WITH GRADIENT (using theme) ============
+    const theme = ld.theme || THEMES[1]; // Default to Day theme
     const skyGradient = this.add.graphics();
-    // Create vertical gradient from light blue to deeper blue
-    const skyColors = [0x88ddff, 0x66ccff, 0x44bbff, 0x33aaee, 0x2299dd, 0x1188cc];
+    const skyColors = theme.sky;
     const stripeHeight = ld.height / skyColors.length;
     skyColors.forEach((color, i) => {
       skyGradient.fillStyle(color);
@@ -1505,7 +1683,7 @@ class GameScene extends Phaser.Scene {
 
     // ============ PARALLAX BACKGROUND MOUNTAINS (far) ============
     const mountains = this.add.graphics();
-    mountains.fillStyle(0x6688aa, 0.4);
+    mountains.fillStyle(theme.mountain, 0.4);
     for (let i = 0; i < ld.width / 200 + 2; i++) {
       const mx = i * 200 - 50;
       const mh = Phaser.Math.Between(100, 180);
@@ -1515,7 +1693,7 @@ class GameScene extends Phaser.Scene {
 
     // ============ PARALLAX HILLS (mid) ============
     const hills = this.add.graphics();
-    hills.fillStyle(0x55aa66, 0.5);
+    hills.fillStyle(theme.hill, 0.5);
     for (let i = 0; i < ld.width / 150 + 2; i++) {
       const hx = i * 150 - 30;
       hills.fillEllipse(hx + 75, ld.height - 60, 160, 100);
@@ -1655,25 +1833,29 @@ class GameScene extends Phaser.Scene {
     });
 
     // DARK XOCHI - Boss fight on levels 5 and 10!
+    // DKC2-style boss: APPROACH -> TELEGRAPH -> ATTACK -> RECOVER (vulnerable)
     this.darkXochi = null;
     this.bossHealth = 0;
     this.bossMaxHealth = 0;
-    this.bossState = 'CHASE'; // CHASE, ATTACK, RETREAT, STUNNED
-    this.bossAttackCooldown = 0;
-    this.bossThunderbolts = 0;
-    this.bossInvincible = false;
+    this.bossState = 'APPROACH'; // APPROACH, TELEGRAPH, ATTACK, RECOVER
     this.bossStateTimer = 0;
+    this.bossInvincible = false;
+    this.bossAttackType = 0; // Alternates: 0=leap, 1=mace swing
+    this.bossTelegraphSprite = null; // "!" warning indicator
     this.bossHealthBar = null;
     this.bossHealthBarBg = null;
     this.bossNameText = null;
 
     const isBossLevel = (this.levelNum === 5 || this.levelNum === 10);
     if (isBossLevel && !gameState.rescuedBabies.includes(`baby-${this.levelNum}`)) {
-      // Boss stats based on level
-      this.bossMaxHealth = this.levelNum === 10 ? 8 : 5;
+      // Boss stats based on level (DKC2-style: 3 or 5 hits to defeat)
+      this.bossMaxHealth = this.levelNum === 10 ? 5 : 3;
       this.bossHealth = this.bossMaxHealth;
-      this.bossThunderbolts = this.levelNum === 10 ? 5 : 3;
-      const bossSpeed = this.levelNum === 10 ? 140 : 100;
+      // Timing gets tighter at higher levels
+      this.bossApproachTime = this.levelNum === 10 ? 1500 : 2000;
+      this.bossTelegraphTime = 500;
+      this.bossRecoverTime = this.levelNum === 10 ? 1200 : 1500;
+      const bossSpeed = this.levelNum === 10 ? 100 : 80;
 
       // Dark Xochi spawns on right side of arena
       this.darkXochi = this.physics.add.sprite(ld.playerSpawn.x + 300, ld.playerSpawn.y - 100, 'xochi_walk').setScale(0.15);
@@ -1724,7 +1906,7 @@ class GameScene extends Phaser.Scene {
           delay: 1000
         });
 
-        // Remove intro text
+        // Remove intro text and start boss AI
         this.time.delayedCall(2000, () => {
           this.tweens.add({
             targets: introText,
@@ -1732,6 +1914,8 @@ class GameScene extends Phaser.Scene {
             duration: 300,
             onComplete: () => introText.destroy()
           });
+          // Initialize boss state timer to start the cycle
+          this.bossStateTimer = this.bossApproachTime;
         });
       });
 
@@ -2064,16 +2248,27 @@ class GameScene extends Phaser.Scene {
   }
 
   // DARK XOCHI collision - player touches the boss
+  // DKC2-style: stomp always works, body collision only damages boss during RECOVER
   hitDarkXochi(player, darkXochi) {
     if (player.getData('invincible') || !darkXochi.getData('alive') || this.bossInvincible) return;
 
-    if (player.body.velocity.y > 0 && player.y < darkXochi.y - 10) {
-      // Stomp Dark Xochi - 1 damage + stun!
-      this.damageBoss(1, true);
+    const isStomp = player.body.velocity.y > 0 && player.y < darkXochi.y - 10;
+    const isVulnerable = this.bossState === 'RECOVER';
+
+    if (isStomp) {
+      // Stomp ALWAYS works (classic Mario/DKC style)
+      this.damageBoss(1);
       player.body.setVelocityY(-400);
       this.playSound('sfx-stomp');
+      // After hit, boss goes back to APPROACH
+      this.bossState = 'APPROACH';
+      this.bossStateTimer = this.bossApproachTime;
+    } else if (isVulnerable) {
+      // Body collision during RECOVER = player can attack!
+      // But for simplicity, just bounce them off without damage
+      player.body.setVelocityX(player.x < darkXochi.x ? -200 : 200);
     } else {
-      // Hit by Dark Xochi body
+      // Hit by Dark Xochi body (not during RECOVER = damage to player)
       this.playSound('sfx-hurt');
       if (player.getData('big')) {
         player.setData('big', false);
@@ -2086,8 +2281,8 @@ class GameScene extends Phaser.Scene {
     }
   }
 
-  // Damage the boss
-  damageBoss(damage, stun = false) {
+  // Damage the boss (simplified DKC2-style)
+  damageBoss(damage) {
     if (this.bossInvincible || !this.darkXochi || !this.darkXochi.getData('alive')) return;
 
     this.bossHealth -= damage;
@@ -2100,10 +2295,10 @@ class GameScene extends Phaser.Scene {
       this.bossHealthBar.setX(this.cameras.main.width / 2 - (200 * (1 - healthPercent)) / 2);
     }
 
-    // Show damage text
-    this.showText(this.darkXochi.x, this.darkXochi.y - 50, `HIT! -${damage}`, '#ffffff');
+    // Show damage text with remaining HP
+    this.showText(this.darkXochi.x, this.darkXochi.y - 50, `HIT! ${this.bossHealth}/${this.bossMaxHealth}`, '#ffffff');
 
-    // Flash white
+    // Flash white then back to dark
     this.darkXochi.setTint(0xffffff);
     this.time.delayedCall(100, () => {
       if (this.darkXochi) this.darkXochi.setTint(0x220022);
@@ -2119,18 +2314,10 @@ class GameScene extends Phaser.Scene {
       return;
     }
 
-    // Stun or invincibility
-    if (stun) {
-      this.bossState = 'STUNNED';
-      this.bossStateTimer = 500;
-    }
+    // Brief invincibility after hit
     this.bossInvincible = true;
     this.time.delayedCall(500, () => {
       this.bossInvincible = false;
-      if (this.bossState === 'STUNNED') {
-        this.bossState = 'RETREAT';
-        this.bossStateTimer = 1000;
-      }
     });
   }
 
@@ -2670,7 +2857,8 @@ class GameScene extends Phaser.Scene {
       }
     });
 
-    // DARK XOCHI AI - State machine boss fight!
+    // DARK XOCHI AI - DKC2-style 4-phase boss fight!
+    // Pattern: APPROACH -> TELEGRAPH -> ATTACK -> RECOVER (vulnerable!)
     if (this.darkXochi && this.darkXochi.getData('alive')) {
       const speed = this.darkXochi.getData('speed');
       const dx = this.player.x - this.darkXochi.x;
@@ -2683,108 +2871,97 @@ class GameScene extends Phaser.Scene {
         this.bossStateTimer -= delta;
       }
 
-      // Decrease attack cooldown
-      if (this.bossAttackCooldown > 0) {
-        this.bossAttackCooldown -= delta;
-      }
+      // Calculate HP-based speed multiplier (gets faster as HP drops)
+      const hpRatio = this.bossHealth / this.bossMaxHealth;
+      const speedMult = 1 + (1 - hpRatio) * 0.5; // 1.0x at full HP, 1.5x at low HP
 
       // State machine
       switch (this.bossState) {
-        case 'CHASE':
-          // Move toward player
-          if (Math.abs(dx) > 50) {
-            this.darkXochi.body.setVelocityX(dx > 0 ? speed : -speed);
+        case 'APPROACH':
+          // Walk slowly toward player - NO attacks during this phase
+          this.darkXochi.setTint(0x220022); // Normal dark tint
+
+          if (Math.abs(dx) > 80) {
+            this.darkXochi.body.setVelocityX((dx > 0 ? speed : -speed) * speedMult);
             this.darkXochi.setFlipX(dx < 0);
           } else {
             this.darkXochi.body.setVelocityX(0);
           }
 
-          // Jump if blocked or player is above
-          if (onGround) {
-            const needsJump = this.darkXochi.body.blocked.left || this.darkXochi.body.blocked.right || dy < -100;
-            if (needsJump) {
-              this.darkXochi.body.setVelocityY(this.levelNum === 10 ? -450 : -400);
-            }
+          // Jump if blocked or player is way above
+          if (onGround && (this.darkXochi.body.blocked.left || this.darkXochi.body.blocked.right || dy < -120)) {
+            this.darkXochi.body.setVelocityY(-380);
           }
 
-          // Transition to ATTACK when close and cooldown ready
-          if (distToPlayer < 150 && this.bossAttackCooldown <= 0) {
-            this.bossState = 'ATTACK';
-            this.bossStateTimer = 300; // Windup time
+          // After approach time OR close enough, go to TELEGRAPH
+          if (this.bossStateTimer <= 0 || distToPlayer < 120) {
+            this.bossState = 'TELEGRAPH';
+            this.bossStateTimer = this.bossTelegraphTime;
             this.darkXochi.body.setVelocityX(0);
+            this.darkXochi.setFlipX(dx < 0); // Face player
+
+            // Show "!" warning above head
+            if (this.bossTelegraphSprite) this.bossTelegraphSprite.destroy();
+            this.bossTelegraphSprite = this.add.text(this.darkXochi.x, this.darkXochi.y - 60, '!', {
+              fontFamily: 'Arial Black', fontSize: '36px', color: '#ffff00',
+              stroke: '#ff0000', strokeThickness: 4
+            }).setOrigin(0.5);
           }
           break;
 
-        case 'ATTACK':
+        case 'TELEGRAPH':
+          // Stop moving, flash warning - player should get ready!
           this.darkXochi.body.setVelocityX(0);
 
-          // Windup complete - execute attack
+          // Flash between yellow and red
+          const flashRate = Math.floor(this.bossStateTimer / 100) % 2;
+          this.darkXochi.setTint(flashRate === 0 ? 0xffff00 : 0xff4400);
+
+          // Update "!" position
+          if (this.bossTelegraphSprite) {
+            this.bossTelegraphSprite.setPosition(this.darkXochi.x, this.darkXochi.y - 60);
+          }
+
+          // When telegraph done, execute attack
           if (this.bossStateTimer <= 0) {
+            // Remove "!" indicator
+            if (this.bossTelegraphSprite) {
+              this.bossTelegraphSprite.destroy();
+              this.bossTelegraphSprite = null;
+            }
+
+            this.bossState = 'ATTACK';
+            this.darkXochi.setTint(0xff0000); // Red during attack
+
+            // Execute attack immediately (alternating type)
             const dir = this.darkXochi.flipX ? -1 : 1;
 
-            // Choose attack: thunderbolt if far and has charges, else mace
-            if (this.bossThunderbolts > 0 && distToPlayer > 100 && Math.random() < 0.3) {
-              // THUNDERBOLT ATTACK
-              this.bossThunderbolts--;
-              this.darkXochi.setTint(0xffff00); // Yellow telegraph
-              this.time.delayedCall(200, () => {
-                if (this.darkXochi) this.darkXochi.setTint(0x220022);
-              });
-
-              // Lightning visual
-              const startX = this.darkXochi.x + dir * 40;
-              const startY = this.darkXochi.y;
-              for (let i = 0; i < 8; i++) {
-                const segment = this.add.rectangle(
-                  startX + dir * i * 30,
-                  startY + Phaser.Math.Between(-10, 10),
-                  25, 6, 0xff00ff
-                );
-                this.tweens.add({
-                  targets: segment,
-                  alpha: 0,
-                  duration: 200,
-                  delay: i * 20,
-                  onComplete: () => segment.destroy()
-                });
-              }
-
-              // Damage player if in range
-              if (distToPlayer < 250 && ((dx > 0 && dir > 0) || (dx < 0 && dir < 0))) {
-                if (!this.player.getData('invincible')) {
-                  this.playSound('sfx-hurt');
-                  if (this.player.getData('big')) {
-                    this.player.setData('big', false);
-                    this.player.setTexture('xochi_walk');
-                    this.setInvincible(2000);
-                  } else {
-                    this.playerDie();
-                  }
-                }
-              }
-
-              this.showText(this.darkXochi.x, this.darkXochi.y - 40, 'THUNDER!', '#ff00ff');
+            if (this.bossAttackType === 0) {
+              // LEAP ATTACK - Jump toward player
+              this.darkXochi.body.setVelocityY(-450);
+              this.darkXochi.body.setVelocityX(dir * -300 * speedMult); // Toward player
+              this.showText(this.darkXochi.x, this.darkXochi.y - 40, 'LEAP!', '#ff0000');
             } else {
-              // MACE SWING ATTACK
+              // MACE SWING - Wide horizontal attack
               const swingArc = this.add.arc(
-                this.darkXochi.x + dir * 30,
+                this.darkXochi.x + dir * -40,
                 this.darkXochi.y,
-                40,
-                dir > 0 ? 200 : 340,
-                dir > 0 ? 340 : 200,
+                60, // Larger radius
+                dir < 0 ? 200 : 340,
+                dir < 0 ? 340 : 200,
                 false,
-                0xff00ff, 0.6
+                0xff00ff, 0.7
               );
               this.tweens.add({
                 targets: swingArc,
                 alpha: 0,
-                scale: 1.5,
-                duration: 150,
+                scale: 1.8,
+                duration: 200,
                 onComplete: () => swingArc.destroy()
               });
 
               // Damage player if in melee range
-              if (distToPlayer < 80 && ((dx > 0 && dir > 0) || (dx < 0 && dir < 0))) {
+              if (distToPlayer < 100) {
                 if (!this.player.getData('invincible')) {
                   this.playSound('sfx-hurt');
                   if (this.player.getData('big')) {
@@ -2796,33 +2973,72 @@ class GameScene extends Phaser.Scene {
                   }
                 }
               }
+              this.showText(this.darkXochi.x, this.darkXochi.y - 40, 'SWING!', '#ff00ff');
             }
 
-            // Set cooldown and transition to retreat
-            this.bossAttackCooldown = this.levelNum === 10 ? 1500 : 2000;
-            this.bossState = 'RETREAT';
-            this.bossStateTimer = 800;
+            // Alternate attack type for next cycle
+            this.bossAttackType = 1 - this.bossAttackType;
+
+            // Short attack duration then go to RECOVER
+            this.bossStateTimer = 400;
           }
           break;
 
-        case 'RETREAT':
-          // Jump backward away from player
-          const retreatDir = dx > 0 ? -1 : 1;
-          this.darkXochi.body.setVelocityX(retreatDir * speed * 0.7);
+        case 'ATTACK':
+          // Attack is executing, wait for it to finish
+          // Ground pound effect if landing from leap
+          if (onGround && this.darkXochi.body.velocity.y >= 0 && this.bossAttackType === 1) {
+            // Just landed from leap - create shockwave
+            const shockL = this.add.rectangle(this.darkXochi.x - 40, this.darkXochi.y + 20, 60, 10, 0xff00ff, 0.8);
+            const shockR = this.add.rectangle(this.darkXochi.x + 40, this.darkXochi.y + 20, 60, 10, 0xff00ff, 0.8);
+            this.tweens.add({ targets: [shockL, shockR], alpha: 0, scaleX: 2, duration: 300, onComplete: () => { shockL.destroy(); shockR.destroy(); }});
 
-          if (onGround && this.bossStateTimer > 600) {
-            this.darkXochi.body.setVelocityY(-300);
+            // Damage player if close when landing
+            if (distToPlayer < 100 && Math.abs(dy) < 50) {
+              if (!this.player.getData('invincible')) {
+                this.playSound('sfx-hurt');
+                if (this.player.getData('big')) {
+                  this.player.setData('big', false);
+                  this.player.setTexture('xochi_walk');
+                  this.setInvincible(2000);
+                } else {
+                  this.playerDie();
+                }
+              }
+            }
           }
 
-          // Return to chase after timer
+          // When attack finishes, go to RECOVER (vulnerable phase!)
+          if (this.bossStateTimer <= 0 && onGround) {
+            this.bossState = 'RECOVER';
+            this.bossStateTimer = this.bossRecoverTime / speedMult; // Shorter at low HP
+            this.darkXochi.body.setVelocity(0);
+            this.darkXochi.setTint(0x666688); // Tired/gray tint - VULNERABLE!
+            this.showText(this.darkXochi.x, this.darkXochi.y - 40, 'TIRED...', '#88ff88');
+          }
+          break;
+
+        case 'RECOVER':
+          // VULNERABLE PHASE - Boss stands still, dizzy
+          // This is when player should attack!
+          this.darkXochi.body.setVelocityX(0);
+
+          // Wobble animation to show dizzy state
+          this.darkXochi.angle = Math.sin(Date.now() / 100) * 5;
+
+          // Flash to warn player the window is closing
+          if (this.bossStateTimer < 500) {
+            const warn = Math.floor(this.bossStateTimer / 100) % 2;
+            this.darkXochi.setTint(warn === 0 ? 0x666688 : 0x888888);
+          }
+
+          // When recover ends, reset and go back to APPROACH
           if (this.bossStateTimer <= 0) {
-            this.bossState = 'CHASE';
+            this.darkXochi.angle = 0;
+            this.darkXochi.setTint(0x220022); // Back to normal
+            this.bossState = 'APPROACH';
+            this.bossStateTimer = this.bossApproachTime / speedMult;
           }
-          break;
-
-        case 'STUNNED':
-          this.darkXochi.body.setVelocity(0);
-          // Handled by damageBoss timeout
           break;
       }
     }
