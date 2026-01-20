@@ -2385,6 +2385,11 @@ class GameScene extends Phaser.Scene {
       });
     }
 
+    // Starting powerup next to player spawn (easy to grab!)
+    const startPowerup = this.powerups.create(ld.playerSpawn.x + 80, ld.playerSpawn.y - 30, 'superjump').setScale(1.8);
+    startPowerup.body.allowGravity = false;
+    this.tweens.add({ targets: startPowerup, y: ld.playerSpawn.y - 40, duration: 500, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+
     // Player (Aztec axolotl warrior - ~420x450 sprite frames at 0.15 scale)
     this.player = this.physics.add.sprite(ld.playerSpawn.x, ld.playerSpawn.y, 'xochi_walk').setScale(0.15);
     this.player.setCollideWorldBounds(true);
