@@ -236,7 +236,43 @@ const gameState = {
   score: 0,
   highScore: 0,
   musicEnabled: true,
-  sfxEnabled: true
+  sfxEnabled: true,
+  // Difficulty setting: 'easy', 'medium', 'hard'
+  difficulty: 'medium'
+};
+
+// Difficulty presets - affects gameplay significantly
+const DIFFICULTY_SETTINGS = {
+  easy: {
+    lives: 5,
+    platformDensity: 1.2,      // More platforms (easier jumps)
+    platformGapMult: 0.8,      // Smaller gaps
+    enemyMult: 0.6,            // Fewer enemies
+    powerupMult: 1.5,          // More powerups
+    skyPlatforms: 1,           // Fewer sky platforms
+    coinMult: 1.2,             // More coins
+    bossHealth: { 5: 2, 10: 3 } // Fewer hits to defeat
+  },
+  medium: {
+    lives: 3,
+    platformDensity: 1.0,      // Normal
+    platformGapMult: 1.0,
+    enemyMult: 1.0,
+    powerupMult: 1.0,
+    skyPlatforms: 3,
+    coinMult: 1.0,
+    bossHealth: { 5: 3, 10: 5 }
+  },
+  hard: {
+    lives: 2,
+    platformDensity: 0.7,      // Sparser platforms (harder!)
+    platformGapMult: 1.3,      // Bigger gaps
+    enemyMult: 1.5,            // More enemies
+    powerupMult: 0.7,          // Fewer powerups
+    skyPlatforms: 4,           // More sky platforms (more risk/reward)
+    coinMult: 0.8,             // Fewer coins
+    bossHealth: { 5: 4, 10: 6 }
+  }
 };
 
 // Load saved state
@@ -309,8 +345,9 @@ function calculateGapDifficulty(gapX, gapY) {
 
 // Generate a random level based on level number
 function generateLevel(levelNum) {
-  const difficulty = Math.min(levelNum / 10, 1); // 0.1 to 1.0
-  const width = 2000 + levelNum * 200;
+  const levelDifficulty = Math.min(levelNum / 10, 1); // 0.1 to 1.0
+  const settings = DIFFICULTY_SETTINGS[gameState.difficulty];
+  const width = 2200 + levelNum * 250;
   const height = 600;
   const groundY = height - 50;
 
@@ -321,31 +358,36 @@ function generateLevel(levelNum) {
   const platforms = [];
   const platformData = []; // Track metadata for powerup placement
 
-  // Always add ground (with gaps at higher difficulties!)
-  if (difficulty > 0.5 && Math.random() < 0.5) {
-    // Split ground with pit
-    const pitX = 600 + Math.floor(Math.random() * (width - 1200));
-    const pitW = 150 + Math.floor(difficulty * 150);
+  // Ground with pits on harder difficulties
+  const pitChance = gameState.difficulty === 'hard' ? 0.6 : (gameState.difficulty === 'medium' ? 0.4 : 0.2);
+  if (levelDifficulty > 0.3 && Math.random() < pitChance) {
+    const pitX = 600 + Math.floor(Math.random() * (width - 1400));
+    const pitW = 180 + Math.floor(levelDifficulty * 180);
     platforms.push({ x: 0, y: groundY, w: pitX, h: 50 });
     platforms.push({ x: pitX + pitW, y: groundY, w: width - pitX - pitW, h: 50 });
   } else {
     platforms.push({ x: 0, y: groundY, w: width, h: 50 });
   }
 
-  // ============ MAIN PATH (always completable with normal jumps) ============
+  // ============ MAIN PATH (sparser based on difficulty) ============
   let mainX = 150;
-  let mainY = groundY - 100;
+  let mainY = groundY - 120;
   let lastMainPlat = null;
 
+  // Gap multiplier makes platforms sparser on hard mode
+  const gapMult = settings.platformGapMult;
+  const densityMult = settings.platformDensity;
+
   while (mainX < width - 400) {
-    const platW = 80 + Math.floor(Math.random() * 80);
+    // Larger platforms on easier modes
+    const platW = Math.floor((100 + Math.floor(Math.random() * 80)) * densityMult);
     const platH = 20;
 
     // Calculate gap from previous platform
     let gapX, gapY;
     if (lastMainPlat) {
       gapX = mainX - (lastMainPlat.x + lastMainPlat.w);
-      gapY = lastMainPlat.y - mainY; // Positive = going up
+      gapY = lastMainPlat.y - mainY;
     } else {
       gapX = 0;
       gapY = 0;
@@ -365,41 +407,40 @@ function generateLevel(levelNum) {
 
     lastMainPlat = plat;
 
-    // Next position - keep gaps manageable for normal jump
-    const baseGap = 100 + Math.floor(Math.random() * 80);
-    const difficultyGap = Math.floor(difficulty * 40);
-    gapX = baseGap + difficultyGap;
-    mainX += platW + gapX;
+    // SPARSER PLATFORMS: bigger base gap, scaled by difficulty
+    const baseGap = Math.floor((180 + Math.floor(Math.random() * 120)) * gapMult);
+    const levelGap = Math.floor(levelDifficulty * 60 * gapMult);
+    mainX += platW + baseGap + levelGap;
 
-    // Vertical variety (stay within normal jump range)
+    // More vertical variety
     const roll = Math.random();
-    if (roll < 0.35 && mainY > 250) {
-      // Go up (normal jump max ~120px)
-      mainY -= 40 + Math.floor(Math.random() * 60);
-    } else if (roll < 0.65) {
-      // Slight variation
-      mainY += Math.floor(Math.random() * 50) - 25;
-    } else if (mainY < groundY - 150) {
+    if (roll < 0.4 && mainY > 220) {
+      // Go up significantly
+      mainY -= 60 + Math.floor(Math.random() * 80);
+    } else if (roll < 0.7) {
+      // Variation
+      mainY += Math.floor(Math.random() * 70) - 35;
+    } else if (mainY < groundY - 180) {
       // Go down
-      mainY += 40 + Math.floor(Math.random() * 60);
+      mainY += 60 + Math.floor(Math.random() * 80);
     }
 
     // Keep in bounds
-    mainY = Math.max(200, Math.min(groundY - 80, mainY));
+    mainY = Math.max(180, Math.min(groundY - 100, mainY));
   }
 
   // Final platform for baby
-  const finalPlat = { x: width - 280, y: mainY, w: 180, h: 20 };
+  const finalPlat = { x: width - 300, y: mainY, w: 200, h: 20 };
   platforms.push(finalPlat);
   platformData.push({ platform: finalPlat, gapDifficulty: 0.5, requiresSuper: false, type: 'main' });
 
   // ============ SKY PATH (requires super jump, high reward) ============
   const skyPlatforms = [];
-  let skyX = 300 + Math.floor(Math.random() * 200);
-  const skyY = 100 + Math.floor(Math.random() * 60); // Very high up!
+  let skyX = 400 + Math.floor(Math.random() * 300);
+  const skyY = 80 + Math.floor(Math.random() * 50); // Very high up!
 
-  // 2-4 sky platforms per level
-  const numSkyPlats = 2 + Math.floor(Math.random() * 3);
+  // Sky platforms based on difficulty setting
+  const numSkyPlats = settings.skyPlatforms + Math.floor(Math.random() * 2);
   for (let i = 0; i < numSkyPlats && skyX < width - 400; i++) {
     const platW = 60 + Math.floor(Math.random() * 60);
     const plat = { x: skyX, y: skyY + Math.floor(Math.random() * 40), w: platW, h: 20 };
@@ -440,32 +481,31 @@ function generateLevel(levelNum) {
     challengeX += 400 + Math.floor(Math.random() * 300);
   }
 
-  // ============ POWERUP PLACEMENT (proportional to upcoming gap difficulty) ============
+  // ============ POWERUP PLACEMENT (proportional to gap difficulty, scaled by settings) ============
   const powerups = [];
 
   // Sort platforms by X position
   platformData.sort((a, b) => a.platform.x - b.platform.x);
 
-  // Calculate cumulative difficulty and place powerups
-  let cumulativeDifficulty = 0;
-  const difficultyThreshold = 2.0; // Place powerup every 2.0 difficulty points
+  // Threshold scales with powerup multiplier (lower = more powerups)
+  let cumulativeDiff = 0;
+  const powerupThreshold = 2.0 / settings.powerupMult;
 
   platformData.forEach((pd, i) => {
-    cumulativeDifficulty += pd.gapDifficulty;
+    cumulativeDiff += pd.gapDifficulty;
 
     // Place powerup when difficulty accumulates enough
-    if (cumulativeDifficulty >= difficultyThreshold) {
+    if (cumulativeDiff >= powerupThreshold) {
       powerups.push({
         x: pd.platform.x + pd.platform.w / 2,
         y: pd.platform.y - 40
       });
-      cumulativeDifficulty = 0; // Reset
+      cumulativeDiff = 0;
     }
 
     // Always place powerup before super-jump-required gaps
     if (pd.requiresSuper && i > 0) {
       const prevPlat = platformData[i - 1].platform;
-      // Check we don't already have one there
       const nearby = powerups.some(p => Math.abs(p.x - prevPlat.x) < 100);
       if (!nearby) {
         powerups.push({
@@ -476,25 +516,27 @@ function generateLevel(levelNum) {
     }
   });
 
-  // Ensure minimum powerups (at least 3 + difficulty bonus)
-  const minPowerups = 3 + Math.floor(difficulty * 3);
-  while (powerups.length < minPowerups) {
+  // Minimum powerups scaled by difficulty setting
+  const minPowerups = Math.floor((3 + levelDifficulty * 3) * settings.powerupMult);
+  let attempts = 0;
+  while (powerups.length < minPowerups && attempts < 20) {
     const randomPlat = platformData[Math.floor(Math.random() * platformData.length)].platform;
     const nearby = powerups.some(p => Math.abs(p.x - randomPlat.x) < 150);
     if (!nearby) {
       powerups.push({ x: randomPlat.x + randomPlat.w / 2, y: randomPlat.y - 40 });
     }
+    attempts++;
   }
 
-  // ============ COINS (more on harder/sky platforms) ============
+  // ============ COINS (scaled by difficulty setting) ============
   const coins = [];
   platformData.forEach(pd => {
     if (pd.platform.h > 30) return; // Skip ground
 
-    // Base coins + bonus for difficulty
-    const baseCoins = 2;
-    const difficultyBonus = Math.floor(pd.gapDifficulty);
-    const skyBonus = pd.type === 'sky' ? 3 : 0;
+    // Coins scale with coin multiplier
+    const baseCoins = Math.floor(2 * settings.coinMult);
+    const difficultyBonus = Math.floor(pd.gapDifficulty * settings.coinMult);
+    const skyBonus = pd.type === 'sky' ? Math.floor(4 * settings.coinMult) : 0;
     const numCoins = baseCoins + difficultyBonus + skyBonus;
 
     for (let c = 0; c < numCoins; c++) {
@@ -505,50 +547,46 @@ function generateLevel(levelNum) {
     }
   });
 
-  // Coin trails in the air (guide player through gaps)
+  // Coin trails in gaps
   platformData.forEach((pd, i) => {
     if (i === 0) return;
     const prevPlat = platformData[i - 1].platform;
     const gap = pd.platform.x - (prevPlat.x + prevPlat.w);
 
-    // If gap is large, add floating coin trail
-    if (gap > 200) {
+    if (gap > 250) {
       const midX = prevPlat.x + prevPlat.w + gap / 2;
       const midY = (prevPlat.y + pd.platform.y) / 2 - 30;
-      coins.push({ x: midX - 40, y: midY });
-      coins.push({ x: midX, y: midY - 20 });
-      coins.push({ x: midX + 40, y: midY });
+      coins.push({ x: midX - 50, y: midY });
+      coins.push({ x: midX, y: midY - 25 });
+      coins.push({ x: midX + 50, y: midY });
     }
   });
 
-  // ============ STARS (1 easy, 1 medium, 1 on sky platform) ============
+  // ============ STARS (1 easy, 1 medium, 1 secret) ============
   const stars = [];
   const mainPlats = platformData.filter(pd => pd.type === 'main');
   const skyPlats = platformData.filter(pd => pd.type === 'sky');
 
-  // Easy star on early platform
   if (mainPlats.length > 2) {
     const easyPlat = mainPlats[1 + Math.floor(Math.random() * 2)].platform;
     stars.push({ x: easyPlat.x + easyPlat.w / 2, y: easyPlat.y - 50 });
   }
 
-  // Medium star on middle platform
   if (mainPlats.length > 5) {
     const midPlat = mainPlats[Math.floor(mainPlats.length / 2)].platform;
     stars.push({ x: midPlat.x + midPlat.w / 2, y: midPlat.y - 50 });
   }
 
-  // Secret star on sky platform (requires super jump!)
   if (skyPlats.length > 0) {
     const skyPlat = skyPlats[Math.floor(Math.random() * skyPlats.length)].platform;
     stars.push({ x: skyPlat.x + skyPlat.w / 2, y: skyPlat.y - 50 });
   }
 
-  // ============ ENEMIES ============
+  // ============ ENEMIES (scaled by enemy multiplier) ============
   const enemies = [];
 
   // Ground enemies
-  const numGround = 2 + Math.floor(difficulty * 4);
+  const numGround = Math.floor((2 + levelDifficulty * 4) * settings.enemyMult);
   for (let i = 0; i < numGround; i++) {
     enemies.push({
       x: 300 + Math.floor(Math.random() * (width - 600)),
@@ -557,9 +595,10 @@ function generateLevel(levelNum) {
     });
   }
 
-  // Platform enemies (more on main path)
+  // Platform enemies
   mainPlats.forEach(pd => {
-    if (pd.platform.w > 70 && Math.random() < 0.25 + difficulty * 0.15) {
+    const enemyChance = (0.2 + levelDifficulty * 0.15) * settings.enemyMult;
+    if (pd.platform.w > 70 && Math.random() < enemyChance) {
       enemies.push({
         x: pd.platform.x + pd.platform.w / 2,
         y: pd.platform.y - 30,
@@ -568,8 +607,8 @@ function generateLevel(levelNum) {
     }
   });
 
-  // Flying enemies patrol between platform heights
-  const numFlying = 1 + Math.floor(difficulty * 4);
+  // Flying enemies
+  const numFlying = Math.floor((1 + levelDifficulty * 4) * settings.enemyMult);
   for (let i = 0; i < numFlying; i++) {
     enemies.push({
       x: 400 + Math.floor(Math.random() * (width - 500)),
@@ -1780,33 +1819,103 @@ class MenuScene extends Phaser.Scene {
       fontFamily: 'Arial', fontSize: '13px', color: '#88aacc'
     }).setOrigin(0.5);
 
+    // ============ DIFFICULTY SELECTOR (DKC2 style) ============
+    const diffColors = {
+      easy: { bg: 0x44aa44, text: '#88ff88', label: 'EASY' },
+      medium: { bg: 0xaaaa44, text: '#ffff88', label: 'MEDIUM' },
+      hard: { bg: 0xaa4444, text: '#ff8888', label: 'HARD' }
+    };
+
+    this.add.text(width/2, 320, 'DIFFICULTY', {
+      fontFamily: 'Arial Black', fontSize: '12px', color: '#aaaaaa'
+    }).setOrigin(0.5);
+
+    const diffButtons = ['easy', 'medium', 'hard'];
+    const btnWidth = 70;
+    const startX = width/2 - btnWidth - 10;
+
+    this.difficultyTexts = {};
+    diffButtons.forEach((diff, i) => {
+      const x = startX + i * (btnWidth + 10);
+      const isSelected = gameState.difficulty === diff;
+      const colors = diffColors[diff];
+
+      // Button background
+      const btnBg = this.add.rectangle(x, 345, btnWidth, 28, isSelected ? colors.bg : 0x333333)
+        .setInteractive({ useHandCursor: true });
+      btnBg.diffKey = diff;
+
+      // Selection border
+      if (isSelected) {
+        this.add.rectangle(x, 345, btnWidth + 4, 32, 0xffffff).setDepth(-1);
+      }
+
+      // Button text
+      const txt = this.add.text(x, 345, colors.label, {
+        fontFamily: 'Arial Black', fontSize: '11px',
+        color: isSelected ? colors.text : '#666666'
+      }).setOrigin(0.5);
+
+      this.difficultyTexts[diff] = { bg: btnBg, txt };
+
+      btnBg.on('pointerdown', () => {
+        gameState.difficulty = diff;
+        gameState.lives = DIFFICULTY_SETTINGS[diff].lives;
+        saveGame();
+        // Restart menu to refresh buttons
+        this.scene.restart();
+      });
+
+      btnBg.on('pointerover', () => {
+        if (gameState.difficulty !== diff) {
+          btnBg.setFillStyle(0x555555);
+        }
+      });
+      btnBg.on('pointerout', () => {
+        if (gameState.difficulty !== diff) {
+          btnBg.setFillStyle(0x333333);
+        }
+      });
+    });
+
+    // Difficulty description
+    const diffDesc = {
+      easy: '5 lives, more powerups, smaller gaps',
+      medium: '3 lives, balanced gameplay',
+      hard: '2 lives, sparse platforms, more enemies'
+    };
+    this.add.text(width/2, 370, diffDesc[gameState.difficulty], {
+      fontFamily: 'Arial', fontSize: '10px', color: '#888888'
+    }).setOrigin(0.5);
+
     // ============ SNES-STYLE BUTTONS ============
     // CONTINUE/PLAY button
-    this.createSNESButton(width/2, 345, 200, 50, 0x33bb99, 0x22aa88, 0x44ccaa,
+    this.createSNESButton(width/2, 415, 200, 50, 0x33bb99, 0x22aa88, 0x44ccaa,
       gameState.currentLevel > 1 ? 'CONTINUE' : 'PLAY', () => {
         if (gameState.musicEnabled && !mariachiMusic.isPlaying) mariachiMusic.start();
         this.scene.start('GameScene', { level: gameState.currentLevel });
       });
 
     // NEW GAME button
-    this.createSNESButton(width/2, 405, 200, 50, 0xdd5588, 0xcc4477, 0xee6699,
+    this.createSNESButton(width/2, 475, 200, 50, 0xdd5588, 0xcc4477, 0xee6699,
       'NEW GAME', () => {
         resetGame();
+        gameState.lives = DIFFICULTY_SETTINGS[gameState.difficulty].lives;
         if (gameState.musicEnabled && !mariachiMusic.isPlaying) mariachiMusic.start();
         this.scene.start('GameScene', { level: 1 });
       });
 
     // World names with icons
-    this.add.text(width/2, 455, '🌸 Gardens → 🏛️ Ruins → 💎 Caves → 🌴 Jungle → 🌋 Volcano', {
-      fontFamily: 'Arial', fontSize: '11px', color: '#778899'
+    this.add.text(width/2, 520, '🌸 Gardens → 🏛️ Ruins → 💎 Caves → 🌴 Jungle → 🌋 Volcano', {
+      fontFamily: 'Arial', fontSize: '10px', color: '#778899'
     }).setOrigin(0.5);
 
     // Controls
-    this.add.text(width/2, height - 45, 'Arrows/WASD = Move | Space = Jump | Shift = Run', {
-      fontFamily: 'Arial', fontSize: '11px', color: '#555555'
+    this.add.text(width/2, height - 35, 'Arrows/WASD = Move | Space = Jump | X = Super Jump', {
+      fontFamily: 'Arial', fontSize: '10px', color: '#555555'
     }).setOrigin(0.5);
-    this.add.text(width/2, height - 28, 'X = SUPER JUMP (works mid-air!)', {
-      fontFamily: 'Arial', fontSize: '11px', color: '#00aaaa'
+    this.add.text(width/2, height - 20, 'Z = Attack | Shift = Run', {
+      fontFamily: 'Arial', fontSize: '10px', color: '#555555'
     }).setOrigin(0.5);
 
     // Keyboard
@@ -1855,7 +1964,7 @@ class GameScene extends Phaser.Scene {
     // World bounds
     this.physics.world.setBounds(0, 0, ld.width, ld.height);
 
-    // ============ SNES-STYLE SKY WITH GRADIENT (using theme) ============
+    // ============ DKC2-STYLE SKY WITH GRADIENT (using theme) ============
     const theme = ld.theme || THEMES[1]; // Default to Day theme
     const skyGradient = this.add.graphics();
     const skyColors = theme.sky;
@@ -1865,58 +1974,172 @@ class GameScene extends Phaser.Scene {
       skyGradient.fillRect(0, i * stripeHeight, ld.width, stripeHeight + 2);
     });
 
-    // ============ PARALLAX BACKGROUND MOUNTAINS (far) ============
+    // ============ ATMOSPHERIC FOG LAYERS (DKC2 style) ============
+    const fogColor = theme.name === 'Night' ? 0x223344 : 0xffffff;
+    for (let i = 0; i < 3; i++) {
+      const fog = this.add.rectangle(ld.width / 2, ld.height - 80 - i * 60, ld.width * 2, 100, fogColor, 0.08 - i * 0.02);
+      fog.setScrollFactor(0.05 + i * 0.05);
+    }
+
+    // ============ GOD RAYS (for Day/Dawn/Sunset themes) ============
+    if (theme.name !== 'Night') {
+      for (let i = 0; i < 5; i++) {
+        const rayX = 100 + i * (ld.width / 5);
+        const ray = this.add.triangle(rayX, 0, 0, 0, -40 - i * 10, ld.height, 40 + i * 10, ld.height, 0xffffcc, 0.03);
+        ray.setScrollFactor(0.02);
+        // Subtle ray animation
+        this.tweens.add({
+          targets: ray,
+          alpha: 0.01,
+          duration: 3000 + i * 500,
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.easeInOut'
+        });
+      }
+    }
+
+    // ============ PARALLAX BACKGROUND MOUNTAINS (far) - more detailed ============
     const mountains = this.add.graphics();
-    mountains.fillStyle(theme.mountain, 0.4);
+    // Back mountain range (darker)
+    mountains.fillStyle(theme.mountain, 0.3);
+    for (let i = 0; i < ld.width / 150 + 3; i++) {
+      const mx = i * 150 - 80;
+      const mh = 120 + Phaser.Math.Between(0, 80);
+      mountains.fillTriangle(mx, ld.height - 80, mx + 75, ld.height - 80 - mh, mx + 150, ld.height - 80);
+    }
+    // Front mountain range (lighter)
+    mountains.fillStyle(theme.mountain, 0.5);
     for (let i = 0; i < ld.width / 200 + 2; i++) {
-      const mx = i * 200 - 50;
-      const mh = Phaser.Math.Between(100, 180);
+      const mx = i * 200 - 50 + Phaser.Math.Between(-20, 20);
+      const mh = Phaser.Math.Between(80, 150);
       mountains.fillTriangle(mx, ld.height - 100, mx + 100, ld.height - 100 - mh, mx + 200, ld.height - 100);
     }
     mountains.setScrollFactor(0.1);
 
-    // ============ PARALLAX HILLS (mid) ============
+    // ============ PARALLAX HILLS WITH TREES (mid) ============
     const hills = this.add.graphics();
-    hills.fillStyle(theme.hill, 0.5);
-    for (let i = 0; i < ld.width / 150 + 2; i++) {
-      const hx = i * 150 - 30;
-      hills.fillEllipse(hx + 75, ld.height - 60, 160, 100);
+    hills.fillStyle(theme.hill, 0.6);
+    for (let i = 0; i < ld.width / 120 + 2; i++) {
+      const hx = i * 120 - 30;
+      hills.fillEllipse(hx + 60, ld.height - 50, 140, 90);
     }
     hills.setScrollFactor(0.3);
 
-    // ============ SNES-STYLE CLOUDS (multiple layers) ============
-    // Far clouds (slower parallax)
-    for (let i = 0; i < 8; i++) {
-      const cx = Phaser.Math.Between(0, ld.width);
-      const cy = Phaser.Math.Between(40, 120);
-      // Cloud shadow
-      this.add.ellipse(cx + 2, cy + 2, Phaser.Math.Between(60, 100), Phaser.Math.Between(25, 35), 0x99ccee, 0.3).setScrollFactor(0.15);
-      // Cloud body
-      this.add.ellipse(cx, cy, Phaser.Math.Between(60, 100), Phaser.Math.Between(25, 35), 0xffffff, 0.8).setScrollFactor(0.15);
-      // Cloud highlight
-      this.add.ellipse(cx - 10, cy - 5, Phaser.Math.Between(30, 50), Phaser.Math.Between(15, 20), 0xffffff, 0.9).setScrollFactor(0.15);
-    }
-    // Near clouds (faster parallax)
-    for (let i = 0; i < 6; i++) {
-      const cx = Phaser.Math.Between(0, ld.width);
-      const cy = Phaser.Math.Between(60, 150);
-      this.add.ellipse(cx + 3, cy + 3, Phaser.Math.Between(80, 130), Phaser.Math.Between(35, 50), 0xaaddff, 0.2).setScrollFactor(0.3);
-      this.add.ellipse(cx, cy, Phaser.Math.Between(80, 130), Phaser.Math.Between(35, 50), 0xffffff, 0.7).setScrollFactor(0.3);
+    // Add silhouette trees on hills
+    const treeColor = theme.name === 'Night' ? 0x112211 : 0x226633;
+    for (let i = 0; i < ld.width / 80; i++) {
+      const tx = i * 80 + Phaser.Math.Between(-20, 20);
+      const th = Phaser.Math.Between(30, 60);
+      const tree = this.add.triangle(tx, ld.height - 70, 0, 0, -15, th, 15, th, treeColor, 0.4);
+      tree.setScrollFactor(0.25);
+      // Gentle sway animation
+      this.tweens.add({
+        targets: tree,
+        angle: Phaser.Math.Between(-2, 2),
+        duration: 2000 + Phaser.Math.Between(0, 1000),
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut'
+      });
     }
 
-    // ============ SNES-STYLE PLATFORMS WITH SHADING ============
+    // ============ ANIMATED CLOUDS (DKC2 style - moving!) ============
+    this.clouds = [];
+    // Far clouds (slower, smaller)
+    for (let i = 0; i < 10; i++) {
+      const cx = Phaser.Math.Between(-100, ld.width + 100);
+      const cy = Phaser.Math.Between(30, 100);
+      const cw = Phaser.Math.Between(60, 120);
+      const ch = Phaser.Math.Between(25, 40);
+
+      // Cloud shadow
+      const shadow = this.add.ellipse(cx + 3, cy + 3, cw, ch, 0x99bbdd, 0.2).setScrollFactor(0.1);
+      // Cloud body
+      const cloud = this.add.ellipse(cx, cy, cw, ch, 0xffffff, 0.7).setScrollFactor(0.1);
+      // Cloud highlight
+      const highlight = this.add.ellipse(cx - cw * 0.2, cy - ch * 0.2, cw * 0.5, ch * 0.5, 0xffffff, 0.9).setScrollFactor(0.1);
+
+      // Animate cloud movement
+      const speed = 0.02 + Math.random() * 0.03;
+      this.clouds.push({ shadow, cloud, highlight, speed, baseX: cx });
+    }
+
+    // Near clouds (faster, bigger, puffier)
+    for (let i = 0; i < 6; i++) {
+      const cx = Phaser.Math.Between(-100, ld.width + 100);
+      const cy = Phaser.Math.Between(60, 140);
+      const cw = Phaser.Math.Between(100, 180);
+      const ch = Phaser.Math.Between(40, 60);
+
+      const shadow = this.add.ellipse(cx + 4, cy + 4, cw, ch, 0xaaccee, 0.15).setScrollFactor(0.25);
+      const cloud = this.add.ellipse(cx, cy, cw, ch, 0xffffff, 0.6).setScrollFactor(0.25);
+      const puff1 = this.add.ellipse(cx - cw * 0.3, cy, cw * 0.5, ch * 0.8, 0xffffff, 0.7).setScrollFactor(0.25);
+      const puff2 = this.add.ellipse(cx + cw * 0.3, cy, cw * 0.5, ch * 0.8, 0xffffff, 0.7).setScrollFactor(0.25);
+
+      const speed = 0.05 + Math.random() * 0.05;
+      this.clouds.push({ shadow, cloud, puff1, puff2, speed, baseX: cx, near: true });
+    }
+
+    // ============ PARTICLE EFFECTS (fireflies/dust/leaves) ============
+    this.particles = [];
+    const particleType = theme.name === 'Night' ? 'firefly' : (theme.name === 'Jungle' ? 'leaf' : 'dust');
+
+    for (let i = 0; i < 25; i++) {
+      const px = Phaser.Math.Between(0, ld.width);
+      const py = Phaser.Math.Between(100, ld.height - 100);
+
+      let particle;
+      if (particleType === 'firefly') {
+        // Glowing fireflies at night
+        particle = this.add.circle(px, py, 3, 0xffff66, 0.8);
+      } else if (particleType === 'leaf') {
+        // Falling leaves in jungle
+        particle = this.add.ellipse(px, py, 6, 3, 0x44aa44, 0.6);
+        particle.setAngle(Phaser.Math.Between(0, 360));
+      } else {
+        // Floating dust motes
+        particle = this.add.circle(px, py, Phaser.Math.Between(1, 3), 0xffffff, 0.3);
+      }
+
+      particle.setScrollFactor(0.5 + Math.random() * 0.3);
+      this.particles.push({
+        gfx: particle,
+        type: particleType,
+        x: px,
+        y: py,
+        baseX: px,
+        baseY: py,
+        angle: Math.random() * Math.PI * 2,
+        phase: Math.random() * Math.PI * 2,
+        rotSpeed: 0.01 + Math.random() * 0.02,
+        fallSpeed: particleType === 'leaf' ? 0.3 + Math.random() * 0.4 : 0,
+        rotation: Math.random() * Math.PI * 2,
+        driftSpeed: 0.1 + Math.random() * 0.2
+      });
+    }
+
+    // ============ DKC2-STYLE PLATFORMS WITH AZTEC DETAILS ============
     this.platforms = this.physics.add.staticGroup();
     ld.platforms.forEach(p => {
       const isGround = p.h > 30;
-      const baseColor = isGround ? 0x8B5522 : 0x33aa44;
-      const darkColor = isGround ? 0x5a3311 : 0x228833;
-      const lightColor = isGround ? 0xaa7744 : 0x55cc66;
-      const topColor = isGround ? 0x55aa44 : 0x66dd77;
+      const isSkyPlatform = p.y < 150;
 
-      // Platform shadow
-      this.add.rectangle(p.x + p.w/2 + 3, p.y + p.h/2 + 3, p.w, p.h, 0x000000, 0.2);
+      // Color scheme based on platform type
+      let baseColor, darkColor, lightColor, topColor;
+      if (isGround) {
+        baseColor = 0x8B5522; darkColor = 0x5a3311; lightColor = 0xaa7744; topColor = 0x55aa44;
+      } else if (isSkyPlatform) {
+        // Sky platforms are golden/Aztec themed
+        baseColor = 0xccaa44; darkColor = 0x997722; lightColor = 0xeedd66; topColor = 0xffee88;
+      } else {
+        baseColor = 0x44aa55; darkColor = 0x338844; lightColor = 0x66cc77; topColor = 0x77dd88;
+      }
 
-      // Platform base (dark)
+      // Platform shadow (deeper)
+      this.add.rectangle(p.x + p.w/2 + 4, p.y + p.h/2 + 4, p.w, p.h, 0x000000, 0.25);
+
+      // Platform base (dark edge)
       this.add.rectangle(p.x + p.w/2, p.y + p.h/2, p.w, p.h, darkColor);
 
       // Platform main body
@@ -1927,20 +2150,59 @@ class GameScene extends Phaser.Scene {
       // Platform top highlight
       this.add.rectangle(p.x + p.w/2, p.y + 4, p.w - 4, 6, lightColor);
 
-      // Grass/surface detail
+      // Grass/moss surface
       this.add.rectangle(p.x + p.w/2, p.y + 2, p.w - 2, 3, topColor);
 
-      // Add grass tufts on platforms
       if (!isGround) {
-        for (let gx = p.x + 10; gx < p.x + p.w - 10; gx += 20) {
-          this.add.triangle(gx, p.y, gx - 4, p.y, gx, p.y - 6, gx + 4, p.y, 0x44bb55, 0.8);
+        // Animated grass tufts
+        for (let gx = p.x + 12; gx < p.x + p.w - 12; gx += 18) {
+          const grass = this.add.triangle(gx, p.y, gx - 4, p.y, gx, p.y - 8, gx + 4, p.y, 0x55cc66, 0.9);
+          // Gentle sway
+          this.tweens.add({
+            targets: grass,
+            angle: Phaser.Math.Between(-5, 5),
+            duration: 1500 + Phaser.Math.Between(0, 500),
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+          });
+        }
+
+        // Hanging vines on some platforms
+        if (Math.random() < 0.4 && p.w > 60) {
+          const vineX = p.x + Phaser.Math.Between(15, p.w - 15);
+          for (let v = 0; v < 4; v++) {
+            const vine = this.add.ellipse(vineX + Math.sin(v) * 3, p.y + p.h + v * 12, 4, 10, 0x228833, 0.7);
+            this.tweens.add({
+              targets: vine,
+              x: vine.x + Phaser.Math.Between(-3, 3),
+              duration: 2000,
+              yoyo: true,
+              repeat: -1,
+              ease: 'Sine.easeInOut'
+            });
+          }
+        }
+
+        // Aztec symbols on sky platforms
+        if (isSkyPlatform && p.w > 50) {
+          const symbolX = p.x + p.w / 2;
+          const symbolY = p.y + p.h / 2;
+          // Simple aztec pattern (diamond)
+          this.add.rectangle(symbolX, symbolY, 8, 8, 0x664422, 0.5).setAngle(45);
+          this.add.rectangle(symbolX, symbolY, 4, 4, 0xffdd88, 0.8).setAngle(45);
         }
       }
 
-      // Add dirt texture lines for ground
+      // Dirt texture for ground
       if (isGround && p.h > 35) {
         for (let dy = 15; dy < p.h - 5; dy += 12) {
           this.add.rectangle(p.x + p.w/2, p.y + dy, p.w - 10, 2, darkColor, 0.3);
+        }
+        // Add some rocks in ground
+        for (let rx = p.x + 50; rx < p.x + p.w - 50; rx += Phaser.Math.Between(80, 150)) {
+          const rockSize = Phaser.Math.Between(8, 15);
+          this.add.ellipse(rx, p.y + 8, rockSize, rockSize * 0.6, 0x666666, 0.3);
         }
       }
     });
@@ -3225,6 +3487,75 @@ class GameScene extends Phaser.Scene {
           }
           break;
       }
+    }
+
+    // ============ ANIMATE CLOUDS (DKC2 style parallax) ============
+    if (this.clouds && this.clouds.length > 0) {
+      const camX = this.cameras.main.scrollX;
+      this.clouds.forEach(c => {
+        // Move cloud slowly across screen
+        c.baseX += c.speed * (delta / 16);
+
+        // Wrap cloud when it goes off screen
+        if (c.baseX > this.levelData.width + 200) {
+          c.baseX = -200;
+        }
+
+        // Apply parallax based on camera position
+        const parallax = c.near ? 0.3 : 0.1;
+        const cloudX = c.baseX - camX * parallax;
+
+        // Update all parts of the cloud
+        if (c.shadow) c.shadow.setX(cloudX + 3);
+        if (c.cloud) c.cloud.setX(cloudX);
+        if (c.highlight) c.highlight.setX(cloudX - 5);
+        if (c.puff1) c.puff1.setX(cloudX - 15);
+        if (c.puff2) c.puff2.setX(cloudX + 15);
+      });
+    }
+
+    // ============ ANIMATE PARTICLES (fireflies, leaves, dust) ============
+    if (this.particles && this.particles.length > 0) {
+      const camX = this.cameras.main.scrollX;
+      const camY = this.cameras.main.scrollY;
+
+      this.particles.forEach(p => {
+        // Update particle based on type
+        if (p.type === 'firefly') {
+          // Fireflies float and pulse
+          p.angle += p.rotSpeed * (delta / 16);
+          p.x = p.baseX + Math.sin(p.angle) * 30;
+          p.y = p.baseY + Math.cos(p.angle * 0.7) * 20;
+          p.gfx.setPosition(p.x - camX * 0.2, p.y - camY * 0.2);
+          p.gfx.setAlpha(0.5 + Math.sin(time / 200 + p.phase) * 0.4);
+        } else if (p.type === 'leaf') {
+          // Leaves drift down and sway
+          p.y += p.fallSpeed * (delta / 16);
+          p.x += Math.sin(time / 500 + p.phase) * 0.5;
+          p.rotation += p.rotSpeed * (delta / 16);
+
+          // Reset leaf when it falls below screen
+          if (p.y > this.levelData.height) {
+            p.y = -50;
+            p.x = Math.random() * this.levelData.width;
+          }
+
+          p.gfx.setPosition(p.x - camX * 0.15, p.y - camY * 0.15);
+          p.gfx.setRotation(p.rotation);
+        } else if (p.type === 'dust') {
+          // Dust motes float gently
+          p.y += Math.sin(time / 1000 + p.phase) * 0.3;
+          p.x += p.driftSpeed * (delta / 16);
+
+          // Wrap dust horizontally
+          if (p.x > this.levelData.width + 50) {
+            p.x = -50;
+          }
+
+          p.gfx.setPosition(p.x - camX * 0.1, p.y - camY * 0.1);
+          p.gfx.setAlpha(0.3 + Math.sin(time / 800 + p.phase) * 0.2);
+        }
+      });
     }
 
     // Fall death
