@@ -231,8 +231,8 @@ const gameState = {
   lives: 3,
   stars: [],
   rescuedBabies: [],
-  superJumps: 0,
-  maceAttacks: 0,  // Thunderbolt attacks (like super jumps, need power-up)
+  superJumps: 2,    // Start with powerups! (medium default)
+  maceAttacks: 1,   // Thunderbolt attacks
   score: 0,
   highScore: 0,
   musicEnabled: true,
@@ -245,6 +245,8 @@ const gameState = {
 const DIFFICULTY_SETTINGS = {
   easy: {
     lives: 5,
+    startingSuperJumps: 3,     // Start with powerups!
+    startingMaceAttacks: 2,
     platformDensity: 1.2,      // More platforms (easier jumps)
     platformGapMult: 0.8,      // Smaller gaps
     enemyMult: 0.6,            // Fewer enemies
@@ -255,6 +257,8 @@ const DIFFICULTY_SETTINGS = {
   },
   medium: {
     lives: 3,
+    startingSuperJumps: 2,     // Start with some powerups
+    startingMaceAttacks: 1,
     platformDensity: 1.0,      // Normal
     platformGapMult: 1.0,
     enemyMult: 1.0,
@@ -265,6 +269,8 @@ const DIFFICULTY_SETTINGS = {
   },
   hard: {
     lives: 2,
+    startingSuperJumps: 1,     // Minimal starting powerups
+    startingMaceAttacks: 0,
     platformDensity: 0.7,      // Sparser platforms (harder!)
     platformGapMult: 1.3,      // Bigger gaps
     enemyMult: 1.5,            // More enemies
@@ -290,13 +296,14 @@ function resetGame() {
   if (gameState.score > gameState.highScore) {
     gameState.highScore = gameState.score;
   }
+  const settings = DIFFICULTY_SETTINGS[gameState.difficulty];
   gameState.currentLevel = 1;
   gameState.coins = 0;
-  gameState.lives = 3;
+  gameState.lives = settings.lives;
   gameState.stars = [];
   gameState.rescuedBabies = [];
-  gameState.superJumps = 0;
-  gameState.maceAttacks = 0;
+  gameState.superJumps = settings.startingSuperJumps;
+  gameState.maceAttacks = settings.startingMaceAttacks;
   gameState.score = 0;
   saveGame();
 }
@@ -462,7 +469,7 @@ function generateLevel(levelNum) {
   let challengeX = 500 + Math.floor(Math.random() * 300);
 
   // 1-3 challenge sequences
-  const numChallenges = 1 + Math.floor(difficulty * 2);
+  const numChallenges = 1 + Math.floor(levelDifficulty * 2);
   for (let c = 0; c < numChallenges && challengeX < width - 600; c++) {
     // Small cluster of challenging platforms
     for (let i = 0; i < 2 + Math.floor(Math.random() * 2); i++) {
@@ -1880,9 +1887,9 @@ class MenuScene extends Phaser.Scene {
 
     // Difficulty description
     const diffDesc = {
-      easy: '5 lives, more powerups, smaller gaps',
-      medium: '3 lives, balanced gameplay',
-      hard: '2 lives, sparse platforms, more enemies'
+      easy: '5 lives, 3 super jumps, easier gaps',
+      medium: '3 lives, 2 super jumps, balanced',
+      hard: '2 lives, 1 super jump, challenging'
     };
     this.add.text(width/2, 370, diffDesc[gameState.difficulty], {
       fontFamily: 'Arial', fontSize: '10px', color: '#888888'
@@ -1900,7 +1907,6 @@ class MenuScene extends Phaser.Scene {
     this.createSNESButton(width/2, 475, 200, 50, 0xdd5588, 0xcc4477, 0xee6699,
       'NEW GAME', () => {
         resetGame();
-        gameState.lives = DIFFICULTY_SETTINGS[gameState.difficulty].lives;
         if (gameState.musicEnabled && !mariachiMusic.isPlaying) mariachiMusic.start();
         this.scene.start('GameScene', { level: 1 });
       });
