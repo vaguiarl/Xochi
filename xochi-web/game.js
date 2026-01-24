@@ -1916,16 +1916,16 @@ class MenuScene extends Phaser.Scene {
       fontFamily: 'Arial', fontSize: '10px', color: '#778899'
     }).setOrigin(0.5);
 
-    // Controls
-    this.add.text(width/2, height - 35, 'Arrows/WASD = Move | Space = Jump | X = Super Jump', {
+    // Controls - simplified!
+    this.add.text(width/2, height - 35, 'Arrows/WASD = Move | SPACE = Run', {
       fontFamily: 'Arial', fontSize: '10px', color: '#555555'
     }).setOrigin(0.5);
-    this.add.text(width/2, height - 20, 'Z = Attack | Shift = Run', {
+    this.add.text(width/2, height - 20, 'X = Jump (double jump in air!) | Z = Thunder', {
       fontFamily: 'Arial', fontSize: '10px', color: '#555555'
     }).setOrigin(0.5);
 
-    // Keyboard
-    this.input.keyboard.on('keydown-SPACE', () => {
+    // Keyboard shortcut to start
+    this.input.keyboard.on('keydown-X', () => {
       if (gameState.musicEnabled && !mariachiMusic.isPlaying) mariachiMusic.start();
       this.scene.start('GameScene', { level: gameState.currentLevel });
     });
@@ -2952,7 +2952,7 @@ class GameScene extends Phaser.Scene {
     if (!delta) delta = 16;
 
     const onGround = this.player.body.blocked.down;
-    const speed = this.keys.SHIFT.isDown ? 280 : 180;
+    const speed = this.keys.SPACE.isDown ? 280 : 180;  // SPACE = run
     const tc = this.touchControls;
 
     // Movement (keyboard + touch)
@@ -2966,7 +2966,8 @@ class GameScene extends Phaser.Scene {
       this.player.body.setVelocityX(this.player.body.velocity.x * 0.8);
     }
 
-    // ============ RESPONSIVE JUMP SYSTEM ============
+    // ============ SIMPLIFIED JUMP SYSTEM (X key) ============
+    // X = Jump (on ground) or Super Jump (in air when powered up)
     // Jump buffer: if you press jump slightly before landing, it still works
     // Coyote time: if you walk off a ledge, you can still jump briefly
 
@@ -2975,22 +2976,14 @@ class GameScene extends Phaser.Scene {
     if (this.coyoteTime === undefined) this.coyoteTime = 0;
     if (this.wasOnGround === undefined) this.wasOnGround = false;
 
-    // Check if jump key is currently held (not just pressed)
-    const jumpKeyDown = this.cursors.up.isDown || this.cursors.space.isDown ||
-                        this.keys.W.isDown || this.keys.SPACE.isDown || tc.jump;
-
-    // Check if jump was JUST pressed this frame
-    const jumpJustPressed = Phaser.Input.Keyboard.JustDown(this.cursors.up) ||
-                            Phaser.Input.Keyboard.JustDown(this.cursors.space) ||
-                            Phaser.Input.Keyboard.JustDown(this.keys.W) ||
-                            Phaser.Input.Keyboard.JustDown(this.keys.SPACE) ||
+    // X key is now the ONLY jump key
+    const jumpKeyDown = this.keys.X.isDown || tc.jump;
+    const jumpJustPressed = Phaser.Input.Keyboard.JustDown(this.keys.X) ||
                             (!this.lastTouchJump && tc.jump);
 
     // Update coyote time (150ms grace period after leaving ground)
     if (onGround) {
       this.coyoteTime = 150;
-    } else if (this.wasOnGround && !onGround) {
-      // Just left ground - start coyote timer
     }
     if (this.coyoteTime > 0) this.coyoteTime -= delta;
 
@@ -3000,32 +2993,29 @@ class GameScene extends Phaser.Scene {
     }
     if (this.jumpBufferTime > 0) this.jumpBufferTime -= delta;
 
-    // Can jump if: on ground OR within coyote time
-    const canJump = onGround || this.coyoteTime > 0;
+    // Can normal jump if: on ground OR within coyote time
+    const canNormalJump = onGround || this.coyoteTime > 0;
 
-    // Execute jump if: (just pressed OR buffered) AND can jump
-    if ((jumpJustPressed || this.jumpBufferTime > 0) && canJump) {
-      this.player.body.setVelocityY(-450);
-      this.playSound('sfx-jump');
-      this.jumpBufferTime = 0; // Clear buffer
-      this.coyoteTime = 0; // Clear coyote time
-    }
+    // Execute jump
+    if (jumpJustPressed || this.jumpBufferTime > 0) {
+      if (canNormalJump) {
+        // Normal jump from ground
+        this.player.body.setVelocityY(-450);
+        this.playSound('sfx-jump');
+        this.jumpBufferTime = 0;
+        this.coyoteTime = 0;
+      } else if (gameState.superJumps > 0) {
+        // SUPER JUMP in mid-air! (auto-activates when powered up)
+        gameState.superJumps--;
+        this.player.body.setVelocityY(-650);
+        this.playSound('sfx-superjump');
+        this.showText(this.player.x, this.player.y - 30, 'SUPER!', '#00ffff');
+        this.events.emit('updateUI');
+        this.jumpBufferTime = 0;
 
-    this.lastTouchJump = tc.jump;
-    this.wasOnGround = onGround;
-
-    // SUPER JUMP (X key) - can be used MID-AIR! Like a double jump!
-    if (Phaser.Input.Keyboard.JustDown(this.keys.X) && gameState.superJumps > 0) {
-      gameState.superJumps--;
-      this.player.body.setVelocityY(-650); // Powerful jump, works in mid-air!
-      this.playSound('sfx-superjump');
-      this.showText(this.player.x, this.player.y - 30, 'SUPER!', '#00ffff');
-      this.events.emit('updateUI');
-
-      // Visual effect - cyan burst (more dramatic for mid-air!)
-      for (let i = 0; i < 12; i++) {
-        const angle = (i / 12) * Math.PI * 2;
-        this.time.delayedCall(0, () => {
+        // Visual effect - cyan burst
+        for (let i = 0; i < 12; i++) {
+          const angle = (i / 12) * Math.PI * 2;
           const trail = this.add.circle(
             this.player.x + Math.cos(angle) * 10,
             this.player.y + Math.sin(angle) * 10,
@@ -3040,11 +3030,14 @@ class GameScene extends Phaser.Scene {
             duration: 300,
             onComplete: () => trail.destroy()
           });
-        });
+        }
       }
     }
 
-    // ============ MACE ATTACK (C key) - THUNDERSHOCK! ============
+    this.lastTouchJump = tc.jump;
+    this.wasOnGround = onGround;
+
+    // ============ THUNDER ATTACK (Z key) ============
     // NOW REQUIRES POWER-UP like super jumps!
     if (this.attackCooldown > 0) this.attackCooldown -= 16;
 
@@ -3193,7 +3186,7 @@ class GameScene extends Phaser.Scene {
     // ============ FRAME ANIMATION (DKC-style) ============
     const isMoving = Math.abs(this.player.body.velocity.x) > 10;
     const isInAir = !onGround;
-    const isRunning = this.keys.SHIFT.isDown;
+    const isRunning = this.keys.SPACE.isDown;
     const now = this.time.now;
 
     // Walk animation timer (cycle every 200ms for walk, 120ms for run)
@@ -3593,13 +3586,13 @@ class UIScene extends Phaser.Scene {
     this.coinsText = this.add.text(130, 12, `Coins: ${gameState.coins}`, { fontFamily: 'Arial', fontSize: '11px', color: '#ffdd00' });
     this.starsText = this.add.text(130, 32, `Stars: ${gameState.stars.length}/30`, { fontFamily: 'Arial', fontSize: '11px', color: '#ffff00' });
 
-    // Super Jump counter (cyan)
-    this.superJumpText = this.add.text(230, 12, `Super: ${gameState.superJumps}`, { fontFamily: 'Arial', fontSize: '11px', color: '#00ffff' });
-    this.add.text(230, 32, '[X] key', { fontFamily: 'Arial', fontSize: '9px', color: '#00aaaa' });
+    // Double Jump counter (cyan) - shows how many mid-air jumps you have
+    this.superJumpText = this.add.text(230, 12, `Jumps: ${gameState.superJumps}`, { fontFamily: 'Arial', fontSize: '11px', color: '#00ffff' });
+    this.add.text(230, 32, 'double jump', { fontFamily: 'Arial', fontSize: '9px', color: '#00aaaa' });
 
-    // Thunder/Mace attack counter (yellow)
+    // Thunder attack counter (yellow)
     this.maceText = this.add.text(320, 12, `Thunder: ${gameState.maceAttacks}`, { fontFamily: 'Arial', fontSize: '11px', color: '#ffff00' });
-    this.add.text(320, 32, '[C] key', { fontFamily: 'Arial', fontSize: '9px', color: '#aaaa00' });
+    this.add.text(320, 32, '[Z] key', { fontFamily: 'Arial', fontSize: '9px', color: '#aaaa00' });
 
     // Level names - 10 levels across 5 worlds
     const names = [
@@ -3620,7 +3613,7 @@ class UIScene extends Phaser.Scene {
       this.livesText.setText(`Lives: ${gameState.lives}`);
       this.coinsText.setText(`Coins: ${gameState.coins}`);
       this.starsText.setText(`Stars: ${gameState.stars.length}/30`);
-      this.superJumpText.setText(`Super: ${gameState.superJumps}`);
+      this.superJumpText.setText(`Jumps: ${gameState.superJumps}`);
       this.maceText.setText(`Thunder: ${gameState.maceAttacks}`);
     });
   }
