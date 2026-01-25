@@ -227,7 +227,7 @@ const mariachiMusic = new MariachiMusic();
 const gameState = {
   currentLevel: 1,
   totalLevels: 10,  // Now 10 levels!
-  coins: 0,
+  flowers: 0,       // Cempasuchil flowers (replaces coins)
   lives: 3,
   stars: [],
   rescuedBabies: [],
@@ -298,7 +298,7 @@ function resetGame() {
   }
   const settings = DIFFICULTY_SETTINGS[gameState.difficulty];
   gameState.currentLevel = 1;
-  gameState.coins = 0;
+  gameState.flowers = 0;
   gameState.lives = settings.lives;
   gameState.stars = [];
   gameState.rescuedBabies = [];
@@ -317,42 +317,84 @@ const WORLDS = {
     name: 'Canal Dawn',
     subtitle: 'El Amanecer',
     sky: [0xffccbb, 0xffaa99, 0xff8877, 0xdd6655, 0xaa5544, 0x774433],
-    mountain: 0x446655, hill: 0x558866, waterColor: 0x558899
+    mountain: 0x446655, hill: 0x558866, waterColor: 0x558899,
+    // Enhanced palette for parallax layers
+    background: 0xFFB6C1,   // Light pink sky
+    foreground: 0x8B4513,   // Saddle brown
+    midground: 0xD2691E,    // Chocolate
+    vegetation: [0x9ACD32, 0x228B22, 0x6B8E23],  // Yellow-green, forest green, olive
+    accent: 0xFFD700,       // Gold
+    fog: 0xFFF5E6           // Warm white mist
   },
   // World 2: Trajineras Brillantes (Levels 3-4) - Bright midday, blue sky
   2: {
     name: 'Bright Trajineras',
     subtitle: 'Trajineras Brillantes',
     sky: [0x77ddff, 0x55ccee, 0x44bbdd, 0x33aacc, 0x2299bb, 0x1188aa],
-    mountain: 0x447755, hill: 0x55aa66, waterColor: 0x33aaaa
+    mountain: 0x447755, hill: 0x55aa66, waterColor: 0x33aaaa,
+    // Enhanced palette for parallax layers
+    background: 0x87CEEB,   // Sky blue
+    foreground: 0x228B22,   // Forest green
+    midground: 0x32CD32,    // Lime green
+    vegetation: [0x7FFF00, 0x006400, 0x2E8B57],  // Chartreuse, dark green, sea green
+    accent: 0xFFFF00,       // Yellow
+    fog: 0xF0F8FF           // Alice blue mist
   },
   // World 3: Cueva de Cristal (Level 5 Boss) - Dark mysterious cave
   3: {
     name: 'Crystal Cave',
     subtitle: 'Cueva de Cristal',
     sky: [0x334466, 0x223355, 0x112244, 0x001133, 0x000022, 0x000011],
-    mountain: 0x112233, hill: 0x223355, waterColor: 0x224466
+    mountain: 0x112233, hill: 0x223355, waterColor: 0x224466,
+    // Enhanced palette for parallax layers
+    background: 0x191970,   // Midnight blue
+    foreground: 0x483D8B,   // Dark slate blue
+    midground: 0x6A5ACD,    // Slate blue
+    vegetation: [0x9370DB, 0x8A2BE2, 0x4B0082],  // Medium purple, blue violet, indigo
+    accent: 0x00FFFF,       // Cyan (crystals)
+    fog: 0xE6E6FA           // Lavender mist
   },
   // World 4: Jardines Flotantes (Levels 6-7) - Golden sunset
   4: {
     name: 'Floating Gardens',
     subtitle: 'Jardines Flotantes',
     sky: [0xffbb77, 0xff9955, 0xff7744, 0xee5533, 0xcc4422, 0x993311],
-    mountain: 0x335544, hill: 0x77aa55, waterColor: 0x668877
+    mountain: 0x335544, hill: 0x77aa55, waterColor: 0x668877,
+    // Enhanced palette for parallax layers
+    background: 0xFF8C00,   // Dark orange
+    foreground: 0x8B4513,   // Saddle brown
+    midground: 0xCD853F,    // Peru
+    vegetation: [0xDAA520, 0xB8860B, 0xFF6347],  // Goldenrod, dark goldenrod, tomato
+    accent: 0xFF4500,       // Orange red
+    fog: 0xFFDAB9           // Peach puff mist
   },
   // World 5: Canales de Noche (Levels 8-9) - Moonlit night, purple
   5: {
     name: 'Night Canals',
     subtitle: 'Canales de Noche',
     sky: [0x223355, 0x112244, 0x001133, 0x001122, 0x000011, 0x000000],
-    mountain: 0x112233, hill: 0x223344, waterColor: 0x113344
+    mountain: 0x112233, hill: 0x223344, waterColor: 0x113344,
+    // Enhanced palette for parallax layers
+    background: 0x000080,   // Navy
+    foreground: 0x2F4F4F,   // Dark slate gray
+    midground: 0x708090,    // Slate gray
+    vegetation: [0x4682B4, 0x5F9EA0, 0x00CED1],  // Steel blue, cadet blue, dark turquoise
+    accent: 0xC0C0C0,       // Silver (moonlight)
+    fog: 0xF8F8FF           // Ghost white mist
   },
   // World 6: La Gran Fiesta (Level 10 Boss) - Colorful celebration!
   6: {
     name: 'The Grand Festival',
     subtitle: 'La Gran Fiesta',
     sky: [0x88ddcc, 0x66ccbb, 0x55bbaa, 0x44aa99, 0x339988, 0x228877],
-    mountain: 0x336655, hill: 0x44bb66, waterColor: 0x22aa99
+    mountain: 0x336655, hill: 0x44bb66, waterColor: 0x22aa99,
+    // Enhanced palette for parallax layers
+    background: 0xFF1493,   // Deep pink
+    foreground: 0xFF6347,   // Tomato
+    midground: 0xFF69B4,    // Hot pink
+    vegetation: [0xADFF2F, 0xFF00FF, 0xFFA500],  // Green-yellow, magenta, orange
+    accent: 0xFFD700,       // Gold
+    fog: 0xFFFFE0           // Light yellow mist
   }
 };
 
@@ -403,6 +445,742 @@ function getLevelTypeDescription(levelNum) {
 function getThemeForLevel(levelNum) {
   const worldNum = getWorldForLevel(levelNum);
   return { ...WORLDS[worldNum], isWaterLevel: true, worldNum };
+}
+
+// ============== PIECE 5: WORLD-SPECIFIC PARTICLE ATMOSPHERE ==============
+// Creates atmospheric particles unique to each world
+// Max 50 particles total, using Phaser tweens for movement/animation
+function createWorldParticles(scene, theme, levelWidth, levelHeight) {
+  const particles = [];
+  const worldNum = theme.worldNum || 1;
+
+  switch(worldNum) {
+    case 1: // Dawn - Morning mist + pink petals
+      // 20 mist particles: circles 4-6px, #FFD4A3, alpha 0.3, slow horizontal drift
+      for (let i = 0; i < 20; i++) {
+        const px = Phaser.Math.Between(0, levelWidth);
+        const py = Phaser.Math.Between(100, levelHeight - 100);
+        const size = Phaser.Math.Between(4, 6);
+        const gfx = scene.add.circle(px, py, size, 0xFFD4A3, 0.3);
+        gfx.setScrollFactor(0.4 + Math.random() * 0.2);
+        particles.push({
+          gfx, type: 'mist', x: px, y: py, baseX: px, baseY: py,
+          phase: Math.random() * Math.PI * 2,
+          driftSpeed: 0.3 + Math.random() * 0.2
+        });
+      }
+      // 15 petals: rectangles 4x6px, #FFB5D8, flutter fall with rotation
+      for (let i = 0; i < 15; i++) {
+        const px = Phaser.Math.Between(0, levelWidth);
+        const py = Phaser.Math.Between(-50, levelHeight - 100);
+        const gfx = scene.add.rectangle(px, py, 4, 6, 0xFFB5D8, 0.8);
+        gfx.setScrollFactor(0.5 + Math.random() * 0.3);
+        gfx.setAngle(Phaser.Math.Between(0, 360));
+        particles.push({
+          gfx, type: 'petal', x: px, y: py, baseX: px, baseY: py,
+          phase: Math.random() * Math.PI * 2,
+          fallSpeed: 0.5 + Math.random() * 0.3,
+          rotSpeed: 1 + Math.random() * 2,
+          swayAmp: 30 + Math.random() * 20
+        });
+      }
+      break;
+
+    case 2: // Day - Dust motes + butterflies
+      // 30 dust motes: circles 2px, #FFFACD, alpha 0.4, brownian motion
+      for (let i = 0; i < 30; i++) {
+        const px = Phaser.Math.Between(0, levelWidth);
+        const py = Phaser.Math.Between(50, levelHeight - 50);
+        const gfx = scene.add.circle(px, py, 2, 0xFFFACD, 0.4);
+        gfx.setScrollFactor(0.3 + Math.random() * 0.3);
+        particles.push({
+          gfx, type: 'dustmote', x: px, y: py, baseX: px, baseY: py,
+          phase: Math.random() * Math.PI * 2,
+          vx: 0, vy: 0, // velocity for brownian motion
+          brownianStrength: 0.5 + Math.random() * 0.5
+        });
+      }
+      // 5 butterflies: two circles connected, #FFD700/#FF69B4, swooping figure-8
+      for (let i = 0; i < 5; i++) {
+        const px = Phaser.Math.Between(100, levelWidth - 100);
+        const py = Phaser.Math.Between(100, levelHeight - 150);
+        const container = scene.add.container(px, py);
+        const color = i % 2 === 0 ? 0xFFD700 : 0xFF69B4;
+        const wing1 = scene.add.circle(-4, 0, 4, color, 0.9);
+        const wing2 = scene.add.circle(4, 0, 4, color, 0.9);
+        const body = scene.add.ellipse(0, 0, 3, 6, 0x333333, 1);
+        container.add([wing1, wing2, body]);
+        container.setScrollFactor(0.6);
+        particles.push({
+          gfx: container, type: 'butterfly', x: px, y: py, baseX: px, baseY: py,
+          phase: Math.random() * Math.PI * 2,
+          figure8Speed: 0.5 + Math.random() * 0.3,
+          figure8Width: 80 + Math.random() * 40,
+          figure8Height: 40 + Math.random() * 20,
+          wingFlap: 0
+        });
+      }
+      break;
+
+    case 3: // Cave - Water drops + crystal sparkles
+      // 15 drops: circles 2px, #87CEEB, fall straight down 120px/sec
+      for (let i = 0; i < 15; i++) {
+        const px = Phaser.Math.Between(0, levelWidth);
+        const py = Phaser.Math.Between(-100, levelHeight / 2);
+        const gfx = scene.add.circle(px, py, 2, 0x87CEEB, 0.8);
+        gfx.setScrollFactor(0.7);
+        particles.push({
+          gfx, type: 'waterdrop', x: px, y: py, baseX: px, baseY: py,
+          fallSpeed: 120 // px per second
+        });
+      }
+      // 20 sparkles: cross shapes 4px, #E0BBE4, static with alpha pulse
+      for (let i = 0; i < 20; i++) {
+        const px = Phaser.Math.Between(50, levelWidth - 50);
+        const py = Phaser.Math.Between(50, levelHeight - 100);
+        const container = scene.add.container(px, py);
+        const h = scene.add.rectangle(0, 0, 4, 1, 0xE0BBE4, 1);
+        const v = scene.add.rectangle(0, 0, 1, 4, 0xE0BBE4, 1);
+        container.add([h, v]);
+        container.setScrollFactor(0.5 + Math.random() * 0.3);
+        // Alpha pulse tween
+        scene.tweens.add({
+          targets: [h, v],
+          alpha: 0.3,
+          duration: 1000 + Math.random() * 1000,
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.easeInOut',
+          delay: Math.random() * 1000
+        });
+        particles.push({
+          gfx: container, type: 'sparkle', x: px, y: py, baseX: px, baseY: py,
+          isStatic: true
+        });
+      }
+      break;
+
+    case 4: // Sunset - Falling leaves + floating seeds
+      // 20 leaves: rectangles 5x8px, #FFD700/#FF8C00, tumbling fall with rotation
+      for (let i = 0; i < 20; i++) {
+        const px = Phaser.Math.Between(0, levelWidth);
+        const py = Phaser.Math.Between(-100, levelHeight - 100);
+        const color = i % 2 === 0 ? 0xFFD700 : 0xFF8C00;
+        const gfx = scene.add.rectangle(px, py, 5, 8, color, 0.9);
+        gfx.setScrollFactor(0.5 + Math.random() * 0.3);
+        gfx.setAngle(Phaser.Math.Between(0, 360));
+        particles.push({
+          gfx, type: 'leaf', x: px, y: py, baseX: px, baseY: py,
+          phase: Math.random() * Math.PI * 2,
+          fallSpeed: 0.8 + Math.random() * 0.5,
+          rotSpeed: 2 + Math.random() * 3,
+          tumbleAmp: 40 + Math.random() * 30
+        });
+      }
+      // 15 seeds: ovals 2x4px, #F0E68C, slow spiral upward
+      for (let i = 0; i < 15; i++) {
+        const px = Phaser.Math.Between(0, levelWidth);
+        const py = Phaser.Math.Between(levelHeight / 2, levelHeight);
+        const gfx = scene.add.ellipse(px, py, 2, 4, 0xF0E68C, 0.7);
+        gfx.setScrollFactor(0.4 + Math.random() * 0.2);
+        particles.push({
+          gfx, type: 'seed', x: px, y: py, baseX: px, baseY: py,
+          phase: Math.random() * Math.PI * 2,
+          riseSpeed: 0.3 + Math.random() * 0.2,
+          spiralRadius: 15 + Math.random() * 10,
+          spiralSpeed: 1 + Math.random() * 0.5
+        });
+      }
+      break;
+
+    case 5: // Night - Fireflies + purple sparkles
+      // 25 fireflies: circles 2px with 6px glow, #FFFF99, lazy float + alpha pulse
+      for (let i = 0; i < 25; i++) {
+        const px = Phaser.Math.Between(0, levelWidth);
+        const py = Phaser.Math.Between(50, levelHeight - 100);
+        const container = scene.add.container(px, py);
+        const glow = scene.add.circle(0, 0, 6, 0xFFFF99, 0.3);
+        const core = scene.add.circle(0, 0, 2, 0xFFFF99, 0.9);
+        container.add([glow, core]);
+        container.setScrollFactor(0.5 + Math.random() * 0.3);
+        // Alpha pulse for glow
+        scene.tweens.add({
+          targets: glow,
+          alpha: 0.1,
+          duration: 800 + Math.random() * 400,
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.easeInOut',
+          delay: Math.random() * 500
+        });
+        particles.push({
+          gfx: container, type: 'firefly', x: px, y: py, baseX: px, baseY: py,
+          phase: Math.random() * Math.PI * 2,
+          floatSpeed: 0.3 + Math.random() * 0.2,
+          floatRadius: 20 + Math.random() * 15
+        });
+      }
+      // 15 sparkles: circles 3px, #DDA0DD, drift upward slowly
+      for (let i = 0; i < 15; i++) {
+        const px = Phaser.Math.Between(0, levelWidth);
+        const py = Phaser.Math.Between(levelHeight / 2, levelHeight);
+        const gfx = scene.add.circle(px, py, 3, 0xDDA0DD, 0.6);
+        gfx.setScrollFactor(0.4 + Math.random() * 0.2);
+        particles.push({
+          gfx, type: 'purplesparkle', x: px, y: py, baseX: px, baseY: py,
+          phase: Math.random() * Math.PI * 2,
+          riseSpeed: 0.2 + Math.random() * 0.15,
+          driftAmp: 10 + Math.random() * 10
+        });
+      }
+      break;
+
+    case 6: // Festival - Confetti + flower petals
+      // 25 confetti: rectangles 3x5px, rainbow colors, chaotic fall with spin
+      const confettiColors = [0xFF0000, 0xFF7F00, 0xFFFF00, 0x00FF00, 0x0000FF, 0x4B0082, 0x9400D3, 0xFF69B4, 0x00FFFF];
+      for (let i = 0; i < 25; i++) {
+        const px = Phaser.Math.Between(0, levelWidth);
+        const py = Phaser.Math.Between(-200, levelHeight - 100);
+        const color = confettiColors[i % confettiColors.length];
+        const gfx = scene.add.rectangle(px, py, 3, 5, color, 0.9);
+        gfx.setScrollFactor(0.5 + Math.random() * 0.3);
+        gfx.setAngle(Phaser.Math.Between(0, 360));
+        particles.push({
+          gfx, type: 'confetti', x: px, y: py, baseX: px, baseY: py,
+          phase: Math.random() * Math.PI * 2,
+          fallSpeed: 1 + Math.random() * 0.8,
+          spinSpeed: 5 + Math.random() * 10,
+          swayAmp: 50 + Math.random() * 30,
+          swayFreq: 2 + Math.random() * 2
+        });
+      }
+      // 15 petals: rectangles 6x8px, #FF69B4, gentle spiral fall
+      for (let i = 0; i < 15; i++) {
+        const px = Phaser.Math.Between(0, levelWidth);
+        const py = Phaser.Math.Between(-100, levelHeight - 100);
+        const gfx = scene.add.rectangle(px, py, 6, 8, 0xFF69B4, 0.85);
+        gfx.setScrollFactor(0.5 + Math.random() * 0.3);
+        gfx.setAngle(Phaser.Math.Between(0, 360));
+        particles.push({
+          gfx: gfx, type: 'festivalpetal', x: px, y: py, baseX: px, baseY: py,
+          phase: Math.random() * Math.PI * 2,
+          fallSpeed: 0.6 + Math.random() * 0.3,
+          rotSpeed: 1.5 + Math.random() * 1,
+          spiralRadius: 25 + Math.random() * 15,
+          spiralSpeed: 0.8 + Math.random() * 0.4
+        });
+      }
+      break;
+
+    default:
+      // Fallback: basic dust
+      for (let i = 0; i < 25; i++) {
+        const px = Phaser.Math.Between(0, levelWidth);
+        const py = Phaser.Math.Between(100, levelHeight - 100);
+        const gfx = scene.add.circle(px, py, 2, 0xffffff, 0.3);
+        gfx.setScrollFactor(0.5 + Math.random() * 0.3);
+        particles.push({
+          gfx, type: 'dust', x: px, y: py, baseX: px, baseY: py,
+          phase: Math.random() * Math.PI * 2,
+          driftSpeed: 0.1 + Math.random() * 0.2
+        });
+      }
+  }
+
+  return particles;
+}
+
+// Update function for world particles - call in scene update()
+function updateWorldParticles(particles, time, delta, levelWidth, levelHeight) {
+  if (!particles || particles.length === 0) return;
+
+  const dt = delta / 1000; // Convert to seconds
+
+  particles.forEach(p => {
+    if (p.isStatic) return; // Static particles (like cave sparkles) don't move
+
+    switch(p.type) {
+      case 'mist':
+        // Slow horizontal drift with slight vertical sway
+        p.x += p.driftSpeed * dt * 60;
+        p.y = p.baseY + Math.sin(time / 2000 + p.phase) * 10;
+        if (p.x > levelWidth + 50) {
+          p.x = -50;
+          p.baseX = p.x;
+        }
+        p.gfx.setPosition(p.x, p.y);
+        break;
+
+      case 'petal':
+        // Flutter fall with rotation
+        p.y += p.fallSpeed * dt * 60;
+        p.x = p.baseX + Math.sin(time / 500 + p.phase) * p.swayAmp;
+        p.gfx.setAngle(p.gfx.angle + p.rotSpeed * dt * 60);
+        if (p.y > levelHeight + 50) {
+          p.y = -50;
+          p.x = Phaser.Math.Between(0, levelWidth);
+          p.baseX = p.x;
+        }
+        p.gfx.setPosition(p.x, p.y);
+        break;
+
+      case 'dustmote':
+        // Brownian motion
+        p.vx += (Math.random() - 0.5) * p.brownianStrength * dt * 60;
+        p.vy += (Math.random() - 0.5) * p.brownianStrength * dt * 60;
+        p.vx *= 0.98; // Damping
+        p.vy *= 0.98;
+        p.x += p.vx;
+        p.y += p.vy;
+        // Keep within bounds
+        if (p.x < 0 || p.x > levelWidth) p.vx *= -1;
+        if (p.y < 0 || p.y > levelHeight) p.vy *= -1;
+        p.x = Phaser.Math.Clamp(p.x, 0, levelWidth);
+        p.y = Phaser.Math.Clamp(p.y, 50, levelHeight - 50);
+        p.gfx.setPosition(p.x, p.y);
+        break;
+
+      case 'butterfly':
+        // Figure-8 pattern
+        p.phase += p.figure8Speed * dt;
+        p.x = p.baseX + Math.sin(p.phase) * p.figure8Width;
+        p.y = p.baseY + Math.sin(p.phase * 2) * p.figure8Height;
+        // Wing flap animation
+        p.wingFlap += dt * 15;
+        const wingScale = 0.7 + Math.abs(Math.sin(p.wingFlap)) * 0.3;
+        if (p.gfx.list && p.gfx.list[0]) {
+          p.gfx.list[0].setScale(wingScale, 1); // Left wing
+          p.gfx.list[1].setScale(wingScale, 1); // Right wing
+        }
+        p.gfx.setPosition(p.x, p.y);
+        break;
+
+      case 'waterdrop':
+        // Fall straight down at 120px/sec
+        p.y += p.fallSpeed * dt;
+        if (p.y > levelHeight + 20) {
+          p.y = -20;
+          p.x = Phaser.Math.Between(0, levelWidth);
+        }
+        p.gfx.setPosition(p.x, p.y);
+        break;
+
+      case 'leaf':
+        // Tumbling fall with rotation
+        p.y += p.fallSpeed * dt * 60;
+        p.x = p.baseX + Math.sin(time / 400 + p.phase) * p.tumbleAmp;
+        p.gfx.setAngle(p.gfx.angle + p.rotSpeed * dt * 60);
+        if (p.y > levelHeight + 50) {
+          p.y = -50;
+          p.x = Phaser.Math.Between(0, levelWidth);
+          p.baseX = p.x;
+        }
+        p.gfx.setPosition(p.x, p.y);
+        break;
+
+      case 'seed':
+        // Slow spiral upward
+        p.phase += p.spiralSpeed * dt;
+        p.y -= p.riseSpeed * dt * 60;
+        p.x = p.baseX + Math.sin(p.phase) * p.spiralRadius;
+        if (p.y < -30) {
+          p.y = levelHeight + 30;
+          p.x = Phaser.Math.Between(0, levelWidth);
+          p.baseX = p.x;
+        }
+        p.gfx.setPosition(p.x, p.y);
+        break;
+
+      case 'firefly':
+        // Lazy float in random directions
+        p.phase += p.floatSpeed * dt;
+        p.x = p.baseX + Math.sin(p.phase) * p.floatRadius;
+        p.y = p.baseY + Math.cos(p.phase * 0.7) * p.floatRadius * 0.8;
+        // Slowly drift baseX/baseY
+        p.baseX += (Math.random() - 0.5) * 0.5;
+        p.baseY += (Math.random() - 0.5) * 0.3;
+        // Keep in bounds
+        p.baseX = Phaser.Math.Clamp(p.baseX, 50, levelWidth - 50);
+        p.baseY = Phaser.Math.Clamp(p.baseY, 50, levelHeight - 100);
+        p.gfx.setPosition(p.x, p.y);
+        break;
+
+      case 'purplesparkle':
+        // Drift upward slowly with horizontal sway
+        p.y -= p.riseSpeed * dt * 60;
+        p.x = p.baseX + Math.sin(time / 1000 + p.phase) * p.driftAmp;
+        if (p.y < -30) {
+          p.y = levelHeight + 30;
+          p.x = Phaser.Math.Between(0, levelWidth);
+          p.baseX = p.x;
+        }
+        p.gfx.setPosition(p.x, p.y);
+        break;
+
+      case 'confetti':
+        // Chaotic fall with spin
+        p.y += p.fallSpeed * dt * 60;
+        p.x = p.baseX + Math.sin(time / (500 / p.swayFreq) + p.phase) * p.swayAmp;
+        p.gfx.setAngle(p.gfx.angle + p.spinSpeed * dt * 60);
+        if (p.y > levelHeight + 50) {
+          p.y = -100;
+          p.x = Phaser.Math.Between(0, levelWidth);
+          p.baseX = p.x;
+        }
+        p.gfx.setPosition(p.x, p.y);
+        break;
+
+      case 'festivalpetal':
+        // Gentle spiral fall
+        p.phase += p.spiralSpeed * dt;
+        p.y += p.fallSpeed * dt * 60;
+        p.x = p.baseX + Math.sin(p.phase) * p.spiralRadius;
+        p.gfx.setAngle(p.gfx.angle + p.rotSpeed * dt * 60);
+        if (p.y > levelHeight + 50) {
+          p.y = -50;
+          p.x = Phaser.Math.Between(0, levelWidth);
+          p.baseX = p.x;
+        }
+        p.gfx.setPosition(p.x, p.y);
+        break;
+
+      case 'dust':
+      default:
+        // Basic floating dust
+        p.y += Math.sin(time / 1000 + p.phase) * 0.3;
+        p.x += p.driftSpeed * dt * 60;
+        if (p.x > levelWidth + 50) {
+          p.x = -50;
+        }
+        p.gfx.setPosition(p.x, p.y);
+        break;
+    }
+  });
+}
+
+// ============== PIECE 6: PLATFORM VISUAL ENHANCEMENT ==============
+// Makes platforms beautiful with depth effects and world-specific decorations
+function enhancePlatform(scene, platformData, theme, physicsPlat) {
+  const p = platformData;
+  const worldNum = theme.worldNum || 1;
+  const isGround = p.h > 30;
+  const isCave = worldNum === 3;
+
+  // ========== DEPTH EFFECTS (all platforms) ==========
+
+  // Top highlight: 2px line, white 30% alpha, along top edge
+  scene.add.rectangle(p.x + p.w/2, p.y + 1, p.w - 2, 2, 0xffffff, 0.3);
+
+  // Bottom shadow: 3px gradient effect, black 40%->0% alpha, below platform
+  scene.add.rectangle(p.x + p.w/2, p.y + p.h + 1, p.w, 1, 0x000000, 0.4);
+  scene.add.rectangle(p.x + p.w/2, p.y + p.h + 2, p.w, 1, 0x000000, 0.25);
+  scene.add.rectangle(p.x + p.w/2, p.y + p.h + 3, p.w, 1, 0x000000, 0.1);
+
+  // Side edges: 1px darker lines for thickness
+  scene.add.rectangle(p.x + 1, p.y + p.h/2, 1, p.h, 0x000000, 0.25);
+  scene.add.rectangle(p.x + p.w - 1, p.y + p.h/2, 1, p.h, 0x000000, 0.25);
+
+  // ========== WORLD-SPECIFIC DECORATIONS ==========
+
+  if (isCave) {
+    // Cave platforms: Crystal accents + mossy edges
+    // Crystal accents: 4-point stars 4-6px, purple/lavender, at corners
+    const crystalColors = [0xE0BBE4, 0xD8BFD8, 0xDDA0DD];
+    if (p.w > 40) {
+      // Left corner crystal
+      createCrystalStar(scene, p.x + 8, p.y - 2, Phaser.Math.Between(4, 6), crystalColors[0]);
+      // Right corner crystal
+      createCrystalStar(scene, p.x + p.w - 8, p.y - 2, Phaser.Math.Between(4, 6), crystalColors[1]);
+    }
+    // Mossy edges: irregular circles 3-5px, sea green, at platform ends
+    for (let i = 0; i < 3; i++) {
+      const mossSize = Phaser.Math.Between(3, 5);
+      scene.add.circle(p.x + 5 + i * 4, p.y + p.h - 3, mossSize, 0x20B2AA, 0.6);
+      scene.add.circle(p.x + p.w - 5 - i * 4, p.y + p.h - 3, mossSize, 0x20B2AA, 0.5);
+    }
+  } else if (isGround) {
+    // Ground platforms: Deep grass + small rocks
+    // Deep grass: dense vertical lines 1px wide, 5-7px tall, every 3-4px
+    const grassColors = [0x228B22, 0x2E8B57, 0x3CB371, 0x228B22];
+    for (let gx = p.x + 3; gx < p.x + p.w - 3; gx += Phaser.Math.Between(3, 4)) {
+      const grassHeight = Phaser.Math.Between(5, 7);
+      const grassColor = grassColors[Math.floor(Math.random() * grassColors.length)];
+      scene.add.rectangle(gx, p.y - grassHeight/2, 1, grassHeight, grassColor, 0.8);
+    }
+    // Small rocks: circles 2-4px, gray variants, scattered 4-6 per 100px
+    const rocksPerSection = Math.floor(p.w / 100) * Phaser.Math.Between(4, 6);
+    for (let i = 0; i < rocksPerSection; i++) {
+      const rockX = p.x + Phaser.Math.Between(10, p.w - 10);
+      const rockY = p.y + Phaser.Math.Between(5, p.h - 5);
+      const rockSize = Phaser.Math.Between(2, 4);
+      const grayShade = Phaser.Math.Between(0x60, 0x90);
+      const rockColor = (grayShade << 16) | (grayShade << 8) | grayShade;
+      scene.add.circle(rockX, rockY, rockSize, rockColor, 0.5);
+    }
+  } else {
+    // Floating garden platforms (chinampas): Flower borders + grass tufts
+    // Flower borders: 3-4px circles, pink/yellow/magenta, every 30-40px along top
+    const flowerColors = [0xFF69B4, 0xFFD700, 0xFF00FF, 0xFFA500, 0xFF6347];
+    for (let fx = p.x + 15; fx < p.x + p.w - 15; fx += Phaser.Math.Between(30, 40)) {
+      const flowerSize = Phaser.Math.Between(3, 4);
+      const flowerColor = flowerColors[Math.floor(Math.random() * flowerColors.length)];
+      scene.add.circle(fx, p.y - 3, flowerSize, flowerColor, 0.9);
+      // Add tiny center
+      scene.add.circle(fx, p.y - 3, 1, 0xFFFF00, 1);
+    }
+    // Grass tufts: vertical rectangles 2x6px, groups of 3-5, green variants
+    const grassTuftColors = [0x228B22, 0x32CD32, 0x3CB371];
+    for (let tx = p.x + 20; tx < p.x + p.w - 20; tx += Phaser.Math.Between(35, 50)) {
+      const tuftCount = Phaser.Math.Between(3, 5);
+      for (let t = 0; t < tuftCount; t++) {
+        const tuftColor = grassTuftColors[Math.floor(Math.random() * grassTuftColors.length)];
+        const tuftHeight = Phaser.Math.Between(5, 7);
+        const tuft = scene.add.rectangle(tx + t * 3 - (tuftCount * 1.5), p.y - tuftHeight/2, 2, tuftHeight, tuftColor, 0.9);
+        tuft.setAngle(Phaser.Math.Between(-10, 10));
+      }
+    }
+  }
+
+  // ========== BREATHING ANIMATION ==========
+  // Scale pulse: 1.0 to 1.02 over 3 seconds, Sine.easeInOut
+  // Random phase offset per platform
+  // Visual only - hitbox unchanged
+  if (physicsPlat && !isGround) {
+    const phaseOffset = Math.random() * 3000; // Random offset 0-3 seconds
+    scene.tweens.add({
+      targets: physicsPlat,
+      scaleX: 1.02,
+      scaleY: 1.02,
+      duration: 3000,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut',
+      delay: phaseOffset
+    });
+  }
+}
+
+// Helper function to create a 4-point crystal star
+function createCrystalStar(scene, x, y, size, color) {
+  const container = scene.add.container(x, y);
+  // Horizontal line
+  const h = scene.add.rectangle(0, 0, size, 2, color, 0.9);
+  // Vertical line
+  const v = scene.add.rectangle(0, 0, 2, size, color, 0.9);
+  container.add([h, v]);
+  // Add subtle glow effect
+  scene.tweens.add({
+    targets: [h, v],
+    alpha: 0.5,
+    duration: 1500 + Math.random() * 500,
+    yoyo: true,
+    repeat: -1,
+    ease: 'Sine.easeInOut'
+  });
+  return container;
+}
+
+
+// ============ SIX-LAYER PARALLAX BACKGROUND SYSTEM ============
+// Creates atmospheric depth with procedurally drawn layers
+function buildParallaxLayers(scene, theme, levelWidth, levelHeight) {
+  const layers = [];
+
+  // Helper to darken/desaturate colors for distant layers
+  function adjustColorForDepth(color, depthFactor) {
+    const r = (color >> 16) & 0xff;
+    const g = (color >> 8) & 0xff;
+    const b = color & 0xff;
+    // Blend toward a muted blue-gray for distance
+    const fogR = 0x88, fogG = 0x99, fogB = 0xaa;
+    const newR = Math.floor(r + (fogR - r) * depthFactor);
+    const newG = Math.floor(g + (fogG - g) * depthFactor);
+    const newB = Math.floor(b + (fogB - b) * depthFactor);
+    return (newR << 16) | (newG << 8) | newB;
+  }
+
+  // Get colors from theme with fallbacks
+  const mountainColor = theme.mountain || 0x446655;
+  const hillColor = theme.hill || 0x558866;
+  const foregroundColor = theme.foreground || 0x8B4513;
+  const midgroundColor = theme.midground || 0xD2691E;
+  const vegetationColors = theme.vegetation || [0x9ACD32, 0x228B22, 0x6B8E23];
+  const fogColor = theme.fog || 0xFFF5E6;
+
+  // ============ LAYER 1: FAR MOUNTAINS (0.05x scroll, alpha 0.3) ============
+  // Distant silhouettes, most desaturated
+  const farMountains = scene.add.graphics();
+  const farMountainColor = adjustColorForDepth(mountainColor, 0.6);
+  farMountains.fillStyle(farMountainColor, 0.3);
+
+  // Draw jagged mountain silhouettes across the level width
+  for (let i = 0; i < levelWidth / 200 + 4; i++) {
+    const mx = i * 200 - 150 + Phaser.Math.Between(-30, 30);
+    const mh = 150 + Phaser.Math.Between(50, 120);
+    const baseY = levelHeight - 100;
+
+    // Draw mountain as filled polygon (triangle with slight variation)
+    farMountains.beginPath();
+    farMountains.moveTo(mx, baseY);
+    farMountains.lineTo(mx + 80 + Phaser.Math.Between(-20, 20), baseY - mh);
+    farMountains.lineTo(mx + 100, baseY - mh * 0.7); // Secondary peak
+    farMountains.lineTo(mx + 130, baseY - mh * 0.85);
+    farMountains.lineTo(mx + 200, baseY);
+    farMountains.closePath();
+    farMountains.fillPath();
+  }
+  farMountains.setScrollFactor(0.05);
+  farMountains.setDepth(-100);
+  layers.push(farMountains);
+
+  // ============ LAYER 2: MID MOUNTAINS (0.15x scroll, alpha 0.5) ============
+  // Closer peaks with more definition
+  const midMountains = scene.add.graphics();
+  const midMountainColor = adjustColorForDepth(mountainColor, 0.35);
+  midMountains.fillStyle(midMountainColor, 0.5);
+
+  for (let i = 0; i < levelWidth / 180 + 3; i++) {
+    const mx = i * 180 - 100 + Phaser.Math.Between(-25, 25);
+    const mh = 100 + Phaser.Math.Between(40, 100);
+    const baseY = levelHeight - 90;
+
+    // Draw slightly different mountain shapes
+    midMountains.beginPath();
+    midMountains.moveTo(mx, baseY);
+    midMountains.lineTo(mx + 60, baseY - mh * 0.6);
+    midMountains.lineTo(mx + 90, baseY - mh);
+    midMountains.lineTo(mx + 120, baseY - mh * 0.5);
+    midMountains.lineTo(mx + 180, baseY);
+    midMountains.closePath();
+    midMountains.fillPath();
+  }
+  midMountains.setScrollFactor(0.15);
+  midMountains.setDepth(-95);
+  layers.push(midMountains);
+
+  // ============ LAYER 3: ROLLING HILLS (0.25x scroll, alpha 0.65) ============
+  // Soft curved hills using bezier-like shapes
+  const rollingHills = scene.add.graphics();
+  const hillLayerColor = adjustColorForDepth(hillColor, 0.2);
+  rollingHills.fillStyle(hillLayerColor, 0.65);
+
+  // Draw overlapping elliptical hills
+  for (let i = 0; i < levelWidth / 140 + 3; i++) {
+    const hx = i * 140 - 50 + Phaser.Math.Between(-20, 20);
+    const hw = 160 + Phaser.Math.Between(-20, 40);
+    const hh = 70 + Phaser.Math.Between(-10, 30);
+    const baseY = levelHeight - 60;
+
+    rollingHills.fillEllipse(hx + hw / 2, baseY, hw, hh);
+  }
+  rollingHills.setScrollFactor(0.25);
+  rollingHills.setDepth(-90);
+  layers.push(rollingHills);
+
+  // ============ LAYER 4: VEGETATION/TREES (0.4x scroll, alpha 0.8) ============
+  // Tree and plant silhouettes
+  const vegetation = scene.add.graphics();
+
+  for (let i = 0; i < levelWidth / 60 + 5; i++) {
+    const tx = i * 60 - 30 + Phaser.Math.Between(-15, 15);
+    const treeType = Phaser.Math.Between(0, 2);
+    const treeColor = vegetationColors[treeType];
+    const baseY = levelHeight - 50;
+
+    vegetation.fillStyle(treeColor, 0.8);
+
+    if (treeType === 0) {
+      // Tall tree (triangle/pine shape)
+      const th = 50 + Phaser.Math.Between(10, 40);
+      vegetation.beginPath();
+      vegetation.moveTo(tx - 20, baseY);
+      vegetation.lineTo(tx, baseY - th);
+      vegetation.lineTo(tx + 20, baseY);
+      vegetation.closePath();
+      vegetation.fillPath();
+      // Trunk
+      vegetation.fillStyle(midgroundColor, 0.8);
+      vegetation.fillRect(tx - 4, baseY, 8, 15);
+    } else if (treeType === 1) {
+      // Round tree (circle canopy)
+      const th = 35 + Phaser.Math.Between(5, 25);
+      vegetation.fillCircle(tx, baseY - th, 25 + Phaser.Math.Between(-5, 10));
+      // Trunk
+      vegetation.fillStyle(midgroundColor, 0.8);
+      vegetation.fillRect(tx - 5, baseY - 15, 10, 20);
+    } else {
+      // Bush/shrub (multiple small circles)
+      const bushSize = 20 + Phaser.Math.Between(-5, 10);
+      vegetation.fillCircle(tx - 10, baseY - bushSize * 0.5, bushSize * 0.6);
+      vegetation.fillCircle(tx, baseY - bushSize * 0.7, bushSize * 0.7);
+      vegetation.fillCircle(tx + 12, baseY - bushSize * 0.5, bushSize * 0.5);
+    }
+  }
+  vegetation.setScrollFactor(0.4);
+  vegetation.setDepth(-85);
+  layers.push(vegetation);
+
+  // ============ LAYER 5: MIST BANDS (0.6x scroll, alpha 0.4) ============
+  // Horizontal fog bands for atmosphere
+  const mistBands = scene.add.graphics();
+  mistBands.fillStyle(fogColor, 0.4);
+
+  // Draw several horizontal fog bands at different heights
+  const mistHeights = [
+    levelHeight - 120,
+    levelHeight - 180,
+    levelHeight - 250
+  ];
+
+  for (const mistY of mistHeights) {
+    // Draw fog as overlapping ellipses for organic look
+    for (let mx = -100; mx < levelWidth + 200; mx += 80 + Phaser.Math.Between(-20, 20)) {
+      const mw = 150 + Phaser.Math.Between(-30, 50);
+      const mh = 25 + Phaser.Math.Between(-5, 15);
+      const yOffset = Phaser.Math.Between(-10, 10);
+      mistBands.fillEllipse(mx, mistY + yOffset, mw, mh);
+    }
+  }
+  mistBands.setScrollFactor(0.6);
+  mistBands.setDepth(-80);
+  layers.push(mistBands);
+
+  // ============ LAYER 6: FOREGROUND GRASS (0.8x scroll, alpha 1.0) ============
+  // Grass tufts at the bottom of the screen
+  const foregroundGrass = scene.add.graphics();
+  foregroundGrass.fillStyle(foregroundColor, 1.0);
+
+  const grassBaseY = levelHeight - 20;
+
+  for (let gx = -20; gx < levelWidth + 50; gx += 12 + Phaser.Math.Between(-3, 3)) {
+    const grassHeight = 15 + Phaser.Math.Between(5, 20);
+    const grassWidth = 4 + Phaser.Math.Between(-1, 2);
+    const lean = Phaser.Math.Between(-3, 3);
+
+    // Draw grass blade as a thin triangle
+    foregroundGrass.beginPath();
+    foregroundGrass.moveTo(gx - grassWidth, grassBaseY);
+    foregroundGrass.lineTo(gx + lean, grassBaseY - grassHeight);
+    foregroundGrass.lineTo(gx + grassWidth, grassBaseY);
+    foregroundGrass.closePath();
+    foregroundGrass.fillPath();
+
+    // Add some variation with secondary smaller blades
+    if (Phaser.Math.Between(0, 2) === 0) {
+      const smallHeight = grassHeight * 0.6;
+      foregroundGrass.beginPath();
+      foregroundGrass.moveTo(gx + 5, grassBaseY);
+      foregroundGrass.lineTo(gx + 5 + lean * 0.5, grassBaseY - smallHeight);
+      foregroundGrass.lineTo(gx + 8, grassBaseY);
+      foregroundGrass.closePath();
+      foregroundGrass.fillPath();
+    }
+  }
+  foregroundGrass.setScrollFactor(0.8);
+  foregroundGrass.setDepth(-75);
+  layers.push(foregroundGrass);
+
+  return layers;
 }
 
 // Mexican trajinera names - fun and colorful!
@@ -466,6 +1244,272 @@ function calculateGapDifficulty(gapX, gapY) {
   };
 }
 
+// ============== PIECE 3: DYNAMIC DENSITY RULES ==============
+
+/**
+ * Calculate density multipliers based on level number.
+ * Controls enemy, platform, and coin density to create difficulty progression.
+ * @param {number} levelNum - Current level number (1-10)
+ * @returns {Object} - { enemies: number, platforms: number, coins: number }
+ */
+function calculateDensityMultipliers(levelNum) {
+  if (levelNum <= 2) {
+    // Early levels: Fewer enemies, more platforms for safety, normal coins
+    return { enemies: 0.7, platforms: 1.2, coins: 1.0 };
+  } else if (levelNum <= 5) {
+    // Mid-early levels: Balanced enemies/platforms, more coins as reward
+    return { enemies: 1.0, platforms: 1.0, coins: 1.2 };
+  } else if (levelNum <= 8) {
+    // Mid-late levels: More enemies, fewer platforms for challenge, more coins
+    return { enemies: 1.2, platforms: 0.9, coins: 1.3 };
+  } else {
+    // Final levels (9-10): Maximum enemy density, minimal platforms, maximum coins
+    return { enemies: 1.3, platforms: 0.85, coins: 1.5 };
+  }
+}
+
+/**
+ * Generate breathing room zones - safe areas with NO enemies.
+ * Spacing increases with level difficulty to reduce safe zones in harder levels.
+ * @param {number} levelWidth - Total width of the level
+ * @param {number} levelNum - Current level number (1-10)
+ * @returns {Array} - Array of { startX, endX, centerX } for each safe zone
+ */
+function getBreathingRoomZones(levelWidth, levelNum) {
+  let spacing;
+  if (levelNum <= 2) {
+    spacing = 400;  // Breathing room every 400px - lots of safe zones
+  } else if (levelNum <= 5) {
+    spacing = 600;  // Every 600px
+  } else if (levelNum <= 8) {
+    spacing = 800;  // Every 800px
+  } else {
+    spacing = 1000; // Every 1000px - fewest safe zones
+  }
+
+  const breathingWidth = 200; // Each breathing room is 200px wide
+  const zones = [];
+
+  // Start after intro section (300px) and end before outro section
+  const startX = 300 + spacing;
+  const endX = levelWidth - 300;
+
+  for (let centerX = startX; centerX < endX; centerX += spacing) {
+    zones.push({
+      startX: centerX - breathingWidth / 2,
+      endX: centerX + breathingWidth / 2,
+      centerX: centerX
+    });
+  }
+
+  return zones;
+}
+
+/**
+ * Check if a position is inside any breathing room zone.
+ * Used to filter out enemies that would spawn in safe zones.
+ * @param {number} x - X position to check
+ * @param {Array} zones - Array of breathing room zones
+ * @returns {boolean} - True if position is inside a breathing room
+ */
+function isInBreathingRoom(x, zones) {
+  return zones.some(zone => x >= zone.startX && x <= zone.endX);
+}
+
+// ============== PIECE 4: HANDCRAFTED INTRO/OUTRO SECTIONS ==============
+
+/**
+ * Create handcrafted intro section for the first 300px of a level.
+ * Teaches direction and feels safe for new players.
+ * @param {number} levelNum - Current level number (1-10)
+ * @param {Object} theme - Level theme object
+ * @param {number} waterY - Y position of water (for positioning)
+ * @returns {Object} - { platforms: [], enemies: [], coins: [] }
+ */
+function createIntroSection(levelNum, theme, waterY) {
+  const platforms = [];
+  const enemies = [];
+  const coins = [];
+
+  const baseY = waterY - 100;
+
+  if (levelNum <= 2) {
+    // Level 1-2: Wide 200px platform, 1 easy enemy, 5 coins in arc
+    platforms.push({
+      x: 0,
+      y: baseY,
+      w: 200,
+      h: 150,
+      isChihampa: true
+    });
+
+    // Single enemy at edge of intro (not too early)
+    enemies.push({
+      x: 250,
+      y: baseY - 50,
+      type: 'flying',
+      amplitude: 30,
+      speed: 30,
+      dir: 1
+    });
+
+    // 5 coins in arc pattern - teaches upward movement
+    for (let i = 0; i < 5; i++) {
+      const arcX = 50 + i * 40;
+      const arcY = baseY - 40 - Math.sin((i / 4) * Math.PI) * 60;
+      coins.push({ x: arcX, y: arcY });
+    }
+
+  } else if (levelNum <= 5) {
+    // Level 3-5: 180px platform, 2 enemies, 8 coins in S-curve
+    platforms.push({
+      x: 0,
+      y: baseY,
+      w: 180,
+      h: 150,
+      isChihampa: true
+    });
+
+    // 2 enemies - one low, one higher
+    enemies.push({
+      x: 220,
+      y: baseY - 30,
+      type: 'flying',
+      amplitude: 25,
+      speed: 35,
+      dir: 1
+    });
+    enemies.push({
+      x: 280,
+      y: baseY - 120,
+      type: 'flying',
+      amplitude: 30,
+      speed: 40,
+      dir: -1
+    });
+
+    // 8 coins in S-curve pattern
+    for (let i = 0; i < 8; i++) {
+      const sX = 30 + i * 35;
+      const sY = baseY - 50 - Math.sin((i / 7) * Math.PI * 2) * 40;
+      coins.push({ x: sX, y: sY });
+    }
+
+  } else {
+    // Level 6-10: 150px platform, 2 enemies, 10 coins in spiral
+    platforms.push({
+      x: 0,
+      y: baseY,
+      w: 150,
+      h: 150,
+      isChihampa: true
+    });
+
+    // 2 enemies positioned strategically
+    enemies.push({
+      x: 200,
+      y: baseY - 40,
+      type: 'flying',
+      amplitude: 35,
+      speed: 45,
+      dir: 1
+    });
+    enemies.push({
+      x: 260,
+      y: baseY - 100,
+      type: 'flying',
+      amplitude: 30,
+      speed: 50,
+      dir: -1
+    });
+
+    // 10 coins in expanding spiral pattern
+    for (let i = 0; i < 10; i++) {
+      const angle = (i / 10) * Math.PI * 1.5;
+      const radius = 30 + i * 8;
+      const spiralX = 80 + Math.cos(angle) * radius;
+      const spiralY = baseY - 60 - Math.sin(angle) * radius * 0.6;
+      coins.push({ x: spiralX, y: spiralY });
+    }
+  }
+
+  return { platforms, enemies, coins };
+}
+
+/**
+ * Create handcrafted outro section for the last 300px of a level.
+ * Features wide platform before baby, guard enemies, and arrow-shaped coin pattern.
+ * @param {number} levelNum - Current level number (1-10)
+ * @param {number} levelWidth - Total level width
+ * @param {Object} theme - Level theme object
+ * @param {number} waterY - Y position of water (for positioning)
+ * @returns {Object} - { platforms: [], enemies: [], coins: [] }
+ */
+function createOutroSection(levelNum, theme, levelWidth, waterY) {
+  const platforms = [];
+  const enemies = [];
+  const coins = [];
+
+  const baseY = waterY - 100;
+  const outroStart = levelWidth - 300;
+
+  // Wide 250px platform before baby - safe landing zone
+  platforms.push({
+    x: levelWidth - 250,
+    y: baseY,
+    w: 250,
+    h: 150,
+    isChihampa: true
+  });
+
+  // Guard enemies - symmetrically placed, 2-3 based on difficulty
+  const numGuards = levelNum <= 5 ? 2 : 3;
+  const guardSpacing = 200 / (numGuards + 1);
+
+  for (let i = 0; i < numGuards; i++) {
+    const guardX = outroStart + 50 + (i + 1) * guardSpacing;
+    const guardY = baseY - 80 - (i % 2) * 60; // Alternating heights
+
+    enemies.push({
+      x: guardX,
+      y: guardY,
+      type: 'flying',
+      amplitude: 25 + levelNum * 2,
+      speed: 35 + levelNum * 3,
+      dir: i % 2 === 0 ? 1 : -1
+    });
+  }
+
+  // Coins arranged in arrow pointing to baby (> shape)
+  // Arrow points right toward the baby at levelWidth
+  const arrowTipX = levelWidth - 80;
+  const arrowBaseX = levelWidth - 180;
+  const arrowCenterY = baseY - 60;
+
+  // Arrow tip (center coin)
+  coins.push({ x: arrowTipX, y: arrowCenterY });
+
+  // Upper diagonal (2 coins)
+  coins.push({ x: arrowBaseX + 30, y: arrowCenterY - 25 });
+  coins.push({ x: arrowBaseX, y: arrowCenterY - 50 });
+
+  // Lower diagonal (2 coins)
+  coins.push({ x: arrowBaseX + 30, y: arrowCenterY + 25 });
+  coins.push({ x: arrowBaseX, y: arrowCenterY + 50 });
+
+  return { platforms, enemies, coins };
+}
+
+/**
+ * Filter out enemies that spawn inside breathing room zones.
+ * @param {Array} enemies - Array of enemy objects with x positions
+ * @param {Array} breathingZones - Array of breathing room zones
+ * @returns {Array} - Filtered array of enemies outside breathing rooms
+ */
+function filterEnemiesFromBreathingRooms(enemies, breathingZones) {
+  return enemies.filter(enemy => !isInBreathingRoom(enemy.x, breathingZones));
+}
+
 // Generate a random level based on level number
 function generateLevel(levelNum) {
   const levelDifficulty = Math.min(levelNum / 10, 1); // 0.1 to 1.0
@@ -477,56 +1521,51 @@ function generateLevel(levelNum) {
   // Use consistent world theme
   const theme = getThemeForLevel(levelNum);
 
-  // ============ ONLY START AND END PLATFORMS - EVERYTHING ELSE IS TRAJINERAS! ============
-  const platforms = [];
+  // ============ GET DENSITY MULTIPLIERS AND BREATHING ROOMS ============
+  const density = calculateDensityMultipliers(levelNum);
+  const breathingZones = getBreathingRoomZones(width, levelNum);
+
+  // ============ HANDCRAFTED INTRO SECTION (first 300px) ============
+  const intro = createIntroSection(levelNum, theme, waterY);
+
+  // ============ HANDCRAFTED OUTRO SECTION (last 300px) ============
+  const outro = createOutroSection(levelNum, theme, width, waterY);
+
+  // Combine intro and outro platforms
+  const platforms = [...intro.platforms, ...outro.platforms];
   const trajineras = [];
-  const coins = [];
+  const coins = [...intro.coins, ...outro.coins];
   const stars = [];
   const enemies = [];
   const powerups = [];
 
-  // Starting chinampa - safe ground to begin
-  platforms.push({
-    x: 0,
-    y: waterY - 100,
-    w: 200,
-    h: 150,
-    isChihampa: true
-  });
-
-  // Final chinampa with baby - clear goal!
-  platforms.push({
-    x: width - 250,
-    y: waterY - 100,
-    w: 250,
-    h: 150,
-    isChihampa: true
-  });
-
-  // ============ TRAJINERAS EVERYWHERE! Multiple lanes at different heights ============
+  // ============ TRAJINERAS IN MIDDLE SECTION (300px to width-300px) ============
   // This creates a lively, dynamic level where EVERYTHING moves!
 
   const speedMult = 1 + levelNum * 0.08;  // Slightly faster each level
+  const middleStart = 300;
+  const middleEnd = width - 300;
+  const middleWidth = middleEnd - middleStart;
 
   // Define 5-6 lanes of trajineras at different heights
+  // Apply platform density multiplier to boat counts
   const lanes = [
-    { y: waterY - 80,  dir: 1,  baseSpeed: 30, boats: 5 + levelNum },   // Lane 1: Low, → slow
-    { y: waterY - 150, dir: -1, baseSpeed: 40, boats: 4 + levelNum },   // Lane 2: ←
-    { y: waterY - 220, dir: 1,  baseSpeed: 50, boats: 4 + levelNum },   // Lane 3: →
-    { y: waterY - 290, dir: -1, baseSpeed: 45, boats: 3 + levelNum },   // Lane 4: ←
-    { y: waterY - 360, dir: 1,  baseSpeed: 55, boats: 3 + levelNum },   // Lane 5: High →
-    { y: waterY - 420, dir: -1, baseSpeed: 35, boats: 2 + Math.floor(levelNum/2) },  // Lane 6: Very high ←
+    { y: waterY - 80,  dir: 1,  baseSpeed: 30, boats: Math.floor((5 + levelNum) * density.platforms) },
+    { y: waterY - 150, dir: -1, baseSpeed: 40, boats: Math.floor((4 + levelNum) * density.platforms) },
+    { y: waterY - 220, dir: 1,  baseSpeed: 50, boats: Math.floor((4 + levelNum) * density.platforms) },
+    { y: waterY - 290, dir: -1, baseSpeed: 45, boats: Math.floor((3 + levelNum) * density.platforms) },
+    { y: waterY - 360, dir: 1,  baseSpeed: 55, boats: Math.floor((3 + levelNum) * density.platforms) },
+    { y: waterY - 420, dir: -1, baseSpeed: 35, boats: Math.floor((2 + Math.floor(levelNum/2)) * density.platforms) },
   ];
 
   let nameIdx = 0;
   lanes.forEach((lane, laneIdx) => {
-    const laneWidth = width - 400;  // Leave space for start/end
-    const spacing = laneWidth / lane.boats;
+    const spacing = middleWidth / Math.max(1, lane.boats);
 
     for (let i = 0; i < lane.boats; i++) {
       // Stagger boats so they don't all start aligned
       const startOffset = (i * spacing) + (laneIdx % 2 === 0 ? 0 : spacing / 2);
-      const xPos = 250 + startOffset;
+      const xPos = middleStart + startOffset;
 
       // Vary boat sizes - bigger boats are easier to land on
       const boatW = 100 + Math.random() * 60;
@@ -547,33 +1586,25 @@ function generateLevel(levelNum) {
     }
   });
 
-  // ============ COINS - scattered across the lanes ============
-  // Coins on starting platform
-  coins.push({ x: 60, y: waterY - 140 });
-  coins.push({ x: 120, y: waterY - 140 });
-
-  // Coins floating in the air between boats (risky!)
-  for (let i = 0; i < 15 + levelNum * 3; i++) {
-    const coinX = 300 + Math.random() * (width - 600);
+  // ============ COINS IN MIDDLE SECTION - Apply density multiplier ============
+  const baseCoinCount = Math.floor((15 + levelNum * 3) * density.coins);
+  for (let i = 0; i < baseCoinCount; i++) {
+    const coinX = middleStart + Math.random() * middleWidth;
     const coinY = waterY - 100 - Math.random() * 350;
     coins.push({ x: coinX, y: coinY });
   }
 
-  // Coins on final platform
-  coins.push({ x: width - 200, y: waterY - 140 });
-  coins.push({ x: width - 140, y: waterY - 140 });
-  coins.push({ x: width - 80, y: waterY - 140 });
+  // ============ STARS - 3 per level at different heights (in middle section) ============
+  stars.push({ x: middleStart + middleWidth * 0.2, y: waterY - 180 });   // Low star
+  stars.push({ x: middleStart + middleWidth * 0.5, y: waterY - 300 });   // Mid star
+  stars.push({ x: middleStart + middleWidth * 0.8, y: waterY - 400 });   // High star (risky!)
 
-  // ============ STARS - 3 per level at different heights ============
-  stars.push({ x: width * 0.25, y: waterY - 180 });   // Low star
-  stars.push({ x: width * 0.5, y: waterY - 300 });    // Mid star
-  stars.push({ x: width * 0.75, y: waterY - 400 });   // High star (risky!)
-
-  // ============ FLYING ENEMIES - patrol between boats ============
-  const numFlying = Math.floor((2 + levelDifficulty * 3) * settings.enemyMult);
-  for (let i = 0; i < numFlying; i++) {
-    enemies.push({
-      x: 400 + (i * (width - 600) / numFlying),
+  // ============ FLYING ENEMIES IN MIDDLE SECTION - Apply density multiplier ============
+  const baseEnemyCount = Math.floor((2 + levelDifficulty * 3) * settings.enemyMult * density.enemies);
+  const middleEnemies = [];
+  for (let i = 0; i < baseEnemyCount; i++) {
+    middleEnemies.push({
+      x: middleStart + 100 + (i * (middleWidth - 200) / Math.max(1, baseEnemyCount)),
       y: waterY - 200 - Math.random() * 200,
       type: 'flying',
       amplitude: 40 + Math.random() * 40,
@@ -582,14 +1613,18 @@ function generateLevel(levelNum) {
     });
   }
 
+  // Filter enemies from breathing room zones and add intro/outro enemies
+  const filteredMiddleEnemies = filterEnemiesFromBreathingRooms(middleEnemies, breathingZones);
+  enemies.push(...intro.enemies, ...filteredMiddleEnemies, ...outro.enemies);
+
   // ============ POWERUPS - help the player! ============
   const numPowerups = Math.floor((3 + levelDifficulty * 2) * settings.powerupMult);
   // One on start
   powerups.push({ x: 150, y: waterY - 140 });
-  // Scattered through level
+  // Scattered through middle section
   for (let i = 1; i < numPowerups; i++) {
     powerups.push({
-      x: 300 + i * ((width - 500) / numPowerups),
+      x: middleStart + i * (middleWidth / numPowerups),
       y: waterY - 150 - Math.random() * 250
     });
   }
@@ -608,7 +1643,8 @@ function generateLevel(levelNum) {
     enemies,
     powerups,
     theme,
-    waterY  // Water level for death detection
+    waterY,  // Water level for death detection
+    breathingZones  // For debugging/visualization if needed
   };
 }
 
@@ -637,7 +1673,7 @@ function generateBossArena(levelNum) {
       { x: 160, y: groundY - 190 },
       { x: width - 160, y: groundY - 190 }
     ],
-    theme: THEMES[3], // Night theme for boss
+    theme: getThemeForLevel(levelNum), // Use proper world theme for boss
     isBossLevel: true
   };
 }
@@ -758,6 +1794,14 @@ function generateUpscrollerLevel(levelNum) {
   // Use consistent world theme
   const theme = { ...getThemeForLevel(levelNum), isUpscroller: true };
 
+  // ============ GET DENSITY MULTIPLIERS ============
+  // For vertical levels, we use density for platform/enemy counts
+  const density = calculateDensityMultipliers(levelNum);
+
+  // Vertical breathing zones - horizontal bands where enemies don't spawn
+  // Spacing is based on height, not width
+  const verticalBreathingSpacing = levelNum <= 2 ? 400 : levelNum <= 5 ? 600 : levelNum <= 8 ? 800 : 1000;
+
   const platforms = [];
   const trajineras = [];  // Horizontal moving boats at different heights
   const coins = [];
@@ -765,8 +1809,24 @@ function generateUpscrollerLevel(levelNum) {
   const enemies = [];
   const powerups = [];
 
-  // Starting platform at bottom - safe ground to begin
-  platforms.push({ x: width / 2 - 100, y: height - 50, w: 200, h: 50, isChihampa: true });
+  // ============ INTRO SECTION (bottom 300 height) - Safe start ============
+  // Starting platform at bottom - safe ground to begin (wider for early levels)
+  const introPlatformWidth = levelNum <= 2 ? 200 : levelNum <= 5 ? 180 : 150;
+  platforms.push({
+    x: width / 2 - introPlatformWidth / 2,
+    y: height - 50,
+    w: introPlatformWidth,
+    h: 50,
+    isChihampa: true
+  });
+
+  // Intro coins in arc pattern
+  const introCoins = levelNum <= 2 ? 5 : levelNum <= 5 ? 8 : 10;
+  for (let i = 0; i < introCoins; i++) {
+    const arcX = width / 2 + (i - introCoins / 2) * 30;
+    const arcY = height - 90 - Math.sin((i / (introCoins - 1)) * Math.PI) * 40;
+    coins.push({ x: arcX, y: arcY });
+  }
 
   // IMMEDIATE POWERUP on starting platform - you need it!
   powerups.push({ x: width / 2, y: height - 90 });
@@ -795,16 +1855,20 @@ function generateUpscrollerLevel(levelNum) {
     startX: width / 2
   });
 
-  // Generate rest of platforms climbing upward
+  // ============ MIDDLE SECTION - Apply density rules ============
   let currentY = height - 400;
   let lastX = width / 2;
+
+  // Adjust platform type probabilities based on density
+  const chinampaChance = 0.2 * density.platforms;  // More static platforms = easier
+  const trajineraChance = 0.5;  // Keep trajineras consistent for gameplay
 
   while (currentY > 150) {
     const platformType = Math.random();
 
-    if (platformType < 0.2) {
-      // Static chinampa (safe zone) - 20% chance
-      const platW = 90 + Math.random() * 50;  // Decent size
+    if (platformType < chinampaChance) {
+      // Static chinampa (safe zone)
+      const platW = 90 + Math.random() * 50;
       const platX = Math.max(40, Math.min(width - platW - 40, lastX + (Math.random() - 0.5) * 200));
       platforms.push({
         x: platX,
@@ -815,19 +1879,22 @@ function generateUpscrollerLevel(levelNum) {
       });
       lastX = platX + platW / 2;
 
-      // Single coin on platform
-      coins.push({ x: platX + platW / 2, y: currentY - 30 });
+      // Coins on platform - apply coin density
+      const platformCoins = Math.ceil(density.coins);
+      for (let c = 0; c < platformCoins; c++) {
+        coins.push({ x: platX + platW / 2 + (c - platformCoins / 2) * 20, y: currentY - 30 });
+      }
 
-    } else if (platformType < 0.7) {
-      // COMMON: Moving trajinera (horizontal boat) - 50% chance! Must time your jumps!
-      const boatW = 100 + Math.random() * 50;  // Bigger boats for easier landing
+    } else if (platformType < chinampaChance + trajineraChance) {
+      // Moving trajinera (horizontal boat)
+      const boatW = 100 + Math.random() * 50;
       const dir = Math.random() < 0.5 ? 1 : -1;
       trajineras.push({
-        x: Math.random() * (width - 100) + 50,  // Random start position
+        x: Math.random() * (width - 100) + 50,
         y: currentY,
         w: boatW,
         h: 25,
-        speed: 50 + Math.random() * 50 + levelNum * 5,  // Slightly slower
+        speed: 50 + Math.random() * 50 + levelNum * 5,
         dir: dir,
         color: [0xff6b6b, 0x4ecdc4, 0xffe66d, 0xc44569, 0xf78fb3, 0x3dc1d3][Math.floor(Math.random() * 6)],
         startX: Math.random() * (width - 100) + 50
@@ -835,8 +1902,8 @@ function generateUpscrollerLevel(levelNum) {
       lastX = width / 2;
 
     } else {
-      // Lily pad - 30% chance
-      const padW = 60 + Math.random() * 30;  // Bigger lily pads
+      // Lily pad
+      const padW = 60 + Math.random() * 30;
       const padX = Math.max(30, Math.min(width - padW - 30, lastX + (Math.random() - 0.5) * 180));
       platforms.push({
         x: padX,
@@ -848,17 +1915,18 @@ function generateUpscrollerLevel(levelNum) {
       lastX = padX + padW / 2;
     }
 
-    // Vertical gap between platforms - challenging but fair
-    const gap = 90 + Math.random() * 50 + levelNum * 3;  // Smaller gaps, gentler scaling
+    // Vertical gap between platforms
+    const gap = 90 + Math.random() * 50 + levelNum * 3;
     currentY -= gap;
 
-    // Add powerup periodically - more often since it's harder!
+    // Add powerup periodically
     if (Math.random() < 0.2 * settings.powerupMult) {
       powerups.push({ x: lastX, y: currentY + gap / 2 });
     }
   }
 
-  // Final platform with baby at top - SMALL target!
+  // ============ OUTRO SECTION (top 150 height) - Final challenge ============
+  // Final platform with baby at top
   platforms.push({
     x: width / 2 - 60,
     y: 80,
@@ -867,37 +1935,50 @@ function generateUpscrollerLevel(levelNum) {
     isChihampa: true
   });
 
+  // Arrow-shaped coins pointing up to baby
+  coins.push({ x: width / 2, y: 120 });  // Tip
+  coins.push({ x: width / 2 - 20, y: 140 });
+  coins.push({ x: width / 2 + 20, y: 140 });
+  coins.push({ x: width / 2 - 40, y: 160 });
+  coins.push({ x: width / 2 + 40, y: 160 });
+
   // Stars at various heights
   stars.push({ x: width / 2, y: height - 500 });  // Lower third
   stars.push({ x: width / 2, y: height / 2 });     // Middle
   stars.push({ x: width / 2, y: 250 });            // Near top
 
-  // GUARANTEED POWERUPS at key heights - don't rely on RNG!
-  powerups.push({ x: width / 2 - 50, y: height - 600 });   // Early boost
-  powerups.push({ x: width / 2 + 50, y: height / 2 });      // Mid level
-  powerups.push({ x: width / 2, y: 350 });                  // Near the end
+  // GUARANTEED POWERUPS at key heights
+  powerups.push({ x: width / 2 - 50, y: height - 600 });
+  powerups.push({ x: width / 2 + 50, y: height / 2 });
+  powerups.push({ x: width / 2, y: 350 });
 
-  // Flying enemies at intervals (fewer - focus is on swimming/gators)
-  const numFlying = Math.floor((1 + levelNum * 0.3) * settings.enemyMult);
-  for (let i = 0; i < numFlying; i++) {
-    enemies.push({
-      x: Math.random() * (width - 100) + 50,
-      y: height - 600 - i * (height / (numFlying + 1)),
-      type: 'flying',
-      amplitude: 30 + Math.random() * 40,
-      speed: 50 + Math.random() * 40,
-      dir: Math.random() < 0.5 ? 1 : -1
-    });
+  // ============ FLYING ENEMIES - Apply density and breathing room ============
+  const baseEnemyCount = Math.floor((1 + levelNum * 0.3) * settings.enemyMult * density.enemies);
+  for (let i = 0; i < baseEnemyCount; i++) {
+    const enemyY = height - 600 - i * ((height - 750) / Math.max(1, baseEnemyCount));
+
+    // Check if enemy is in a breathing zone (horizontal band)
+    const inBreathingZone = Math.floor(enemyY / verticalBreathingSpacing) % 2 === 0;
+
+    if (!inBreathingZone) {
+      enemies.push({
+        x: Math.random() * (width - 100) + 50,
+        y: enemyY,
+        type: 'flying',
+        amplitude: 30 + Math.random() * 40,
+        speed: 50 + Math.random() * 40,
+        dir: Math.random() < 0.5 ? 1 : -1
+      });
+    }
   }
 
   // ============ ALLIGATORS - DKC2 style water danger! ============
-  // They swim in the rising water, making swimming risky!
   const alligators = [];
-  const numGators = 2 + Math.floor(levelNum * 0.5);  // More gators on harder levels
+  const numGators = Math.floor((2 + Math.floor(levelNum * 0.5)) * density.enemies);
   for (let i = 0; i < numGators; i++) {
     alligators.push({
       x: 50 + Math.random() * (width - 100),
-      baseY: 30 + i * 40,  // Offset from water surface (positive = below surface)
+      baseY: 30 + i * 40,
       speed: 40 + Math.random() * 30,
       dir: i % 2 === 0 ? 1 : -1
     });
@@ -914,10 +1995,10 @@ function generateUpscrollerLevel(levelNum) {
     stars,
     enemies,
     powerups,
-    alligators,  // NEW! Water danger!
+    alligators,
     theme,
     isUpscroller: true,
-    waterY: height - 20  // Water at the very bottom - fall in = death!
+    waterY: height - 20
   };
 }
 
@@ -931,6 +2012,10 @@ function generateEscapeLevel(levelNum) {
 
   const theme = { ...getThemeForLevel(levelNum), isEscapeLevel: true };
 
+  // ============ GET DENSITY MULTIPLIERS AND BREATHING ROOMS ============
+  const density = calculateDensityMultipliers(levelNum);
+  const breathingZones = getBreathingRoomZones(width, levelNum);
+
   const platforms = [];
   const trajineras = [];
   const coins = [];
@@ -938,26 +2023,53 @@ function generateEscapeLevel(levelNum) {
   const enemies = [];
   const powerups = [];
 
-  // Starting platform - you begin here, then RUN!
+  // ============ INTRO SECTION (first 300px) - Safe start before the chase ============
+  // Starting platform - wider for early levels
+  const introPlatformWidth = levelNum <= 2 ? 300 : levelNum <= 5 ? 280 : 250;
   platforms.push({
     x: 0,
     y: waterY - 80,
-    w: 300,
+    w: introPlatformWidth,
     h: 130,
     isChihampa: true
   });
 
-  // Generate a gauntlet of trajineras and small platforms to jump across
-  // The camera auto-scrolls, so you MUST keep moving forward!
+  // Intro coins in arc pattern - teaches "go right!"
+  const introCoins = levelNum <= 2 ? 5 : levelNum <= 5 ? 8 : 10;
+  for (let i = 0; i < introCoins; i++) {
+    const arcX = 50 + i * 30;
+    const arcY = waterY - 120 - Math.sin((i / (introCoins - 1)) * Math.PI) * 50;
+    coins.push({ x: arcX, y: arcY });
+  }
+
+  // Intro enemy (1 for easy, 2 for harder)
+  const introEnemies = levelNum <= 2 ? 1 : 2;
+  for (let i = 0; i < introEnemies; i++) {
+    enemies.push({
+      x: 250 + i * 50,
+      y: waterY - 150 - i * 40,
+      type: 'flying',
+      amplitude: 25,
+      speed: 35,
+      dir: 1
+    });
+  }
+
+  // ============ MIDDLE SECTION - The chase! Apply density rules ============
   let currentX = 350;
   const escapeSpeed = levelNum === 9 ? 1.15 : 1.0;  // Level 9 is faster!
+  const middleEnd = width - 400;
 
-  while (currentX < width - 400) {
+  while (currentX < middleEnd) {
     const segmentType = Math.random();
 
-    if (segmentType < 0.4) {
+    // Adjust segment probabilities based on platform density
+    const trajineraChance = 0.4;
+    const chinamppaChance = 0.3 * density.platforms;
+
+    if (segmentType < trajineraChance) {
       // Trajinera lane section - multiple boats moving
-      const numBoats = 2 + Math.floor(Math.random() * 3);
+      const numBoats = Math.floor((2 + Math.random() * 3) * density.platforms);
       const laneY = waterY - 60 - Math.random() * 80;
 
       for (let i = 0; i < numBoats; i++) {
@@ -974,14 +2086,17 @@ function generateEscapeLevel(levelNum) {
           startX: currentX + i * 180
         });
 
-        // Coins on boats
-        coins.push({ x: currentX + i * 180, y: laneY - 35 });
+        // Coins on boats - apply coin density
+        const coinsPerBoat = Math.ceil(density.coins);
+        for (let c = 0; c < coinsPerBoat; c++) {
+          coins.push({ x: currentX + i * 180 + (c - coinsPerBoat / 2) * 15, y: laneY - 35 });
+        }
       }
       currentX += numBoats * 180 + 100;
 
-    } else if (segmentType < 0.7) {
+    } else if (segmentType < trajineraChance + chinamppaChance) {
       // Small chinampa stepping stones - quick hops!
-      const numStones = 3 + Math.floor(Math.random() * 3);
+      const numStones = Math.floor((3 + Math.random() * 3) * density.platforms);
       for (let i = 0; i < numStones; i++) {
         const stoneW = 70 + Math.random() * 40;
         const stoneY = waterY - 60 - Math.random() * 100;
@@ -993,7 +2108,7 @@ function generateEscapeLevel(levelNum) {
           isChihampa: true
         });
 
-        if (Math.random() < 0.5) {
+        if (Math.random() < 0.5 * density.coins) {
           coins.push({ x: currentX + i * 140 + stoneW/2, y: stoneY - 35 });
         }
       }
@@ -1023,8 +2138,12 @@ function generateEscapeLevel(levelNum) {
         startX: currentX + 200
       });
 
+      // Apply coin density
+      const sectionCoins = Math.ceil(2 * density.coins);
       coins.push({ x: currentX + 45, y: platY - 35 });
-      coins.push({ x: currentX + 200, y: waterY - 85 });
+      if (sectionCoins > 1) {
+        coins.push({ x: currentX + 200, y: waterY - 85 });
+      }
       currentX += 350;
     }
 
@@ -1037,6 +2156,7 @@ function generateEscapeLevel(levelNum) {
     }
   }
 
+  // ============ OUTRO SECTION (last 400px) - Final sprint to safety ============
   // Final safe platform with baby - YOU MADE IT!
   platforms.push({
     x: width - 350,
@@ -1046,16 +2166,43 @@ function generateEscapeLevel(levelNum) {
     isChihampa: true
   });
 
-  // Stars spread across the escape route
-  stars.push({ x: width * 0.25, y: waterY - 150 });
-  stars.push({ x: width * 0.5, y: waterY - 200 });
-  stars.push({ x: width * 0.75, y: waterY - 120 });
-
-  // Flying enemies - not too many, focus is on the chase!
-  const numFlying = Math.floor(2 * settings.enemyMult);
-  for (let i = 0; i < numFlying; i++) {
+  // Guard enemies before the final platform
+  const numGuards = levelNum <= 5 ? 2 : 3;
+  const outroStart = width - 350;
+  for (let i = 0; i < numGuards; i++) {
     enemies.push({
-      x: 800 + i * (width / (numFlying + 1)),
+      x: outroStart - 150 - i * 80,
+      y: waterY - 150 - (i % 2) * 50,
+      type: 'flying',
+      amplitude: 25 + levelNum * 2,
+      speed: 40 + levelNum * 3,
+      dir: i % 2 === 0 ? 1 : -1
+    });
+  }
+
+  // Arrow-shaped coins pointing to baby
+  const arrowTipX = width - 80;
+  const arrowBaseX = width - 180;
+  const arrowCenterY = waterY - 120;
+  coins.push({ x: arrowTipX, y: arrowCenterY });
+  coins.push({ x: arrowBaseX + 30, y: arrowCenterY - 25 });
+  coins.push({ x: arrowBaseX, y: arrowCenterY - 50 });
+  coins.push({ x: arrowBaseX + 30, y: arrowCenterY + 25 });
+  coins.push({ x: arrowBaseX, y: arrowCenterY + 50 });
+
+  // Stars spread across the escape route (in middle section)
+  const middleStart = 350;
+  const middleWidth = middleEnd - middleStart;
+  stars.push({ x: middleStart + middleWidth * 0.2, y: waterY - 150 });
+  stars.push({ x: middleStart + middleWidth * 0.5, y: waterY - 200 });
+  stars.push({ x: middleStart + middleWidth * 0.8, y: waterY - 120 });
+
+  // ============ FLYING ENEMIES IN MIDDLE - Apply density and breathing rooms ============
+  const baseEnemyCount = Math.floor(2 * settings.enemyMult * density.enemies);
+  const middleEnemies = [];
+  for (let i = 0; i < baseEnemyCount; i++) {
+    middleEnemies.push({
+      x: middleStart + 450 + i * (middleWidth / Math.max(1, baseEnemyCount + 1)),
       y: waterY - 250 - Math.random() * 100,
       type: 'flying',
       amplitude: 30,
@@ -1063,6 +2210,10 @@ function generateEscapeLevel(levelNum) {
       dir: 1  // All fly forward (same direction as player)
     });
   }
+
+  // Filter enemies from breathing room zones
+  const filteredMiddleEnemies = filterEnemiesFromBreathingRooms(middleEnemies, breathingZones);
+  enemies.push(...filteredMiddleEnemies);
 
   // Powerup at start and near end
   powerups.push({ x: 150, y: waterY - 120 });
@@ -1082,7 +2233,8 @@ function generateEscapeLevel(levelNum) {
     theme,
     isEscapeLevel: true,
     escapeSpeed: levelNum === 9 ? 150 : 120,  // Level 9 flood is faster!
-    waterY
+    waterY,
+    breathingZones  // For debugging/visualization if needed
   };
 }
 
@@ -1097,54 +2249,48 @@ function generateXochimilcoLevel(levelNum) {
   // Use consistent world theme - SAME theme for entire world!
   const theme = getThemeForLevel(levelNum);
 
-  const platforms = [];
+  // ============ GET DENSITY MULTIPLIERS AND BREATHING ROOMS ============
+  const density = calculateDensityMultipliers(levelNum);
+  const breathingZones = getBreathingRoomZones(width, levelNum);
+
+  // ============ HANDCRAFTED INTRO SECTION (first 300px) ============
+  const intro = createIntroSection(levelNum, theme, waterY);
+
+  // ============ HANDCRAFTED OUTRO SECTION (last 300px) ============
+  const outro = createOutroSection(levelNum, theme, width, waterY);
+
+  // Combine intro and outro platforms
+  const platforms = [...intro.platforms, ...outro.platforms];
   const trajineras = [];
-  const coins = [];
+  const coins = [...intro.coins, ...outro.coins];
   const stars = [];
   const enemies = [];
   const powerups = [];
 
-  // ===== ONLY START AND END PLATFORMS - EVERYTHING ELSE IS BOATS! =====
-
-  // Starting chinampa - safe ground
-  platforms.push({
-    x: 0,
-    y: waterY - 100,
-    w: 200,
-    h: 150,
-    isChihampa: true
-  });
-
-  // Final chinampa with BABY - clear goal!
-  platforms.push({
-    x: width - 250,
-    y: waterY - 100,
-    w: 250,
-    h: 150,
-    isChihampa: true
-  });
-
-  // ===== TRAJINERAS EVERYWHERE! 6 lanes at different heights =====
+  // ===== TRAJINERAS IN MIDDLE SECTION (300px to width-300px) =====
   const speedMult = 1 + levelNum * 0.06;
+  const middleStart = 300;
+  const middleEnd = width - 300;
+  const middleWidth = middleEnd - middleStart;
 
   // Lanes cover the ENTIRE screen height - boats everywhere!
+  // Apply platform density multiplier to boat counts
   const lanes = [
-    { y: waterY - 70,  dir: 1,  baseSpeed: 25, boats: 5 + levelNum },   // Lane 1: Low →
-    { y: waterY - 140, dir: -1, baseSpeed: 35, boats: 5 + levelNum },   // Lane 2: ←
-    { y: waterY - 210, dir: 1,  baseSpeed: 45, boats: 4 + levelNum },   // Lane 3: →
-    { y: waterY - 280, dir: -1, baseSpeed: 40, boats: 4 + levelNum },   // Lane 4: ←
-    { y: waterY - 350, dir: 1,  baseSpeed: 50, boats: 3 + levelNum },   // Lane 5: High →
-    { y: waterY - 420, dir: -1, baseSpeed: 30, boats: 2 + Math.floor(levelNum/2) },  // Lane 6: Very high ←
+    { y: waterY - 70,  dir: 1,  baseSpeed: 25, boats: Math.floor((5 + levelNum) * density.platforms) },
+    { y: waterY - 140, dir: -1, baseSpeed: 35, boats: Math.floor((5 + levelNum) * density.platforms) },
+    { y: waterY - 210, dir: 1,  baseSpeed: 45, boats: Math.floor((4 + levelNum) * density.platforms) },
+    { y: waterY - 280, dir: -1, baseSpeed: 40, boats: Math.floor((4 + levelNum) * density.platforms) },
+    { y: waterY - 350, dir: 1,  baseSpeed: 50, boats: Math.floor((3 + levelNum) * density.platforms) },
+    { y: waterY - 420, dir: -1, baseSpeed: 30, boats: Math.floor((2 + Math.floor(levelNum/2)) * density.platforms) },
   ];
 
   let nameIdx = 0;
   lanes.forEach((lane, laneIdx) => {
-    const laneWidth = width - 500;
-    const spacing = laneWidth / lane.boats;
+    const spacing = middleWidth / Math.max(1, lane.boats);
 
     for (let i = 0; i < lane.boats; i++) {
       const startOffset = (i * spacing) + (laneIdx % 2 === 0 ? 0 : spacing / 3);
-      const xPos = 250 + startOffset;
+      const xPos = middleStart + startOffset;
 
       // Colorful boats of varying sizes
       const boatW = 110 + Math.random() * 50;
@@ -1165,34 +2311,26 @@ function generateXochimilcoLevel(levelNum) {
     }
   });
 
-  // ===== COINS scattered in the air =====
-  // On starting platform
-  coins.push({ x: 60, y: waterY - 140 });
-  coins.push({ x: 130, y: waterY - 140 });
-
-  // Floating between boats (risky but rewarding!)
-  for (let i = 0; i < 12 + levelNum * 2; i++) {
+  // ===== COINS IN MIDDLE SECTION - Apply density multiplier =====
+  const baseCoinCount = Math.floor((12 + levelNum * 2) * density.coins);
+  for (let i = 0; i < baseCoinCount; i++) {
     coins.push({
-      x: 300 + Math.random() * (width - 600),
+      x: middleStart + Math.random() * middleWidth,
       y: waterY - 100 - Math.random() * 350
     });
   }
 
-  // On final platform
-  coins.push({ x: width - 200, y: waterY - 140 });
-  coins.push({ x: width - 130, y: waterY - 140 });
-  coins.push({ x: width - 60, y: waterY - 140 });
+  // ===== STARS - 3 per level at different heights (in middle section) =====
+  stars.push({ x: middleStart + middleWidth * 0.2, y: waterY - 160 });
+  stars.push({ x: middleStart + middleWidth * 0.5, y: waterY - 280 });
+  stars.push({ x: middleStart + middleWidth * 0.8, y: waterY - 380 });
 
-  // ===== STARS - 3 per level at different heights =====
-  stars.push({ x: width * 0.25, y: waterY - 160 });
-  stars.push({ x: width * 0.5, y: waterY - 280 });
-  stars.push({ x: width * 0.75, y: waterY - 380 });
-
-  // ===== FLYING ENEMIES =====
-  const numFlying = Math.floor((2 + levelDifficulty * 2) * settings.enemyMult);
-  for (let i = 0; i < numFlying; i++) {
-    enemies.push({
-      x: 400 + (i * (width - 600) / Math.max(1, numFlying)),
+  // ===== FLYING ENEMIES IN MIDDLE SECTION - Apply density multiplier =====
+  const baseEnemyCount = Math.floor((2 + levelDifficulty * 2) * settings.enemyMult * density.enemies);
+  const middleEnemies = [];
+  for (let i = 0; i < baseEnemyCount; i++) {
+    middleEnemies.push({
+      x: middleStart + 100 + (i * (middleWidth - 200) / Math.max(1, baseEnemyCount)),
       y: waterY - 180 - Math.random() * 200,
       type: 'flying',
       amplitude: 35 + Math.random() * 35,
@@ -1201,12 +2339,16 @@ function generateXochimilcoLevel(levelNum) {
     });
   }
 
+  // Filter enemies from breathing room zones and add intro/outro enemies
+  const filteredMiddleEnemies = filterEnemiesFromBreathingRooms(middleEnemies, breathingZones);
+  enemies.push(...intro.enemies, ...filteredMiddleEnemies, ...outro.enemies);
+
   // ===== POWERUPS =====
   const numPowerups = Math.floor((3 + levelDifficulty * 2) * settings.powerupMult);
   powerups.push({ x: 150, y: waterY - 140 });  // One on start
   for (let i = 1; i < numPowerups; i++) {
     powerups.push({
-      x: 300 + i * ((width - 550) / numPowerups),
+      x: middleStart + i * (middleWidth / numPowerups),
       y: waterY - 140 - Math.random() * 250
     });
   }
@@ -1225,7 +2367,8 @@ function generateXochimilcoLevel(levelNum) {
     powerups,
     theme,
     isXochimilcoLevel: true,
-    waterY
+    waterY,
+    breathingZones  // For debugging/visualization if needed
   };
 }
 
@@ -2077,42 +3220,38 @@ class BootScene extends Phaser.Scene {
     g.clear();
 
     // ============ AZTEC-STYLE GOLD COIN ============
-    // Outer glow
-    g.fillStyle(0xffdd00, 0.2);
-    g.fillCircle(8, 8, 8);
-    // Shadow
-    g.fillStyle(0x996600);
-    g.fillCircle(9, 9, 7);
-    // Gold base
-    g.fillStyle(0xddaa00);
-    g.fillCircle(8, 8, 7);
-    // Gold mid
-    g.fillStyle(0xffcc00);
-    g.fillCircle(8, 8, 6);
-    // Inner ring (carved)
-    g.lineStyle(1.5, 0xaa8800);
-    g.strokeCircle(8, 8, 4.5);
-    // Aztec sun pattern - center
-    g.fillStyle(0xaa7700);
-    g.fillCircle(8, 8, 2);
-    g.fillStyle(0xffdd44);
-    g.fillCircle(8, 8, 1.5);
-    // Sun rays (simple lines)
-    g.lineStyle(1, 0xaa7700);
+    // ============ CEMPASUCHIL (Mexican Marigold) - Replaces Coins ============
+    // Outer glow (orange)
+    g.fillStyle(0xff8c00, 0.2);
+    g.fillCircle(8, 8, 9);
+    // Outer petals (orange) - 8 petals around the edge
+    g.fillStyle(0xff6600);
     for (let i = 0; i < 8; i++) {
       const angle = (i / 8) * Math.PI * 2;
-      g.lineBetween(
-        8 + Math.cos(angle) * 2.5, 8 + Math.sin(angle) * 2.5,
-        8 + Math.cos(angle) * 4, 8 + Math.sin(angle) * 4
-      );
+      g.fillCircle(8 + Math.cos(angle) * 5, 8 + Math.sin(angle) * 5, 3);
     }
-    // Highlight arc
-    g.fillStyle(0xffff88);
-    g.fillCircle(5, 5, 2.5);
-    // Specular
+    // Middle petals (bright orange)
+    g.fillStyle(0xff8c00);
+    for (let i = 0; i < 8; i++) {
+      const angle = (i / 8) * Math.PI * 2 + Math.PI / 8;
+      g.fillCircle(8 + Math.cos(angle) * 3.5, 8 + Math.sin(angle) * 3.5, 2.5);
+    }
+    // Inner petals (yellow-orange)
+    g.fillStyle(0xffaa00);
+    for (let i = 0; i < 6; i++) {
+      const angle = (i / 6) * Math.PI * 2;
+      g.fillCircle(8 + Math.cos(angle) * 2, 8 + Math.sin(angle) * 2, 2);
+    }
+    // Center (golden yellow)
+    g.fillStyle(0xffcc00);
+    g.fillCircle(8, 8, 2.5);
+    // Center highlight
+    g.fillStyle(0xffee66);
+    g.fillCircle(7, 7, 1.5);
+    // Tiny sparkle
     g.fillStyle(0xffffff);
-    g.fillCircle(4, 4, 1);
-    g.generateTexture('coin', 16, 16);
+    g.fillCircle(6.5, 6.5, 0.8);
+    g.generateTexture('flower', 16, 16);
     g.clear();
 
     // ============ SPARKLY GOLDEN STAR ============
@@ -2172,6 +3311,80 @@ class BootScene extends Phaser.Scene {
     g.fillStyle(0xffffff);
     g.fillRect(6, 10, 2, 4);
     g.generateTexture('mushroom', 16, 16);
+    g.clear();
+
+    // ============ ELOTE (Mexican Corn on Stick) - Replaces Star Powerup ============
+    // Stick (brown wooden handle)
+    g.fillStyle(0x8b4513);
+    g.fillRect(6, 12, 4, 5);
+    g.fillStyle(0xa0522d);
+    g.fillRect(7, 12, 2, 4);
+    // Corn cob base (yellow)
+    g.fillStyle(0xdaa520);
+    g.fillEllipse(8, 7, 10, 12);
+    // Corn cob mid (brighter yellow)
+    g.fillStyle(0xffd700);
+    g.fillEllipse(8, 7, 9, 11);
+    // Corn kernels pattern (rows of dots)
+    g.fillStyle(0xffec8b);
+    for (let row = 0; row < 5; row++) {
+      for (let col = 0; col < 4; col++) {
+        const kx = 5 + col * 2 + (row % 2) * 1;
+        const ky = 3 + row * 2;
+        g.fillCircle(kx, ky, 1);
+      }
+    }
+    // Chile powder dots (red speckles)
+    g.fillStyle(0xcc0000);
+    g.fillCircle(4, 5, 0.8);
+    g.fillCircle(10, 4, 0.8);
+    g.fillCircle(6, 8, 0.8);
+    g.fillCircle(11, 7, 0.8);
+    g.fillCircle(5, 10, 0.8);
+    g.fillCircle(9, 9, 0.8);
+    // Highlight
+    g.fillStyle(0xfffacd);
+    g.fillCircle(5, 4, 1.5);
+    // Outer glow (golden)
+    g.fillStyle(0xffd700, 0.15);
+    g.fillCircle(8, 7, 10);
+    g.generateTexture('elote', 16, 16);
+    g.clear();
+
+    // ============ BLUE DEMON LUCHADOR MASK ============
+    // Outer glow (blue)
+    g.fillStyle(0x0066ff, 0.25);
+    g.fillCircle(8, 8, 9);
+    // Mask base (dark blue)
+    g.fillStyle(0x000066);
+    g.fillCircle(8, 8, 7);
+    // Mask face (blue)
+    g.fillStyle(0x0033aa);
+    g.fillCircle(8, 8, 6);
+    // Eye holes (white with black outline)
+    g.fillStyle(0xffffff);
+    g.fillEllipse(5, 6, 4, 3);
+    g.fillEllipse(11, 6, 4, 3);
+    // Eye hole outlines
+    g.lineStyle(1, 0x000000);
+    g.strokeEllipse(5, 6, 4, 3);
+    g.strokeEllipse(11, 6, 4, 3);
+    // Lightning bolts on forehead (iconic Blue Demon design)
+    g.fillStyle(0x00ccff);
+    g.fillTriangle(4, 2, 6, 4, 4, 4);
+    g.fillTriangle(12, 2, 10, 4, 12, 4);
+    // Mask trim (silver)
+    g.lineStyle(1.5, 0xcccccc);
+    g.beginPath();
+    g.arc(8, 8, 6.5, Math.PI * 0.8, Math.PI * 0.2, true);
+    g.strokePath();
+    // Mouth area (darker)
+    g.fillStyle(0x001144);
+    g.fillEllipse(8, 11, 4, 2);
+    // Sparkle
+    g.fillStyle(0xffffff);
+    g.fillCircle(4, 3, 1);
+    g.generateTexture('blueDemonMask', 16, 16);
     g.clear();
 
     // ============ CUTE BABY AXOLOTL ============
@@ -2634,7 +3847,7 @@ class GameScene extends Phaser.Scene {
     this.physics.world.setBounds(0, 0, ld.width, ld.height);
 
     // ============ DKC2-STYLE SKY WITH GRADIENT (using theme) ============
-    const theme = ld.theme || THEMES[1]; // Default to Day theme
+    const theme = ld.theme || WORLDS[1]; // Default to World 1 theme
     const skyGradient = this.add.graphics();
     const skyColors = theme.sky;
     const stripeHeight = ld.height / skyColors.length;
@@ -2642,20 +3855,21 @@ class GameScene extends Phaser.Scene {
       skyGradient.fillStyle(color);
       skyGradient.fillRect(0, i * stripeHeight, ld.width, stripeHeight + 2);
     });
+    skyGradient.setDepth(-110);  // Behind all parallax layers
 
-    // ============ ATMOSPHERIC FOG LAYERS (DKC2 style) ============
-    const fogColor = theme.name === 'Night' ? 0x223344 : 0xffffff;
-    for (let i = 0; i < 3; i++) {
-      const fog = this.add.rectangle(ld.width / 2, ld.height - 80 - i * 60, ld.width * 2, 100, fogColor, 0.08 - i * 0.02);
-      fog.setScrollFactor(0.05 + i * 0.05);
-    }
+    // ============ SIX-LAYER PARALLAX BACKGROUND ============
+    // Build atmospheric depth with procedurally drawn layers
+    this.parallaxLayers = buildParallaxLayers(this, theme, ld.width, ld.height);
 
     // ============ GOD RAYS (for Day/Dawn/Sunset themes) ============
-    if (theme.name !== 'Night') {
+    // Check if this is a night/cave world (worlds 3 and 5)
+    const isNightOrCave = theme.worldNum === 3 || theme.worldNum === 5;
+    if (!isNightOrCave) {
       for (let i = 0; i < 5; i++) {
         const rayX = 100 + i * (ld.width / 5);
         const ray = this.add.triangle(rayX, 0, 0, 0, -40 - i * 10, ld.height, 40 + i * 10, ld.height, 0xffffcc, 0.03);
         ray.setScrollFactor(0.02);
+        ray.setDepth(-105);  // Between sky and parallax
         // Subtle ray animation
         this.tweens.add({
           targets: ray,
@@ -2666,51 +3880,6 @@ class GameScene extends Phaser.Scene {
           ease: 'Sine.easeInOut'
         });
       }
-    }
-
-    // ============ PARALLAX BACKGROUND MOUNTAINS (far) - more detailed ============
-    const mountains = this.add.graphics();
-    // Back mountain range (darker)
-    mountains.fillStyle(theme.mountain, 0.3);
-    for (let i = 0; i < ld.width / 150 + 3; i++) {
-      const mx = i * 150 - 80;
-      const mh = 120 + Phaser.Math.Between(0, 80);
-      mountains.fillTriangle(mx, ld.height - 80, mx + 75, ld.height - 80 - mh, mx + 150, ld.height - 80);
-    }
-    // Front mountain range (lighter)
-    mountains.fillStyle(theme.mountain, 0.5);
-    for (let i = 0; i < ld.width / 200 + 2; i++) {
-      const mx = i * 200 - 50 + Phaser.Math.Between(-20, 20);
-      const mh = Phaser.Math.Between(80, 150);
-      mountains.fillTriangle(mx, ld.height - 100, mx + 100, ld.height - 100 - mh, mx + 200, ld.height - 100);
-    }
-    mountains.setScrollFactor(0.1);
-
-    // ============ PARALLAX HILLS WITH TREES (mid) ============
-    const hills = this.add.graphics();
-    hills.fillStyle(theme.hill, 0.6);
-    for (let i = 0; i < ld.width / 120 + 2; i++) {
-      const hx = i * 120 - 30;
-      hills.fillEllipse(hx + 60, ld.height - 50, 140, 90);
-    }
-    hills.setScrollFactor(0.3);
-
-    // Add silhouette trees on hills
-    const treeColor = theme.name === 'Night' ? 0x112211 : 0x226633;
-    for (let i = 0; i < ld.width / 80; i++) {
-      const tx = i * 80 + Phaser.Math.Between(-20, 20);
-      const th = Phaser.Math.Between(30, 60);
-      const tree = this.add.triangle(tx, ld.height - 70, 0, 0, -15, th, 15, th, treeColor, 0.4);
-      tree.setScrollFactor(0.25);
-      // Gentle sway animation
-      this.tweens.add({
-        targets: tree,
-        angle: Phaser.Math.Between(-2, 2),
-        duration: 2000 + Phaser.Math.Between(0, 1000),
-        yoyo: true,
-        repeat: -1,
-        ease: 'Sine.easeInOut'
-      });
     }
 
     // ============ ANIMATED CLOUDS (DKC2 style - moving!) ============
@@ -2750,43 +3919,9 @@ class GameScene extends Phaser.Scene {
       this.clouds.push({ shadow, cloud, puff1, puff2, speed, baseX: cx, near: true });
     }
 
-    // ============ PARTICLE EFFECTS (fireflies/dust/leaves) ============
-    this.particles = [];
-    const particleType = theme.name === 'Night' ? 'firefly' : (theme.name === 'Jungle' ? 'leaf' : 'dust');
-
-    for (let i = 0; i < 25; i++) {
-      const px = Phaser.Math.Between(0, ld.width);
-      const py = Phaser.Math.Between(100, ld.height - 100);
-
-      let particle;
-      if (particleType === 'firefly') {
-        // Glowing fireflies at night
-        particle = this.add.circle(px, py, 3, 0xffff66, 0.8);
-      } else if (particleType === 'leaf') {
-        // Falling leaves in jungle
-        particle = this.add.ellipse(px, py, 6, 3, 0x44aa44, 0.6);
-        particle.setAngle(Phaser.Math.Between(0, 360));
-      } else {
-        // Floating dust motes
-        particle = this.add.circle(px, py, Phaser.Math.Between(1, 3), 0xffffff, 0.3);
-      }
-
-      particle.setScrollFactor(0.5 + Math.random() * 0.3);
-      this.particles.push({
-        gfx: particle,
-        type: particleType,
-        x: px,
-        y: py,
-        baseX: px,
-        baseY: py,
-        angle: Math.random() * Math.PI * 2,
-        phase: Math.random() * Math.PI * 2,
-        rotSpeed: 0.01 + Math.random() * 0.02,
-        fallSpeed: particleType === 'leaf' ? 0.3 + Math.random() * 0.4 : 0,
-        rotation: Math.random() * Math.PI * 2,
-        driftSpeed: 0.1 + Math.random() * 0.2
-      });
-    }
+    // ============ PIECE 5: WORLD-SPECIFIC PARTICLE ATMOSPHERE ============
+    // Creates atmospheric particles unique to each world (max 50 particles)
+    this.particles = createWorldParticles(this, theme, ld.width, ld.height);
 
     // ============ DKC2-STYLE PLATFORMS WITH AZTEC DETAILS ============
     this.platforms = this.physics.add.staticGroup();
@@ -2874,6 +4009,10 @@ class GameScene extends Phaser.Scene {
           this.add.ellipse(rx, p.y + 8, rockSize, rockSize * 0.6, 0x666666, 0.3);
         }
       }
+
+      // ============ PIECE 6: PLATFORM VISUAL ENHANCEMENT ============
+      // Apply depth effects, world-specific decorations, and breathing animation
+      enhancePlatform(this, p, theme, plat);
     });
 
     // ============ XOCHIMILCO WATER LEVEL SPECIAL HANDLING ============
@@ -2920,72 +4059,177 @@ class GameScene extends Phaser.Scene {
         });
       }
 
-      // Create trajineras (colorful moving boats!)
+      // Create trajineras (colorful moving boats!) - V2 Visual Overhaul
       if (ld.trajineras) {
+        // Trajinera color themes - Traditional Mexican trajinera styles
+        const TRAJINERA_THEMES = [
+          { name: 'Traditional', hull: 0xff69b4, flowers: [0xffe66d, 0xff8c00, 0xffcc00], canopy: 0xff69b4 },
+          { name: 'Festival', hull: 0x4ecdc4, flowers: [0xff1744, 0xff4081, 0xd500f9], canopy: 0x4ecdc4 },
+          { name: 'Classic', hull: 0x2ecc71, flowers: [0xff6b6b, 0xffe66d, 0x9b59b6, 0x3498db], canopy: 0x27ae60 }
+        ];
+
         ld.trajineras.forEach((t, i) => {
+          // Pick a theme for this trajinera
+          const theme = TRAJINERA_THEMES[i % TRAJINERA_THEMES.length];
+          const boatName = t.name || TRAJINERA_NAMES[i % TRAJINERA_NAMES.length];
+
           // Boat body (colorful hull)
           const boat = this.add.container(t.x, t.y);
 
-          // Hull
-          const hull = this.add.rectangle(0, 0, t.w, t.h, t.color);
+          // Hull - main boat body with theme color
+          const hullColor = theme.hull;
+          const hull = this.add.rectangle(0, 0, t.w, t.h, hullColor);
           boat.add(hull);
 
-          // Boat decoration stripes
-          const stripe1 = this.add.rectangle(0, -t.h/4, t.w - 10, 4, 0xffffff, 0.5);
-          const stripe2 = this.add.rectangle(0, t.h/4, t.w - 10, 4, 0x000000, 0.3);
+          // Hull trim - white stripe at waterline
+          const trimBottom = this.add.rectangle(0, t.h/2 - 2, t.w - 4, 4, 0xffffff, 0.7);
+          boat.add(trimBottom);
+
+          // Hull decoration - colorful stripe pattern
+          const stripe1 = this.add.rectangle(0, -t.h/4, t.w - 10, 3, 0xffffff, 0.6);
+          const stripe2 = this.add.rectangle(0, 0, t.w - 10, 2, 0xffd700, 0.5);
           boat.add(stripe1);
           boat.add(stripe2);
 
           // Boat bow (pointed front)
           const bowDir = t.dir;
-          const bow = this.add.triangle(t.w/2 * bowDir, 0, 0, -t.h/2, 15 * bowDir, 0, 0, t.h/2, t.color);
+          const bow = this.add.triangle(t.w/2 * bowDir, 0, 0, -t.h/2, 15 * bowDir, 0, 0, t.h/2, hullColor);
           boat.add(bow);
 
-          // Flower decorations (trajineras are famous for flowers!)
-          for (let fx = -t.w/3; fx <= t.w/3; fx += t.w/3) {
-            const flower = this.add.circle(fx, -t.h/2 - 5, 5, [0xff6b6b, 0xffe66d, 0xff69b4, 0x9b59b6][Math.floor(Math.random() * 4)]);
+          // ========== FLOWER CANOPY ARCH ==========
+          // Create an arch of flowers on top - the iconic trajinera look!
+          const canopyHeight = 35;  // Height of the arch
+          const canopyWidth = t.w * 0.8;  // Slightly narrower than hull
+
+          // Canopy arch frame (using graphics for curved look)
+          const canopyGfx = this.add.graphics();
+          canopyGfx.lineStyle(4, theme.canopy, 1);
+          // Draw arch using bezier-like curve (two curves meeting at top)
+          canopyGfx.beginPath();
+          canopyGfx.moveTo(-canopyWidth/2, -t.h/2);
+          canopyGfx.lineTo(-canopyWidth/2 + 5, -t.h/2 - canopyHeight * 0.7);
+          canopyGfx.lineTo(0, -t.h/2 - canopyHeight);
+          canopyGfx.lineTo(canopyWidth/2 - 5, -t.h/2 - canopyHeight * 0.7);
+          canopyGfx.lineTo(canopyWidth/2, -t.h/2);
+          canopyGfx.strokePath();
+          boat.add(canopyGfx);
+
+          // Vertical supports for the canopy
+          const supportLeft = this.add.rectangle(-canopyWidth/2 + 3, -t.h/2 - canopyHeight/2, 3, canopyHeight, theme.canopy);
+          const supportRight = this.add.rectangle(canopyWidth/2 - 3, -t.h/2 - canopyHeight/2, 3, canopyHeight, theme.canopy);
+          boat.add(supportLeft);
+          boat.add(supportRight);
+
+          // Flowers along the canopy arch!
+          const flowerPositions = [
+            { x: -canopyWidth/2 + 8, y: -t.h/2 - canopyHeight * 0.5 },
+            { x: -canopyWidth/4, y: -t.h/2 - canopyHeight * 0.85 },
+            { x: 0, y: -t.h/2 - canopyHeight },
+            { x: canopyWidth/4, y: -t.h/2 - canopyHeight * 0.85 },
+            { x: canopyWidth/2 - 8, y: -t.h/2 - canopyHeight * 0.5 }
+          ];
+
+          flowerPositions.forEach((pos, fi) => {
+            const flowerColor = theme.flowers[fi % theme.flowers.length];
+            // Flower center
+            const flower = this.add.circle(pos.x, pos.y, 6, flowerColor);
             boat.add(flower);
-          }
+            // Flower center (yellow)
+            const flowerCenter = this.add.circle(pos.x, pos.y, 2, 0xffff00);
+            boat.add(flowerCenter);
+          });
+
+          // Extra flowers on the hull edges
+          const hullFlower1 = this.add.circle(-t.w/3, -t.h/2 - 3, 4, theme.flowers[0]);
+          const hullFlower2 = this.add.circle(t.w/3, -t.h/2 - 3, 4, theme.flowers[1 % theme.flowers.length]);
+          boat.add(hullFlower1);
+          boat.add(hullFlower2);
+
+          // ========== BOAT NAME - Prominently displayed! ==========
+          // Name background plate
+          const namePlateWidth = Math.min(t.w * 0.7, boatName.length * 9 + 16);
+          const namePlate = this.add.rectangle(0, t.h/4 + 2, namePlateWidth, 14, 0x000000, 0.4);
+          boat.add(namePlate);
+
+          // Boat name text - visible and colorful!
+          const nameText = this.add.text(0, t.h/4 + 2, boatName, {
+            fontSize: '11px',
+            fontFamily: 'Arial, sans-serif',
+            fontStyle: 'bold',
+            color: '#ffffff',
+            stroke: '#000000',
+            strokeThickness: 2
+          }).setOrigin(0.5, 0.5);
+          boat.add(nameText);
 
           // Physics body for the boat platform
           const boatPlatform = this.add.rectangle(t.x, t.y - t.h/2 - 5, t.w + 20, 15, 0x000000, 0);
           this.physics.add.existing(boatPlatform, true);
           this.platforms.add(boatPlatform);
 
-          // Store trajinera data for movement (LEGO attachment system needs all properties)
+          // ========== DEPTH/SCALE for POV perspective ==========
+          // Assign depth based on lane or position - creates visual depth illusion
+          // background=0.7x, mid=1.0x, foreground=1.2x
+          const laneNum = t.lane || (i % 3);
+          let depthScale = 1.0;  // Default mid-ground
+          if (laneNum === 0 || laneNum === 3) depthScale = 0.7;      // Background
+          else if (laneNum === 2 || laneNum === 5) depthScale = 1.2; // Foreground
+          // Apply scale to visual container
+          boat.setScale(depthScale);
+          // Set depth for proper layering (background boats behind, foreground in front)
+          boat.setDepth(laneNum * 10);
+
+          // Store trajinera data for movement and animations
           this.trajineras.push({
             container: boat,
             platform: boatPlatform,
             x: t.x,
             y: t.y,
+            baseY: t.y,  // Store original Y for bob animation
             w: t.w,
-            h: t.h || 25,  // Store height for ledge grab calculations
+            h: t.h || 25,
             speed: t.speed || 0,
             dir: t.dir || 1,
-            minX: -t.w,  // Wrap around
-            maxX: ld.width + t.w
+            minX: -t.w,
+            maxX: ld.width + t.w,
+            // Animation state
+            bobPhase: Math.random() * Math.PI * 2,  // Random start phase for natural look
+            bobAmplitude: 4,  // +/- 4 pixels visual bob (hitbox stays stable)
+            bobPeriod: 2.0,   // 2 second period sine wave
+            dipAmount: 0,  // Current dip from landing
+            dipVelocity: 0,  // For spring-back animation
+            // Depth properties
+            depthScale: depthScale,
+            visualY: t.y  // Track visual Y separately from physics Y
           });
         });
       }
     }
 
-    // Coins
-    this.coins = this.physics.add.group();
+    // Cempasuchil Flowers (replaces coins) - Mexican marigolds!
+    this.flowers = this.physics.add.group();
     ld.coins.forEach(c => {
-      const coin = this.coins.create(c.x, c.y, 'coin').setScale(1.5);
-      coin.body.allowGravity = false;
-      this.tweens.add({ targets: coin, y: c.y - 5, duration: 500, yoyo: true, repeat: -1 });
+      const flower = this.flowers.create(c.x, c.y, 'flower').setScale(1.5);
+      flower.body.allowGravity = false;
+      flower.baseY = c.y;
+      // Slow rotation for the flower
+      this.tweens.add({ targets: flower, angle: 360, duration: 3000, repeat: -1 });
+      // Gentle bob animation
+      this.tweens.add({ targets: flower, y: c.y - 5, duration: 600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     });
 
-    // Stars
-    this.stars = this.physics.add.group();
+    // Elotes (replaces stars) - Mexican corn on stick!
+    this.elotes = this.physics.add.group();
     ld.stars.forEach((s, i) => {
-      const starId = `${this.levelNum}-${i}`;
-      if (!gameState.stars.includes(starId)) {
-        const star = this.stars.create(s.x, s.y, 'star').setScale(1.5);
-        star.starId = starId;
-        star.body.allowGravity = false;
-        this.tweens.add({ targets: star, angle: 360, duration: 2000, repeat: -1 });
+      const eloteId = `${this.levelNum}-${i}`;
+      if (!gameState.stars.includes(eloteId)) {
+        const elote = this.elotes.create(s.x, s.y, 'elote').setScale(1.8);
+        elote.eloteId = eloteId;
+        elote.body.allowGravity = false;
+        // Golden glow effect with slow pulse
+        this.tweens.add({ targets: elote, scale: 2.0, duration: 800, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+        // Gentle rotation
+        this.tweens.add({ targets: elote, angle: 15, duration: 1000, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
       }
     });
 
@@ -3160,6 +4404,58 @@ class GameScene extends Phaser.Scene {
       });
     }
 
+    // ============ BLUE DEMON MASK - Luchador Mode Power-up! ============
+    // Spawns 1 per level on a random platform near the middle of the level
+    this.blueDemonMask = null;
+    if (ld.platforms && ld.platforms.length > 2) {
+      // Find platforms in the middle third of the level
+      const middlePlatforms = ld.platforms.filter(p => {
+        const midX = ld.width / 2;
+        const midY = ld.height / 2;
+        return Math.abs(p.x + p.w/2 - midX) < ld.width * 0.4 &&
+               Math.abs(p.y - midY) < ld.height * 0.4 &&
+               p.w > 60;  // Only on wide enough platforms
+      });
+
+      if (middlePlatforms.length > 0) {
+        const randomPlatform = middlePlatforms[Math.floor(Math.random() * middlePlatforms.length)];
+        const maskX = randomPlatform.x + randomPlatform.w / 2;
+        const maskY = randomPlatform.y - 30;  // Above the platform
+
+        this.blueDemonMask = this.physics.add.sprite(maskX, maskY, 'blueDemonMask').setScale(2);
+        this.blueDemonMask.body.allowGravity = false;
+
+        // Dramatic floating and glowing animation
+        this.tweens.add({
+          targets: this.blueDemonMask,
+          y: maskY - 10,
+          duration: 800,
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.easeInOut'
+        });
+        this.tweens.add({
+          targets: this.blueDemonMask,
+          scale: 2.3,
+          duration: 600,
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.easeInOut'
+        });
+
+        // Blue glow effect behind the mask
+        this.maskGlow = this.add.circle(maskX, maskY, 20, 0x0066ff, 0.3);
+        this.tweens.add({
+          targets: this.maskGlow,
+          scale: 1.5,
+          alpha: 0.1,
+          duration: 800,
+          yoyo: true,
+          repeat: -1
+        });
+      }
+    }
+
     // NO free starting powerup - earn your powers!
     // (Powerups are placed throughout the level based on difficulty settings)
 
@@ -3172,6 +4468,24 @@ class GameScene extends Phaser.Scene {
     this.player.setData('big', false);
     this.player.setData('invincible', false);
     this.player.setData('dead', false);
+
+    // ============ LUCHADOR MODE STATE ============
+    this.player.setData('luchadorMode', false);
+    this.player.setData('luchadorTimer', 0);
+    this.player.setData('isRolling', false);
+    this.player.setData('rollDirection', 1);
+    this.luchadorMaskOverlay = null;  // Visual mask on player
+    this.luchadorAfterimages = [];    // Blue motion trail
+    this.lastZPressTime = 0;          // For double-tap detection
+    this.zTapFlashShown = false;      // First tap visual feedback
+    this.rollAttackActive = false;    // Roll attack hitbox state
+
+    // Scene cleanup handler - prevents memory leaks on restart
+    this.events.once('shutdown', () => {
+      if (this.eloteParticleTimer) {
+        this.eloteParticleTimer.destroy();
+      }
+    });
 
     // Camera - different behavior for each level type
     this.cameras.main.setBounds(0, 0, ld.width, ld.height);
@@ -3187,7 +4501,7 @@ class GameScene extends Phaser.Scene {
       // ============ RISING WATER - FLAPPY BIRD PRESSURE! ============
       // Water starts at bottom and rises - keeps you moving!
       this.risingWaterY = ld.height + 50;  // Start just below screen
-      this.risingWaterSpeed = 25 + this.levelNum * 5;  // Faster on harder levels
+      this.risingWaterSpeed = 60;  // Fixed 60 px/s - balanced difficulty
       this.risingWaterGraphics = this.add.graphics().setDepth(100);  // Above everything
       this.risingWaterGraphics.setScrollFactor(0);  // Fixed to camera
 
@@ -3267,8 +4581,8 @@ class GameScene extends Phaser.Scene {
         enemy.setFlipX(enemy.getData('dir') > 0);
       }
     });
-    this.physics.add.overlap(this.player, this.coins, this.collectCoin, null, this);
-    this.physics.add.overlap(this.player, this.stars, this.collectStar, null, this);
+    this.physics.add.overlap(this.player, this.flowers, this.collectFlower, null, this);
+    this.physics.add.overlap(this.player, this.elotes, this.collectElote, null, this);
     this.physics.add.overlap(this.player, this.enemies, this.hitEnemy, null, this);
     this.physics.add.overlap(this.player, this.powerups, this.collectPowerup, null, this);
     this.physics.add.overlap(this.player, this.projectiles, this.hitByProjectile, null, this);
@@ -3278,10 +4592,13 @@ class GameScene extends Phaser.Scene {
     if (this.darkXochi) {
       this.physics.add.overlap(this.player, this.darkXochi, this.hitDarkXochi, null, this);
     }
+    if (this.blueDemonMask) {
+      this.physics.add.overlap(this.player, this.blueDemonMask, this.collectBlueDemonMask, null, this);
+    }
 
     // Input
     this.cursors = this.input.keyboard.createCursorKeys();
-    this.keys = this.input.keyboard.addKeys({ W: 'W', A: 'A', D: 'D', SPACE: 'SPACE', SHIFT: 'SHIFT', X: 'X', Z: 'Z' });
+    this.keys = this.input.keyboard.addKeys({ W: 'W', A: 'A', S: 'S', D: 'D', SPACE: 'SPACE', SHIFT: 'SHIFT', X: 'X', Z: 'Z' });
 
     // ============ ANIMATION STATE ============
     this.walkTime = 0;           // For walk animation cycle
@@ -3611,40 +4928,335 @@ class GameScene extends Phaser.Scene {
     this.events.emit('updateUI');
   }
 
-  collectCoin(player, coin) {
-    coin.destroy();
-    gameState.coins++;
-    gameState.score += 10; // +10 points per coin
+  // ============ COLLECT CEMPASUCHIL FLOWER (replaces coin) ============
+  collectFlower(player, flower) {
+    const flowerX = flower.x;
+    const flowerY = flower.y;
+    flower.destroy();
+    gameState.flowers++;
+    gameState.score += 10; // +10 points per flower
     this.playSound('sfx-coin');
-    this.showText(coin.x, coin.y - 20, '+10', '#ffdd00');
+    this.showText(flowerX, flowerY - 20, '+10', '#ff8c00');
     this.events.emit('updateUI');
-    // Super jump every 10 coins
-    if (gameState.coins % 10 === 0) {
+
+    // ========== ORANGE PETAL PARTICLE BURST ==========
+    for (let i = 0; i < 8; i++) {
+      const angle = (i / 8) * Math.PI * 2 + Math.random() * 0.5;
+      const speed = 40 + Math.random() * 30;
+      const petal = this.add.ellipse(
+        flowerX,
+        flowerY,
+        6 + Math.random() * 4,
+        4 + Math.random() * 2,
+        Phaser.Math.Between(0, 1) ? 0xff8c00 : 0xffaa00  // Orange/yellow petals
+      );
+      petal.setAngle(Math.random() * 360);
+      this.tweens.add({
+        targets: petal,
+        x: flowerX + Math.cos(angle) * speed,
+        y: flowerY + Math.sin(angle) * speed + 20,  // Fall slightly
+        alpha: 0,
+        scale: 0.3,
+        angle: petal.angle + (Math.random() - 0.5) * 180,
+        duration: 400 + Math.random() * 200,
+        ease: 'Quad.easeOut',
+        onComplete: () => petal.destroy()
+      });
+    }
+
+    // Super jump every 10 flowers
+    if (gameState.flowers % 10 === 0) {
       gameState.superJumps++;
       this.showBigText('+1 SUPER JUMP!', '#00ffff');
     }
-    // Extra life at 100 coins
-    if (gameState.coins >= 100) {
-      gameState.coins -= 100;
+    // Extra life at 100 flowers
+    if (gameState.flowers >= 100) {
+      gameState.flowers -= 100;
       gameState.lives++;
-      this.showBigText('1UP!', '#ffdd00');
+      this.showBigText('1UP!', '#ff8c00');
     }
   }
 
-  collectStar(player, star) {
-    gameState.stars.push(star.starId);
-    gameState.superJumps += 1;   // Only super jump, no thunder!
-    // Stars are collectibles - earn thunder from powerups!
+  // ============ COLLECT ELOTE (replaces star) - 8 second invincibility! ============
+  collectElote(player, elote) {
+    gameState.stars.push(elote.eloteId);  // Still use stars array for tracking collection
     gameState.score += 500;
-    star.destroy();
+    const eloteX = elote.x;
+    const eloteY = elote.y;
+    elote.destroy();
     this.playSound('sfx-powerup');
-    this.showBigText('STAR! +500pts', '#ffff00');
+    this.showBigText('ELOTE! INVINCIBLE!', '#ffd700');
     this.events.emit('updateUI');
     saveGame();
+
+    // ========== 8 SECOND INVINCIBILITY with GOLDEN GLOW ==========
+    this.setEloteInvincible(8000);
+  }
+
+  // ============ ELOTE INVINCIBILITY - Golden glow effect ============
+  setEloteInvincible(duration) {
+    this.player.setData('invincible', true);
+    this.player.setData('eloteActive', true);
+
+    // Golden tint effect
+    this.player.setTint(0xffd700);
+
+    // Start corn kernel particle trail
+    this.eloteParticleTimer = this.time.addEvent({
+      delay: 100,  // Spawn particle every 100ms
+      callback: () => {
+        if (!this.player || !this.player.getData('eloteActive')) return;
+        // Create corn kernel particle
+        const kernel = this.add.circle(
+          this.player.x + (Math.random() - 0.5) * 20,
+          this.player.y + (Math.random() - 0.5) * 20,
+          3 + Math.random() * 2,
+          Phaser.Math.Between(0, 1) ? 0xffd700 : 0xffec8b  // Golden/yellow kernels
+        );
+        this.tweens.add({
+          targets: kernel,
+          y: kernel.y + 30,
+          alpha: 0,
+          scale: 0.5,
+          duration: 400,
+          onComplete: () => kernel.destroy()
+        });
+      },
+      repeat: Math.floor(duration / 100) - 1
+    });
+
+    // End invincibility after duration
+    this.time.delayedCall(duration, () => {
+      if (this.player) {
+        this.player.setData('invincible', false);
+        this.player.setData('eloteActive', false);
+        this.player.clearTint();
+        if (this.eloteParticleTimer) {
+          this.eloteParticleTimer.destroy();
+        }
+      }
+    });
+  }
+
+  // ============ BLUE DEMON MASK - Luchador Mode! ============
+  collectBlueDemonMask(player, mask) {
+    const maskX = mask.x;
+    const maskY = mask.y;
+    mask.destroy();
+    if (this.maskGlow) {
+      this.maskGlow.destroy();
+      this.maskGlow = null;
+    }
+    this.blueDemonMask = null;
+
+    this.playSound('sfx-powerup');
+    this.showBigText('LUCHADOR MODE!', '#0066ff');
+    gameState.score += 1000;
+    this.events.emit('updateUI');
+
+    // Activate luchador mode for 15 seconds
+    this.activateLuchadorMode(15000);
+
+    // Dramatic blue particle burst
+    for (let i = 0; i < 16; i++) {
+      const angle = (i / 16) * Math.PI * 2;
+      const speed = 60 + Math.random() * 40;
+      const particle = this.add.circle(
+        maskX,
+        maskY,
+        4 + Math.random() * 4,
+        0x0066ff
+      );
+      this.tweens.add({
+        targets: particle,
+        x: maskX + Math.cos(angle) * speed,
+        y: maskY + Math.sin(angle) * speed,
+        alpha: 0,
+        scale: 0.3,
+        duration: 500,
+        onComplete: () => particle.destroy()
+      });
+    }
+  }
+
+  // ============ ACTIVATE LUCHADOR MODE ============
+  activateLuchadorMode(duration) {
+    this.player.setData('luchadorMode', true);
+    this.player.setData('luchadorTimer', duration);
+
+    // Create mask overlay on player
+    this.luchadorMaskOverlay = this.add.sprite(this.player.x, this.player.y - 20, 'blueDemonMask').setScale(1.5);
+    this.luchadorMaskOverlay.setDepth(this.player.depth + 1);
+
+    // Blue aura effect
+    this.player.setTint(0x6699ff);
+
+    // Timer to end luchador mode
+    this.time.delayedCall(duration, () => {
+      this.deactivateLuchadorMode();
+    });
+
+    // Warning flash at 3 seconds remaining
+    this.time.delayedCall(duration - 3000, () => {
+      if (this.player && this.player.getData('luchadorMode')) {
+        this.showText(this.player.x, this.player.y - 50, 'LUCHADOR ENDING!', '#ff6666');
+        // Flashing effect
+        this.tweens.add({
+          targets: this.luchadorMaskOverlay,
+          alpha: 0.3,
+          duration: 200,
+          yoyo: true,
+          repeat: 7
+        });
+      }
+    });
+  }
+
+  // ============ DEACTIVATE LUCHADOR MODE ============
+  deactivateLuchadorMode() {
+    if (!this.player) return;
+
+    this.player.setData('luchadorMode', false);
+    this.player.setData('isRolling', false);
+
+    // Reset double-tap detection state
+    this.lastZPressTime = 0;
+    this.zTapFlashShown = false;
+
+    // Handle tint - check if elote is still active to avoid visual conflict
+    if (this.player.getData('eloteActive')) {
+      this.player.setTint(0xffd700); // Restore elote golden tint
+    } else {
+      this.player.clearTint();
+    }
+
+    // Remove mask overlay
+    if (this.luchadorMaskOverlay) {
+      this.luchadorMaskOverlay.destroy();
+      this.luchadorMaskOverlay = null;
+    }
+
+    // Clear afterimages
+    this.luchadorAfterimages.forEach(img => {
+      if (img && img.destroy) img.destroy();
+    });
+    this.luchadorAfterimages = [];
+  }
+
+  // ============ LUCHADOR ROLLING ATTACK ============
+  startLuchadorRoll() {
+    if (!this.player || !this.player.getData('luchadorMode')) return;
+    if (this.player.getData('isRolling')) return;
+
+    const onGround = this.player.body.blocked.down;
+    if (onGround) return;  // Must be airborne!
+
+    this.player.setData('isRolling', true);
+    const dir = this.player.flipX ? -1 : 1;
+    this.player.setData('rollDirection', dir);
+
+    // 1.5x forward momentum
+    this.player.body.setVelocityX(dir * 400);  // Strong forward push
+    this.player.body.setVelocityY(100);  // Slight downward momentum
+
+    // Visual: player curls into ball (scale squash)
+    this.player.setScale(0.12, 0.18);  // Squashed ball shape
+
+    // Play attack sound
+    this.playSound('sfx-stomp');
+
+    // Create rolling attack hitbox (larger than player)
+    this.rollAttackActive = true;
+  }
+
+  // ============ END LUCHADOR ROLL ============
+  endLuchadorRoll(hitWall = false) {
+    if (!this.player) return;
+
+    this.player.setData('isRolling', false);
+    this.rollAttackActive = false;
+
+    // Restore normal scale
+    this.player.setScale(0.15);
+
+    if (hitWall) {
+      // Bounce back slightly on wall hit
+      const dir = this.player.getData('rollDirection') || 1;
+      this.player.body.setVelocityX(-dir * 150);
+      this.player.body.setVelocityY(-100);
+    }
+  }
+
+  // ============ LUCHADOR ROLL HIT ENEMY ============
+  luchadorRollHitEnemy(enemy) {
+    if (!enemy.getData('alive')) return;
+
+    enemy.setData('alive', false);
+    const dir = this.player.getData('rollDirection') || 1;
+    enemy.body.setVelocity(dir * 200, -200);
+    enemy.setTint(0x0066ff);  // Blue tint on hit
+
+    // ========== SCREEN SHAKE on enemy hit! ==========
+    this.cameras.main.shake(100, 0.01);
+
+    // ========== HIT FREEZE - 50ms pause ==========
+    this.physics.pause();
+    this.time.delayedCall(50, () => {
+      this.physics.resume();
+    });
+
+    this.time.delayedCall(500, () => {
+      if (enemy && enemy.destroy) enemy.destroy();
+    });
+
+    this.playSound('sfx-stomp');
+    gameState.score += 200;  // Bonus points for luchador kill!
+    this.showText(enemy.x, enemy.y - 30, '+200 LUCHA!', '#0066ff');
+  }
+
+  // ============ CREATE BLUE AFTERIMAGE TRAIL ============
+  createLuchadorAfterimage() {
+    if (!this.player || !this.player.getData('isRolling')) return;
+
+    // Create 3-4 afterimage sprites
+    const afterimage = this.add.ellipse(
+      this.player.x,
+      this.player.y,
+      30, 20,
+      0x0066ff, 0.6
+    );
+    afterimage.setDepth(this.player.depth - 1);
+
+    this.luchadorAfterimages.push(afterimage);
+
+    // Fade out afterimage
+    this.tweens.add({
+      targets: afterimage,
+      alpha: 0,
+      scale: 0.5,
+      duration: 200,
+      onComplete: () => {
+        const idx = this.luchadorAfterimages.indexOf(afterimage);
+        if (idx > -1) this.luchadorAfterimages.splice(idx, 1);
+        afterimage.destroy();
+      }
+    });
+
+    // Limit afterimages
+    while (this.luchadorAfterimages.length > 4) {
+      const old = this.luchadorAfterimages.shift();
+      if (old && old.destroy) old.destroy();
+    }
   }
 
   hitEnemy(player, enemy) {
     if (player.getData('invincible') || !enemy.getData('alive')) return;
+
+    // Luchador rolling attack defeats enemies on contact!
+    if (player.getData('isRolling') && player.getData('luchadorMode')) {
+      this.luchadorRollHitEnemy(enemy);
+      return;
+    }
 
     if (player.body.velocity.y > 0 && player.y < enemy.y - 10) {
       // Stomp
@@ -4116,8 +5728,8 @@ class GameScene extends Phaser.Scene {
       // Don't process normal movement while hanging, but DON'T return - let world update continue
     }
 
-    // LEDGE DETECTION - only when falling AND pressing toward a ledge
-    const isFalling = this.player.body.velocity.y > 80;  // Must be falling faster
+    // LEDGE DETECTION - more forgiving for all platforms including small ones
+    const isFalling = this.player.body.velocity.y > 20;  // Lower threshold - can grab earlier
     const notOnGround = !this.player.body.blocked.down;
     const canGrab = grabCooldown <= 0;
 
@@ -4129,7 +5741,7 @@ class GameScene extends Phaser.Scene {
     if (isFalling && notOnGround && canGrab && pressingDirection &&
         !this.player.getData('swimming') && !this.player.getData('hanging') && !this.player.getData('climbing')) {
 
-      const grabRange = 30;  // Slightly more forgiving
+      const grabRange = 45;  // More forgiving - works on small platforms too
       const playerH = this.player.displayHeight || this.player.height || 50;
       const playerW = this.player.displayWidth || this.player.width || 30;
       const playerTop = this.player.y - playerH / 2;
@@ -4290,6 +5902,42 @@ class GameScene extends Phaser.Scene {
     this.lastTouchJump = tc.jump;
     this.wasOnGround = onGround;
 
+    // ============ LUCHADOR MODE UPDATE ============
+    if (this.player.getData('luchadorMode')) {
+      // Update mask overlay position
+      if (this.luchadorMaskOverlay) {
+        this.luchadorMaskOverlay.setPosition(this.player.x, this.player.y - 25);
+        this.luchadorMaskOverlay.setFlipX(this.player.flipX);
+      }
+
+      // Handle rolling state
+      if (this.player.getData('isRolling')) {
+        // Create blue afterimage trail
+        this.createLuchadorAfterimage();
+
+        // Check for wall collision - end roll and bounce back
+        if (this.player.body.blocked.left || this.player.body.blocked.right) {
+          this.endLuchadorRoll(true);
+        }
+
+        // Check for ground landing - end roll
+        if (this.player.body.blocked.down) {
+          this.endLuchadorRoll(false);
+        }
+
+        // Check for enemy collision during roll
+        if (this.rollAttackActive) {
+          this.enemies.getChildren().forEach(enemy => {
+            if (!enemy.getData('alive')) return;
+            const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, enemy.x, enemy.y);
+            if (dist < 50) {
+              this.luchadorRollHitEnemy(enemy);
+            }
+          });
+        }
+      }
+    }
+
     // ============ THUNDER ATTACK (Z key) ============
     // NOW REQUIRES POWER-UP like super jumps!
     if (this.attackCooldown > 0) this.attackCooldown -= 16;
@@ -4300,8 +5948,38 @@ class GameScene extends Phaser.Scene {
 
     const attackPressed = Phaser.Input.Keyboard.JustDown(this.keys.Z) || touchAttackJustPressed;
 
-    // Regular mace swing (no thunderbolt) - only when not hanging/climbing
-    if (playerCanMove && attackPressed && this.attackCooldown <= 0 && !this.isAttacking) {
+    // ============ LUCHADOR DOUBLE-TAP Z DETECTION ============
+    if (attackPressed && this.player.getData('luchadorMode') && !onGround) {
+      const currentTime = this.time.now;
+      const timeSinceLastZ = currentTime - this.lastZPressTime;
+
+      if (timeSinceLastZ < 300 && this.zTapFlashShown) {
+        // Double-tap detected while airborne - trigger rolling attack!
+        if (!this.player.getData('isRolling')) {
+          this.startLuchadorRoll();
+          this.lastZPressTime = 0;  // Reset to prevent triple-tap
+          this.zTapFlashShown = false;
+        }
+      } else {
+        // First tap - show brief blue flash to signal double-tap window
+        this.lastZPressTime = currentTime;
+        this.zTapFlashShown = true;
+
+        // Visual feedback: brief blue flash
+        const flash = this.add.circle(this.player.x, this.player.y, 40, 0x0066ff, 0.5);
+        this.tweens.add({
+          targets: flash,
+          alpha: 0,
+          scale: 1.5,
+          duration: 150,
+          onComplete: () => flash.destroy()
+        });
+      }
+    }
+
+    // Regular mace swing (no thunderbolt) - only when not hanging/climbing AND not rolling
+    const isRolling = this.player.getData('isRolling');
+    if (playerCanMove && attackPressed && this.attackCooldown <= 0 && !this.isAttacking && !isRolling) {
       this.isAttacking = true;
       this.attackCooldown = 500; // 0.5 second cooldown for regular swing
 
@@ -4789,56 +6467,17 @@ class GameScene extends Phaser.Scene {
       });
     }
 
-    // ============ ANIMATE PARTICLES (fireflies, leaves, dust) ============
-    if (this.particles && this.particles.length > 0) {
-      const camX = this.cameras.main.scrollX;
-      const camY = this.cameras.main.scrollY;
-
-      this.particles.forEach(p => {
-        // Update particle based on type
-        if (p.type === 'firefly') {
-          // Fireflies float and pulse
-          p.angle += p.rotSpeed * (delta / 16);
-          p.x = p.baseX + Math.sin(p.angle) * 30;
-          p.y = p.baseY + Math.cos(p.angle * 0.7) * 20;
-          p.gfx.setPosition(p.x - camX * 0.2, p.y - camY * 0.2);
-          p.gfx.setAlpha(0.5 + Math.sin(time / 200 + p.phase) * 0.4);
-        } else if (p.type === 'leaf') {
-          // Leaves drift down and sway
-          p.y += p.fallSpeed * (delta / 16);
-          p.x += Math.sin(time / 500 + p.phase) * 0.5;
-          p.rotation += p.rotSpeed * (delta / 16);
-
-          // Reset leaf when it falls below screen
-          if (p.y > this.levelData.height) {
-            p.y = -50;
-            p.x = Math.random() * this.levelData.width;
-          }
-
-          p.gfx.setPosition(p.x - camX * 0.15, p.y - camY * 0.15);
-          p.gfx.setRotation(p.rotation);
-        } else if (p.type === 'dust') {
-          // Dust motes float gently
-          p.y += Math.sin(time / 1000 + p.phase) * 0.3;
-          p.x += p.driftSpeed * (delta / 16);
-
-          // Wrap dust horizontally
-          if (p.x > this.levelData.width + 50) {
-            p.x = -50;
-          }
-
-          p.gfx.setPosition(p.x - camX * 0.1, p.y - camY * 0.1);
-          p.gfx.setAlpha(0.3 + Math.sin(time / 800 + p.phase) * 0.2);
-        }
-      });
-    }
+    // ============ PIECE 5: ANIMATE WORLD-SPECIFIC PARTICLES ============
+    // Update all atmospheric particles based on their type
+    updateWorldParticles(this.particles, time, delta, this.levelData.width, this.levelData.height);
 
     // ============ TRAJINERA (BOAT) MOVEMENT - Xochimilco Level ============
+    // V3: POV perspective with depth/scale, visual bobbing separate from physics
     if (this.trajineras && this.trajineras.length > 0) {
       const dt = delta / 1000;  // Convert to seconds
 
       this.trajineras.forEach(traj => {
-        // Move the boat
+        // Move the boat horizontally
         traj.x += traj.speed * traj.dir * dt;
 
         // Wrap around when going off screen
@@ -4848,21 +6487,59 @@ class GameScene extends Phaser.Scene {
           traj.x = traj.maxX;
         }
 
-        // Update visual position
-        traj.container.setPosition(traj.x, traj.y);
+        // ========== VISUAL BOBBING ANIMATION (sprite only, hitbox stays stable!) ==========
+        // Gentle +/- 4 pixels on sine wave (2s period) - per spec
+        const bobPeriod = traj.bobPeriod || 2.0;  // 2 second period
+        const bobAmplitude = traj.bobAmplitude || 4;  // +/- 4 pixels
+        traj.bobPhase = (traj.bobPhase || 0) + (dt * Math.PI * 2 / bobPeriod);
+        const visualBobOffset = Math.sin(traj.bobPhase) * bobAmplitude;
 
-        // Update physics body position (use reset for static bodies)
+        // ========== LANDING DIP SPRING ANIMATION ==========
+        // When player lands, boat dips 3-4px then springs back (0.2s)
+        const wasOnBoat = traj.playerOnBoat || false;
+        const baseY = traj.baseY || traj.y;
+        // Check against stable physics Y, not visual Y
+        const playerOnBoat = (this.player.body.touching.down || this.player.body.blocked.down) &&
+                             Math.abs(this.player.x - traj.x) < traj.w / 2 + 20 &&
+                             Math.abs(this.player.y - (baseY - 25)) < 30;
+
+        // Detect landing (wasn't on boat, now is)
+        if (playerOnBoat && !wasOnBoat) {
+          traj.dipVelocity = 25;  // Initial downward velocity for dip
+        }
+        traj.playerOnBoat = playerOnBoat;
+
+        // Spring physics for dip recovery
+        const dipTarget = 0;  // Spring back to no dip
+        const dipSpring = 150;  // Spring stiffness
+        const dipDamping = 12;  // Damping factor
+
+        // Calculate spring force
+        const dipForce = -dipSpring * (traj.dipAmount - dipTarget);
+        const dampingForce = -dipDamping * traj.dipVelocity;
+        traj.dipVelocity = (traj.dipVelocity || 0) + (dipForce + dampingForce) * dt;
+        traj.dipAmount = (traj.dipAmount || 0) + traj.dipVelocity * dt;
+
+        // Clamp dip to reasonable range
+        traj.dipAmount = Math.max(-1, Math.min(4, traj.dipAmount));
+
+        // ========== SEPARATE VISUAL vs PHYSICS POSITIONS ==========
+        // Visual Y: base + bob + dip (for the sprite)
+        traj.visualY = baseY + visualBobOffset + traj.dipAmount;
+        // Physics Y: base only (stable hitbox for player collision)
+        traj.y = baseY;
+
+        // Update visual position (sprite bobs independently)
+        traj.container.setPosition(traj.x, traj.visualY);
+
+        // Update physics body position (STABLE - no bob, just horizontal movement)
         traj.platform.x = traj.x;
-        traj.platform.y = traj.y - 15;
-        traj.platform.body.reset(traj.x, traj.y - 15);
+        traj.platform.y = baseY - 15;
+        traj.platform.body.reset(traj.x, baseY - 15);
 
         // If player is on this boat, move them with it!
-        if (this.player.body.touching.down || this.player.body.blocked.down) {
-          const playerOnBoat = Math.abs(this.player.x - traj.x) < traj.w / 2 + 20 &&
-                               Math.abs(this.player.y - (traj.y - 25)) < 30;
-          if (playerOnBoat) {
-            this.player.x += traj.speed * traj.dir * dt;
-          }
+        if (playerOnBoat) {
+          this.player.x += traj.speed * traj.dir * dt;
         }
       });
     }
@@ -4898,6 +6575,7 @@ class GameScene extends Phaser.Scene {
       }
 
       // ============ SWIMMING MECHANICS - DKC2 Style! ============
+      // X = stroke swim in direction you're pressing (smooth and continuous)
       const isInWater = this.player.y > this.risingWaterY - 10;
       const wasInWater = this.player.getData('swimming') || false;
 
@@ -4905,44 +6583,100 @@ class GameScene extends Phaser.Scene {
         // ENTER WATER - can swim!
         if (!wasInWater) {
           this.player.setData('swimming', true);
-          this.player.setTint(0x66aacc);  // Blue tint when swimming
+          this.player.setData('swimCooldown', 0);
+          this.player.setTint(0x66aacc);
           this.showText(this.player.x, this.player.y - 30, 'SWIM!', '#66ddff');
         }
 
-        // Swimming physics - reduced gravity, can move freely
-        this.player.body.setGravityY(-800);  // Counteract gravity for buoyancy
-        this.player.body.setDragY(300);
+        // Swimming physics - smooth water feel with gentle buoyancy
+        this.player.body.setGravityY(-400);  // Gentle buoyancy
+        this.player.body.setDragX(100);  // Less drag for smoother movement
+        this.player.body.setDragY(100);
 
-        // Swim controls
-        const swimSpeed = 180;
-        if (this.cursors.up.isDown || this.keys.W.isDown || this.keys.SPACE.isDown) {
-          this.player.body.setVelocityY(-swimSpeed);  // Swim up!
-        } else if (this.cursors.down.isDown) {
-          this.player.body.setVelocityY(swimSpeed * 0.7);  // Sink down
+        // Update swim cooldown
+        const swimCooldown = this.player.getData('swimCooldown') || 0;
+        if (swimCooldown > 0) {
+          this.player.setData('swimCooldown', swimCooldown - dt);
         }
 
-        // Horizontal swim
+        // DKC2 STYLE: X + Direction = swim in that direction!
+        // Direction keys directly control swim direction (like DKC2)
+        let swimDirX = 0;
+        let swimDirY = 0;
+
         if (this.cursors.left.isDown || this.keys.A.isDown) {
-          this.player.body.setVelocityX(-swimSpeed * 0.8);
+          swimDirX = -1;
           this.player.setFlipX(true);
         } else if (this.cursors.right.isDown || this.keys.D.isDown) {
-          this.player.body.setVelocityX(swimSpeed * 0.8);
+          swimDirX = 1;
           this.player.setFlipX(false);
         }
+        if (this.cursors.up.isDown || this.keys.W.isDown) {
+          swimDirY = -1;
+        } else if (this.cursors.down.isDown || this.keys.S.isDown) {
+          swimDirY = 1;
+        }
 
-        // Bubble trail when swimming
-        if (Math.random() < 0.3) {
+        // X BUTTON = SWIM STROKE (DKC2 style - press X to swim!)
+        const swimSpeed = 280;  // Smooth swim speed
+        const canSwim = (this.player.getData('swimCooldown') || 0) <= 0;
+
+        // HOLD X to swim continuously in pressed direction!
+        if (this.keys.X.isDown) {
+          // If no direction pressed, swim forward in facing direction
+          if (swimDirX === 0 && swimDirY === 0) {
+            swimDirX = this.player.flipX ? -1 : 1;
+          }
+
+          // Normalize diagonal movement
+          const mag = Math.sqrt(swimDirX * swimDirX + swimDirY * swimDirY);
+          if (mag > 0) {
+            swimDirX /= mag;
+            swimDirY /= mag;
+          }
+
+          // Apply smooth swimming velocity (additive for momentum)
+          const currentVelX = this.player.body.velocity.x;
+          const currentVelY = this.player.body.velocity.y;
+          const targetVelX = swimSpeed * swimDirX;
+          const targetVelY = swimSpeed * swimDirY;
+
+          // Smooth interpolation for fluid movement
+          this.player.body.setVelocityX(currentVelX + (targetVelX - currentVelX) * 0.15);
+          this.player.body.setVelocityY(currentVelY + (targetVelY - currentVelY) * 0.15);
+
+          // Bubble trail when swimming
+          if (canSwim && Math.random() < 0.3) {
+            const bubble = this.add.circle(
+              this.player.x - swimDirX * 15 + (Math.random() - 0.5) * 10,
+              this.player.y + (Math.random() - 0.5) * 15,
+              3 + Math.random() * 3,
+              0xaaeeff, 0.7
+            );
+            this.tweens.add({
+              targets: bubble,
+              y: bubble.y - 30,
+              alpha: 0,
+              scale: 0.3,
+              duration: 500,
+              onComplete: () => bubble.destroy()
+            });
+          }
+        }
+
+        // Ambient bubble trail when swimming
+        if (Math.random() < 0.15) {
           const bubble = this.add.circle(
             this.player.x + (Math.random() - 0.5) * 20,
             this.player.y + 10,
-            3 + Math.random() * 3,
-            0xaaeeff, 0.6
+            2 + Math.random() * 2,
+            0xaaeeff, 0.5
           );
           this.tweens.add({
             targets: bubble,
-            y: bubble.y - 50,
+            y: bubble.y - 40,
             alpha: 0,
-            duration: 600,
+            duration: 800,
             onComplete: () => bubble.destroy()
           });
         }
@@ -4957,8 +6691,11 @@ class GameScene extends Phaser.Scene {
       } else if (wasInWater) {
         // EXIT WATER - restore normal physics
         this.player.setData('swimming', false);
+        this.player.setData('swimCooldown', 0);
+        this.player.setData('swimVertical', 0);
         this.player.clearTint();
         this.player.body.setGravityY(0);  // Reset to world gravity
+        this.player.body.setDragX(0);
         this.player.body.setDragY(0);
 
         // Boost out of water!
@@ -5093,9 +6830,9 @@ class UIScene extends Phaser.Scene {
     this.scoreText = this.add.text(15, 12, `SCORE: ${gameState.score}`, { fontFamily: 'Arial Black', fontSize: '14px', color: '#ffdd00' });
     this.livesText = this.add.text(15, 32, `Lives: ${gameState.lives}`, { fontFamily: 'Arial', fontSize: '11px', color: '#fff' });
 
-    // Coins & Stars
-    this.coinsText = this.add.text(130, 12, `Coins: ${gameState.coins}`, { fontFamily: 'Arial', fontSize: '11px', color: '#ffdd00' });
-    this.starsText = this.add.text(130, 32, `Stars: ${gameState.stars.length}/30`, { fontFamily: 'Arial', fontSize: '11px', color: '#ffff00' });
+    // Flowers & Elotes (Mexican cultural items!)
+    this.flowersText = this.add.text(130, 12, `Flores: ${gameState.flowers}`, { fontFamily: 'Arial', fontSize: '11px', color: '#ff8c00' });
+    this.elotesText = this.add.text(130, 32, `Elotes: ${gameState.stars.length}/30`, { fontFamily: 'Arial', fontSize: '11px', color: '#ffd700' });
 
     // Double Jump counter (cyan) - shows how many mid-air jumps you have
     this.superJumpText = this.add.text(230, 12, `Jumps: ${gameState.superJumps}`, { fontFamily: 'Arial', fontSize: '11px', color: '#00ffff' });
@@ -5128,8 +6865,8 @@ class UIScene extends Phaser.Scene {
     game.events.on('updateUI', () => {
       this.scoreText.setText(`SCORE: ${gameState.score}`);
       this.livesText.setText(`Lives: ${gameState.lives}`);
-      this.coinsText.setText(`Coins: ${gameState.coins}`);
-      this.starsText.setText(`Stars: ${gameState.stars.length}/30`);
+      this.flowersText.setText(`Flores: ${gameState.flowers}`);
+      this.elotesText.setText(`Elotes: ${gameState.stars.length}/30`);
       this.superJumpText.setText(`Jumps: ${gameState.superJumps}`);
       this.maceText.setText(`Thunder: ${gameState.maceAttacks}`);
     });
@@ -5143,11 +6880,75 @@ class PauseScene extends Phaser.Scene {
   create() {
     const { width, height } = this.cameras.main;
     this.add.rectangle(width/2, height/2, width, height, 0x000000, 0.8);
-    this.add.text(width/2, 150, 'PAUSED', { fontFamily: 'Arial Black', fontSize: '48px', color: '#4ecdc4' }).setOrigin(0.5);
+    this.add.text(width/2, 100, 'PAUSED', { fontFamily: 'Arial Black', fontSize: '48px', color: '#4ecdc4' }).setOrigin(0.5);
 
-    this.makeButton(width/2, 280, 'RESUME', 0x4ecdc4, () => { this.scene.resume('GameScene'); this.scene.stop(); });
-    this.makeButton(width/2, 350, 'RESTART', 0xffaa00, () => { this.scene.stop('GameScene'); this.scene.stop('UIScene'); this.scene.stop(); this.scene.start('GameScene', {level: gameState.currentLevel}); });
-    this.makeButton(width/2, 420, 'MENU', 0xff6666, () => { mariachiMusic.stop(); this.scene.stop('GameScene'); this.scene.stop('UIScene'); this.scene.stop(); this.scene.start('MenuScene'); });
+    this.makeButton(width/2, 200, 'RESUME', 0x4ecdc4, () => { this.scene.resume('GameScene'); this.scene.stop(); });
+    this.makeButton(width/2, 260, 'RESTART', 0xffaa00, () => { this.scene.stop('GameScene'); this.scene.stop('UIScene'); this.scene.stop(); this.scene.start('GameScene', {level: gameState.currentLevel}); });
+    this.makeButton(width/2, 320, 'MENU', 0xff6666, () => { mariachiMusic.stop(); this.scene.stop('GameScene'); this.scene.stop('UIScene'); this.scene.stop(); this.scene.start('MenuScene'); });
+
+    // ============ WORLD SELECTION ============
+    this.add.text(width/2, 380, 'JUMP TO WORLD', {
+      fontFamily: 'Arial Black', fontSize: '14px', color: '#aaaaaa'
+    }).setOrigin(0.5);
+
+    const worldData = [
+      { num: 1, icon: '🌅', name: 'Dawn', color: 0xffaa77 },
+      { num: 2, icon: '☀️', name: 'Day', color: 0x55ccee },
+      { num: 3, icon: '💎', name: 'Cave', color: 0x4466aa },
+      { num: 4, icon: '🌸', name: 'Garden', color: 0xffcc44 },
+      { num: 5, icon: '🌙', name: 'Night', color: 0x6644aa },
+      { num: 6, icon: '🎉', name: 'Fiesta', color: 0x44ccaa }
+    ];
+
+    const btnSize = 48;
+    const worldStartX = width/2 - (worldData.length * btnSize) / 2 + btnSize/2;
+
+    worldData.forEach((world, i) => {
+      const x = worldStartX + i * btnSize;
+      const y = 430;
+      const firstLevel = getFirstLevelOfWorld(world.num);
+      const isUnlocked = gameState.currentLevel >= firstLevel || firstLevel === 1;
+      const isCurrent = getWorldForLevel(gameState.currentLevel) === world.num;
+
+      // Button background
+      const btnBg = this.add.rectangle(x, y, btnSize - 4, btnSize - 4,
+        isUnlocked ? world.color : 0x333333, isUnlocked ? 1 : 0.5);
+
+      // Current world indicator (white border)
+      if (isCurrent) {
+        this.add.rectangle(x, y, btnSize, btnSize, 0xffffff).setDepth(-1);
+      }
+
+      // Icon
+      this.add.text(x, y - 5, world.icon, {
+        fontSize: '20px'
+      }).setOrigin(0.5);
+
+      // World number
+      this.add.text(x, y + 14, world.num.toString(), {
+        fontFamily: 'Arial Black', fontSize: '10px',
+        color: isUnlocked ? '#ffffff' : '#666666'
+      }).setOrigin(0.5);
+
+      // Make clickable if unlocked
+      if (isUnlocked) {
+        btnBg.setInteractive({ useHandCursor: true });
+        btnBg.on('pointerover', () => btnBg.setScale(1.15));
+        btnBg.on('pointerout', () => btnBg.setScale(1));
+        btnBg.on('pointerdown', () => {
+          gameState.currentLevel = firstLevel;
+          this.scene.stop('GameScene');
+          this.scene.stop('UIScene');
+          this.scene.stop();
+          this.scene.start('GameScene', { level: firstLevel });
+        });
+      }
+    });
+
+    // World name tooltip area
+    this.add.text(width/2, 470, 'Click a world to jump there', {
+      fontFamily: 'Arial', fontSize: '11px', color: '#666666'
+    }).setOrigin(0.5);
 
     this.input.keyboard.on('keydown-ESC', () => { this.scene.resume('GameScene'); this.scene.stop(); });
   }
@@ -5207,8 +7008,8 @@ class EndScene extends Phaser.Scene {
     this.tweens.add({ targets: x, y: 285, duration: 800, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
 
     // Stats
-    this.add.text(width/2, 370, `Stars: ${gameState.stars.length}/30`, { fontFamily: 'Arial', fontSize: '16px', color: '#ffff00' }).setOrigin(0.5);
-    this.add.text(width/2, 395, `Coins Collected: ${gameState.coins + (gameState.rescuedBabies.length * 10)}`, { fontFamily: 'Arial', fontSize: '14px', color: '#ffdd00' }).setOrigin(0.5);
+    this.add.text(width/2, 370, `Elotes: ${gameState.stars.length}/30`, { fontFamily: 'Arial', fontSize: '16px', color: '#ffd700' }).setOrigin(0.5);
+    this.add.text(width/2, 395, `Flores Collected: ${gameState.flowers + (gameState.rescuedBabies.length * 10)}`, { fontFamily: 'Arial', fontSize: '14px', color: '#ff8c00' }).setOrigin(0.5);
 
     this.add.text(width/2, 440, 'A gift made with love!', { fontFamily: 'Arial', fontSize: '14px', color: '#ff6b9d' }).setOrigin(0.5);
 
