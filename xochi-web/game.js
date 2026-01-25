@@ -241,43 +241,43 @@ const gameState = {
   difficulty: 'medium'
 };
 
-// Difficulty presets - affects gameplay significantly
+// Difficulty presets - Challenging but FAIR!
 const DIFFICULTY_SETTINGS = {
   easy: {
     lives: 5,
-    startingSuperJumps: 3,     // Start with powerups!
+    startingSuperJumps: 3,
     startingMaceAttacks: 2,
-    platformDensity: 1.2,      // More platforms (easier jumps)
-    platformGapMult: 0.8,      // Smaller gaps
-    enemyMult: 0.6,            // Fewer enemies
-    powerupMult: 1.5,          // More powerups
-    skyPlatforms: 1,           // Fewer sky platforms
-    coinMult: 1.2,             // More coins
-    bossHealth: { 5: 2, 10: 3 } // Fewer hits to defeat
+    platformDensity: 1.2,      // More platforms
+    platformGapMult: 0.85,     // Smaller gaps
+    enemyMult: 0.7,            // Fewer enemies
+    powerupMult: 1.3,          // More powerups
+    skyPlatforms: 2,
+    coinMult: 1.2,
+    bossHealth: { 5: 3, 10: 4 }
   },
   medium: {
     lives: 3,
-    startingSuperJumps: 2,     // Start with some powerups
+    startingSuperJumps: 2,
     startingMaceAttacks: 1,
-    platformDensity: 1.0,      // Normal
+    platformDensity: 1.0,
     platformGapMult: 1.0,
     enemyMult: 1.0,
     powerupMult: 1.0,
     skyPlatforms: 3,
     coinMult: 1.0,
-    bossHealth: { 5: 3, 10: 5 }
+    bossHealth: { 5: 4, 10: 5 }
   },
   hard: {
     lives: 2,
-    startingSuperJumps: 1,     // Minimal starting powerups
-    startingMaceAttacks: 0,
-    platformDensity: 0.7,      // Sparser platforms (harder!)
-    platformGapMult: 1.3,      // Bigger gaps
-    enemyMult: 1.5,            // More enemies
-    powerupMult: 0.7,          // Fewer powerups
-    skyPlatforms: 4,           // More sky platforms (more risk/reward)
-    coinMult: 0.8,             // Fewer coins
-    bossHealth: { 5: 4, 10: 6 }
+    startingSuperJumps: 1,
+    startingMaceAttacks: 1,  // Give at least one attack
+    platformDensity: 0.9,    // Slightly smaller platforms but not too sparse
+    platformGapMult: 1.1,    // 10% wider gaps (was 15% - too punishing)
+    enemyMult: 1.2,          // Slightly fewer enemies
+    powerupMult: 0.8,        // More powerups to help
+    skyPlatforms: 4,
+    coinMult: 0.9,
+    bossHealth: { 5: 5, 10: 7 }
   }
 };
 
@@ -310,14 +310,130 @@ function resetGame() {
 
 // ============== PROCEDURAL LEVEL GENERATOR ==============
 
-// Background themes for visual variety
-const THEMES = [
-  { name: 'Dawn', sky: [0xffccaa, 0xffaa88, 0xff8866, 0xcc6644, 0x995533, 0x664422], mountain: 0x553366, hill: 0x886644 },
-  { name: 'Day', sky: [0x88ddff, 0x66ccff, 0x44bbff, 0x33aaee, 0x2299dd, 0x1188cc], mountain: 0x667788, hill: 0x55aa55 },
-  { name: 'Sunset', sky: [0xffaa66, 0xff8844, 0xff6633, 0xdd4422, 0xaa3311, 0x772200], mountain: 0x334466, hill: 0x99aa44 },
-  { name: 'Night', sky: [0x334455, 0x223344, 0x112233, 0x001122, 0x000011, 0x000000], mountain: 0x111122, hill: 0x224422 },
-  { name: 'Jungle', sky: [0x66ddcc, 0x55ccbb, 0x44bbaa, 0x33aa99, 0x229988, 0x118877], mountain: 0x225533, hill: 0x44cc44 }
+// WORLDS - Each world has a distinct visual theme and feel!
+const WORLDS = {
+  // World 1: Canal Dawn (Levels 1-2) - Peaceful sunrise, pink/orange sky
+  1: {
+    name: 'Canal Dawn',
+    subtitle: 'El Amanecer',
+    sky: [0xffccbb, 0xffaa99, 0xff8877, 0xdd6655, 0xaa5544, 0x774433],
+    mountain: 0x446655, hill: 0x558866, waterColor: 0x558899
+  },
+  // World 2: Trajineras Brillantes (Levels 3-4) - Bright midday, blue sky
+  2: {
+    name: 'Bright Trajineras',
+    subtitle: 'Trajineras Brillantes',
+    sky: [0x77ddff, 0x55ccee, 0x44bbdd, 0x33aacc, 0x2299bb, 0x1188aa],
+    mountain: 0x447755, hill: 0x55aa66, waterColor: 0x33aaaa
+  },
+  // World 3: Cueva de Cristal (Level 5 Boss) - Dark mysterious cave
+  3: {
+    name: 'Crystal Cave',
+    subtitle: 'Cueva de Cristal',
+    sky: [0x334466, 0x223355, 0x112244, 0x001133, 0x000022, 0x000011],
+    mountain: 0x112233, hill: 0x223355, waterColor: 0x224466
+  },
+  // World 4: Jardines Flotantes (Levels 6-7) - Golden sunset
+  4: {
+    name: 'Floating Gardens',
+    subtitle: 'Jardines Flotantes',
+    sky: [0xffbb77, 0xff9955, 0xff7744, 0xee5533, 0xcc4422, 0x993311],
+    mountain: 0x335544, hill: 0x77aa55, waterColor: 0x668877
+  },
+  // World 5: Canales de Noche (Levels 8-9) - Moonlit night, purple
+  5: {
+    name: 'Night Canals',
+    subtitle: 'Canales de Noche',
+    sky: [0x223355, 0x112244, 0x001133, 0x001122, 0x000011, 0x000000],
+    mountain: 0x112233, hill: 0x223344, waterColor: 0x113344
+  },
+  // World 6: La Gran Fiesta (Level 10 Boss) - Colorful celebration!
+  6: {
+    name: 'The Grand Festival',
+    subtitle: 'La Gran Fiesta',
+    sky: [0x88ddcc, 0x66ccbb, 0x55bbaa, 0x44aa99, 0x339988, 0x228877],
+    mountain: 0x336655, hill: 0x44bb66, waterColor: 0x22aa99
+  }
+};
+
+// Get world number from level number
+function getWorldForLevel(levelNum) {
+  if (levelNum <= 2) return 1;  // Canal Dawn
+  if (levelNum <= 4) return 2;  // Bright Trajineras
+  if (levelNum === 5) return 3; // Crystal Cave (Boss)
+  if (levelNum <= 7) return 4;  // Floating Gardens
+  if (levelNum <= 9) return 5;  // Night Canals
+  return 6;                     // The Grand Festival (Final Boss)
+}
+
+// Check if this is the first level of a new world
+function isFirstLevelOfWorld(levelNum) {
+  return levelNum === 1 || levelNum === 3 || levelNum === 5 || levelNum === 6 || levelNum === 8 || levelNum === 10;
+}
+
+// Get the first level of a given world
+function getFirstLevelOfWorld(worldNum) {
+  switch(worldNum) {
+    case 1: return 1;   // Canal Dawn
+    case 2: return 3;   // Bright Trajineras
+    case 3: return 5;   // Crystal Cave (Boss)
+    case 4: return 6;   // Floating Gardens
+    case 5: return 8;   // Night Canals
+    case 6: return 10;  // Grand Festival (Final Boss)
+    default: return 1;
+  }
+}
+
+// Get checkpoint level (first level of current world)
+function getCheckpointLevel(currentLevel) {
+  const world = getWorldForLevel(currentLevel);
+  return getFirstLevelOfWorld(world);
+}
+
+// Get level type description
+function getLevelTypeDescription(levelNum) {
+  if (levelNum === 5) return 'BOSS BATTLE';
+  if (levelNum === 10) return 'FINAL BOSS';
+  if (levelNum === 3 || levelNum === 8) return 'CLIMB!';
+  if (levelNum === 7 || levelNum === 9) return 'ESCAPE!';
+  return 'CROSS THE CANALS';
+}
+
+// Get theme for a level (consistent within world)
+function getThemeForLevel(levelNum) {
+  const worldNum = getWorldForLevel(levelNum);
+  return { ...WORLDS[worldNum], isWaterLevel: true, worldNum };
+}
+
+// Mexican trajinera names - fun and colorful!
+const TRAJINERA_NAMES = [
+  'La Lupita', 'El Sol', 'Frida', 'La Estrella', 'Amor Eterno',
+  'La Rosa', 'El Mariachi', 'Corazón', 'La Luna', 'Esperanza',
+  'Alegría', 'Mi Cielo', 'La Paloma', 'El Jardín', 'Dulce María',
+  'La Sirena', 'El Azteca', 'Mariposa', 'La Catrina', 'Xochitl'
 ];
+
+// Get random trajinera name
+function getTrajineraName() {
+  return TRAJINERA_NAMES[Math.floor(Math.random() * TRAJINERA_NAMES.length)];
+}
+
+// Trajinera colors - bright Mexican palette
+const TRAJINERA_COLORS = [
+  0xff6b6b,  // Red
+  0x4ecdc4,  // Turquoise
+  0xffe66d,  // Yellow
+  0xc44569,  // Pink
+  0xf78fb3,  // Light pink
+  0x3dc1d3,  // Cyan
+  0xf5cd79,  // Gold
+  0x778beb,  // Purple
+  0x63cdda,  // Sky blue
+  0xe77f67   // Orange
+];
+
+// LEGACY: Keep THEMES array for backwards compatibility
+const THEMES = Object.values(WORLDS);
 
 // ============== LEVEL GENERATION TENETS ==============
 // 1. SUPER JUMP enables huge gaps (300-500px) and sky-high platforms
@@ -354,290 +470,145 @@ function calculateGapDifficulty(gapX, gapY) {
 function generateLevel(levelNum) {
   const levelDifficulty = Math.min(levelNum / 10, 1); // 0.1 to 1.0
   const settings = DIFFICULTY_SETTINGS[gameState.difficulty];
-  const width = 2200 + levelNum * 250;
+  const width = 2000 + levelNum * 200;
   const height = 600;
-  const groundY = height - 50;
+  const waterY = height - 40;  // Water at bottom - fall in = death!
 
-  // Select random theme
-  const theme = THEMES[Math.floor(Math.random() * THEMES.length)];
+  // Use consistent world theme
+  const theme = getThemeForLevel(levelNum);
 
-  // ============ PLATFORM GENERATION ============
+  // ============ ONLY START AND END PLATFORMS - EVERYTHING ELSE IS TRAJINERAS! ============
   const platforms = [];
-  const platformData = []; // Track metadata for powerup placement
-
-  // Ground with pits on harder difficulties
-  const pitChance = gameState.difficulty === 'hard' ? 0.6 : (gameState.difficulty === 'medium' ? 0.4 : 0.2);
-  if (levelDifficulty > 0.3 && Math.random() < pitChance) {
-    const pitX = 600 + Math.floor(Math.random() * (width - 1400));
-    const pitW = 180 + Math.floor(levelDifficulty * 180);
-    platforms.push({ x: 0, y: groundY, w: pitX, h: 50 });
-    platforms.push({ x: pitX + pitW, y: groundY, w: width - pitX - pitW, h: 50 });
-  } else {
-    platforms.push({ x: 0, y: groundY, w: width, h: 50 });
-  }
-
-  // ============ MAIN PATH (sparser based on difficulty) ============
-  let mainX = 150;
-  let mainY = groundY - 120;
-  let lastMainPlat = null;
-
-  // Gap multiplier makes platforms sparser on hard mode
-  const gapMult = settings.platformGapMult;
-  const densityMult = settings.platformDensity;
-
-  while (mainX < width - 400) {
-    // Larger platforms on easier modes
-    const platW = Math.floor((100 + Math.floor(Math.random() * 80)) * densityMult);
-    const platH = 20;
-
-    // Calculate gap from previous platform
-    let gapX, gapY;
-    if (lastMainPlat) {
-      gapX = mainX - (lastMainPlat.x + lastMainPlat.w);
-      gapY = lastMainPlat.y - mainY;
-    } else {
-      gapX = 0;
-      gapY = 0;
-    }
-
-    const gapInfo = calculateGapDifficulty(gapX, gapY);
-
-    // Store platform with metadata
-    const plat = { x: mainX, y: mainY, w: platW, h: platH };
-    platforms.push(plat);
-    platformData.push({
-      platform: plat,
-      gapDifficulty: gapInfo.score,
-      requiresSuper: gapInfo.requiresSuper,
-      type: 'main'
-    });
-
-    lastMainPlat = plat;
-
-    // SPARSER PLATFORMS: bigger base gap, scaled by difficulty
-    const baseGap = Math.floor((180 + Math.floor(Math.random() * 120)) * gapMult);
-    const levelGap = Math.floor(levelDifficulty * 60 * gapMult);
-    mainX += platW + baseGap + levelGap;
-
-    // More vertical variety
-    const roll = Math.random();
-    if (roll < 0.4 && mainY > 220) {
-      // Go up significantly
-      mainY -= 60 + Math.floor(Math.random() * 80);
-    } else if (roll < 0.7) {
-      // Variation
-      mainY += Math.floor(Math.random() * 70) - 35;
-    } else if (mainY < groundY - 180) {
-      // Go down
-      mainY += 60 + Math.floor(Math.random() * 80);
-    }
-
-    // Keep in bounds
-    mainY = Math.max(180, Math.min(groundY - 100, mainY));
-  }
-
-  // Final platform for baby
-  const finalPlat = { x: width - 300, y: mainY, w: 200, h: 20 };
-  platforms.push(finalPlat);
-  platformData.push({ platform: finalPlat, gapDifficulty: 0.5, requiresSuper: false, type: 'main' });
-
-  // ============ SKY PATH (requires super jump, high reward) ============
-  const skyPlatforms = [];
-  let skyX = 400 + Math.floor(Math.random() * 300);
-  const skyY = 80 + Math.floor(Math.random() * 50); // Very high up!
-
-  // Sky platforms based on difficulty setting
-  const numSkyPlats = settings.skyPlatforms + Math.floor(Math.random() * 2);
-  for (let i = 0; i < numSkyPlats && skyX < width - 400; i++) {
-    const platW = 60 + Math.floor(Math.random() * 60);
-    const plat = { x: skyX, y: skyY + Math.floor(Math.random() * 40), w: platW, h: 20 };
-    platforms.push(plat);
-    skyPlatforms.push(plat);
-    platformData.push({
-      platform: plat,
-      gapDifficulty: 2.5, // High difficulty = super jump required
-      requiresSuper: true,
-      type: 'sky'
-    });
-
-    // Big gaps between sky platforms (super jump territory)
-    skyX += platW + 300 + Math.floor(Math.random() * 200);
-  }
-
-  // ============ CHALLENGE PLATFORMS (medium height, tricky gaps) ============
-  const challengeY = 180 + Math.floor(Math.random() * 80);
-  let challengeX = 500 + Math.floor(Math.random() * 300);
-
-  // 1-3 challenge sequences
-  const numChallenges = 1 + Math.floor(levelDifficulty * 2);
-  for (let c = 0; c < numChallenges && challengeX < width - 600; c++) {
-    // Small cluster of challenging platforms
-    for (let i = 0; i < 2 + Math.floor(Math.random() * 2); i++) {
-      const platW = 50 + Math.floor(Math.random() * 40);
-      const plat = { x: challengeX, y: challengeY + Math.floor(Math.random() * 60) - 30, w: platW, h: 20 };
-      platforms.push(plat);
-      platformData.push({
-        platform: plat,
-        gapDifficulty: 1.5 + Math.random() * 0.5,
-        requiresSuper: Math.random() < 0.3,
-        type: 'challenge'
-      });
-      challengeX += platW + 150 + Math.floor(Math.random() * 100);
-    }
-    // Skip ahead for next challenge area
-    challengeX += 400 + Math.floor(Math.random() * 300);
-  }
-
-  // ============ POWERUP PLACEMENT (proportional to gap difficulty, scaled by settings) ============
+  const trajineras = [];
+  const coins = [];
+  const stars = [];
+  const enemies = [];
   const powerups = [];
 
-  // Sort platforms by X position
-  platformData.sort((a, b) => a.platform.x - b.platform.x);
+  // Starting chinampa - safe ground to begin
+  platforms.push({
+    x: 0,
+    y: waterY - 100,
+    w: 200,
+    h: 150,
+    isChihampa: true
+  });
 
-  // Threshold scales with powerup multiplier (lower = more powerups)
-  let cumulativeDiff = 0;
-  const powerupThreshold = 2.0 / settings.powerupMult;
+  // Final chinampa with baby - clear goal!
+  platforms.push({
+    x: width - 250,
+    y: waterY - 100,
+    w: 250,
+    h: 150,
+    isChihampa: true
+  });
 
-  platformData.forEach((pd, i) => {
-    cumulativeDiff += pd.gapDifficulty;
+  // ============ TRAJINERAS EVERYWHERE! Multiple lanes at different heights ============
+  // This creates a lively, dynamic level where EVERYTHING moves!
 
-    // Place powerup when difficulty accumulates enough
-    if (cumulativeDiff >= powerupThreshold) {
-      powerups.push({
-        x: pd.platform.x + pd.platform.w / 2,
-        y: pd.platform.y - 40
+  const speedMult = 1 + levelNum * 0.08;  // Slightly faster each level
+
+  // Define 5-6 lanes of trajineras at different heights
+  const lanes = [
+    { y: waterY - 80,  dir: 1,  baseSpeed: 30, boats: 5 + levelNum },   // Lane 1: Low, → slow
+    { y: waterY - 150, dir: -1, baseSpeed: 40, boats: 4 + levelNum },   // Lane 2: ←
+    { y: waterY - 220, dir: 1,  baseSpeed: 50, boats: 4 + levelNum },   // Lane 3: →
+    { y: waterY - 290, dir: -1, baseSpeed: 45, boats: 3 + levelNum },   // Lane 4: ←
+    { y: waterY - 360, dir: 1,  baseSpeed: 55, boats: 3 + levelNum },   // Lane 5: High →
+    { y: waterY - 420, dir: -1, baseSpeed: 35, boats: 2 + Math.floor(levelNum/2) },  // Lane 6: Very high ←
+  ];
+
+  let nameIdx = 0;
+  lanes.forEach((lane, laneIdx) => {
+    const laneWidth = width - 400;  // Leave space for start/end
+    const spacing = laneWidth / lane.boats;
+
+    for (let i = 0; i < lane.boats; i++) {
+      // Stagger boats so they don't all start aligned
+      const startOffset = (i * spacing) + (laneIdx % 2 === 0 ? 0 : spacing / 2);
+      const xPos = 250 + startOffset;
+
+      // Vary boat sizes - bigger boats are easier to land on
+      const boatW = 100 + Math.random() * 60;
+
+      trajineras.push({
+        x: xPos,
+        y: lane.y + (Math.random() - 0.5) * 20,  // Slight y variation
+        w: boatW,
+        h: 28,
+        speed: (lane.baseSpeed + Math.random() * 25) * speedMult,
+        dir: lane.dir,
+        color: TRAJINERA_COLORS[(laneIdx * 3 + i) % TRAJINERA_COLORS.length],
+        name: TRAJINERA_NAMES[nameIdx % TRAJINERA_NAMES.length],
+        startX: xPos,
+        lane: laneIdx + 1
       });
-      cumulativeDiff = 0;
-    }
-
-    // Always place powerup before super-jump-required gaps
-    if (pd.requiresSuper && i > 0) {
-      const prevPlat = platformData[i - 1].platform;
-      const nearby = powerups.some(p => Math.abs(p.x - prevPlat.x) < 100);
-      if (!nearby) {
-        powerups.push({
-          x: prevPlat.x + prevPlat.w / 2,
-          y: prevPlat.y - 40
-        });
-      }
+      nameIdx++;
     }
   });
 
-  // Minimum powerups scaled by difficulty setting
-  const minPowerups = Math.floor((3 + levelDifficulty * 3) * settings.powerupMult);
-  let attempts = 0;
-  while (powerups.length < minPowerups && attempts < 20) {
-    const randomPlat = platformData[Math.floor(Math.random() * platformData.length)].platform;
-    const nearby = powerups.some(p => Math.abs(p.x - randomPlat.x) < 150);
-    if (!nearby) {
-      powerups.push({ x: randomPlat.x + randomPlat.w / 2, y: randomPlat.y - 40 });
-    }
-    attempts++;
+  // ============ COINS - scattered across the lanes ============
+  // Coins on starting platform
+  coins.push({ x: 60, y: waterY - 140 });
+  coins.push({ x: 120, y: waterY - 140 });
+
+  // Coins floating in the air between boats (risky!)
+  for (let i = 0; i < 15 + levelNum * 3; i++) {
+    const coinX = 300 + Math.random() * (width - 600);
+    const coinY = waterY - 100 - Math.random() * 350;
+    coins.push({ x: coinX, y: coinY });
   }
 
-  // ============ COINS (scaled by difficulty setting) ============
-  const coins = [];
-  platformData.forEach(pd => {
-    if (pd.platform.h > 30) return; // Skip ground
+  // Coins on final platform
+  coins.push({ x: width - 200, y: waterY - 140 });
+  coins.push({ x: width - 140, y: waterY - 140 });
+  coins.push({ x: width - 80, y: waterY - 140 });
 
-    // Coins scale with coin multiplier
-    const baseCoins = Math.floor(2 * settings.coinMult);
-    const difficultyBonus = Math.floor(pd.gapDifficulty * settings.coinMult);
-    const skyBonus = pd.type === 'sky' ? Math.floor(4 * settings.coinMult) : 0;
-    const numCoins = baseCoins + difficultyBonus + skyBonus;
+  // ============ STARS - 3 per level at different heights ============
+  stars.push({ x: width * 0.25, y: waterY - 180 });   // Low star
+  stars.push({ x: width * 0.5, y: waterY - 300 });    // Mid star
+  stars.push({ x: width * 0.75, y: waterY - 400 });   // High star (risky!)
 
-    for (let c = 0; c < numCoins; c++) {
-      coins.push({
-        x: pd.platform.x + 15 + c * 25,
-        y: pd.platform.y - 35
-      });
-    }
-  });
-
-  // Coin trails in gaps
-  platformData.forEach((pd, i) => {
-    if (i === 0) return;
-    const prevPlat = platformData[i - 1].platform;
-    const gap = pd.platform.x - (prevPlat.x + prevPlat.w);
-
-    if (gap > 250) {
-      const midX = prevPlat.x + prevPlat.w + gap / 2;
-      const midY = (prevPlat.y + pd.platform.y) / 2 - 30;
-      coins.push({ x: midX - 50, y: midY });
-      coins.push({ x: midX, y: midY - 25 });
-      coins.push({ x: midX + 50, y: midY });
-    }
-  });
-
-  // ============ STARS (1 easy, 1 medium, 1 secret) ============
-  const stars = [];
-  const mainPlats = platformData.filter(pd => pd.type === 'main');
-  const skyPlats = platformData.filter(pd => pd.type === 'sky');
-
-  if (mainPlats.length > 2) {
-    const easyPlat = mainPlats[1 + Math.floor(Math.random() * 2)].platform;
-    stars.push({ x: easyPlat.x + easyPlat.w / 2, y: easyPlat.y - 50 });
-  }
-
-  if (mainPlats.length > 5) {
-    const midPlat = mainPlats[Math.floor(mainPlats.length / 2)].platform;
-    stars.push({ x: midPlat.x + midPlat.w / 2, y: midPlat.y - 50 });
-  }
-
-  if (skyPlats.length > 0) {
-    const skyPlat = skyPlats[Math.floor(Math.random() * skyPlats.length)].platform;
-    stars.push({ x: skyPlat.x + skyPlat.w / 2, y: skyPlat.y - 50 });
-  }
-
-  // ============ ENEMIES (scaled by enemy multiplier) ============
-  const enemies = [];
-
-  // Ground enemies
-  const numGround = Math.floor((2 + levelDifficulty * 4) * settings.enemyMult);
-  for (let i = 0; i < numGround; i++) {
-    enemies.push({
-      x: 300 + Math.floor(Math.random() * (width - 600)),
-      y: groundY - 30,
-      type: 'ground'
-    });
-  }
-
-  // Platform enemies
-  mainPlats.forEach(pd => {
-    const enemyChance = (0.2 + levelDifficulty * 0.15) * settings.enemyMult;
-    if (pd.platform.w > 70 && Math.random() < enemyChance) {
-      enemies.push({
-        x: pd.platform.x + pd.platform.w / 2,
-        y: pd.platform.y - 30,
-        type: 'platform'
-      });
-    }
-  });
-
-  // Flying enemies
-  const numFlying = Math.floor((1 + levelDifficulty * 4) * settings.enemyMult);
+  // ============ FLYING ENEMIES - patrol between boats ============
+  const numFlying = Math.floor((2 + levelDifficulty * 3) * settings.enemyMult);
   for (let i = 0; i < numFlying; i++) {
     enemies.push({
-      x: 400 + Math.floor(Math.random() * (width - 500)),
-      y: 150 + Math.floor(Math.random() * 250),
+      x: 400 + (i * (width - 600) / numFlying),
+      y: waterY - 200 - Math.random() * 200,
       type: 'flying',
-      amplitude: 40 + Math.floor(Math.random() * 50),
-      speed: 50 + Math.floor(Math.random() * 50),
-      dir: Math.random() < 0.5 ? 1 : -1
+      amplitude: 40 + Math.random() * 40,
+      speed: 40 + Math.random() * 40,
+      dir: i % 2 === 0 ? 1 : -1
     });
   }
+
+  // ============ POWERUPS - help the player! ============
+  const numPowerups = Math.floor((3 + levelDifficulty * 2) * settings.powerupMult);
+  // One on start
+  powerups.push({ x: 150, y: waterY - 140 });
+  // Scattered through level
+  for (let i = 1; i < numPowerups; i++) {
+    powerups.push({
+      x: 300 + i * ((width - 500) / numPowerups),
+      y: waterY - 150 - Math.random() * 250
+    });
+  }
+  // One on final platform
+  powerups.push({ x: width - 120, y: waterY - 140 });
 
   return {
     width,
     height,
-    playerSpawn: { x: 100, y: groundY - 50 },
-    babyPosition: { x: width - 200, y: mainY - 50 },
+    playerSpawn: { x: 100, y: waterY - 150 },
+    babyPosition: { x: width - 125, y: waterY - 150 },  // BABY ON FINAL PLATFORM!
     platforms,
+    trajineras,  // Now the main gameplay element!
     coins,
     stars,
     enemies,
     powerups,
-    theme
+    theme,
+    waterY  // Water level for death detection
   };
 }
 
@@ -668,6 +639,593 @@ function generateBossArena(levelNum) {
     ],
     theme: THEMES[3], // Night theme for boss
     isBossLevel: true
+  };
+}
+
+// Generate Xochimilco Frogger-style level - hop across trajineras (boats)!
+function generateFroggerLevel(levelNum) {
+  const width = 1800;  // Not too wide
+  const height = 600;
+  const waterY = 550;  // Water at very bottom
+  const settings = DIFFICULTY_SETTINGS[gameState.difficulty];
+
+  // Use consistent world theme
+  const theme = getThemeForLevel(levelNum);
+
+  // Static platforms - START and END chinampas above water
+  const platforms = [
+    // Starting chinampa - safe ground!
+    { x: 0, y: waterY - 100, w: 180, h: 100, isChihampa: true },
+    // Final chinampa with baby - goal!
+    { x: width - 200, y: waterY - 100, w: 200, h: 100, isChihampa: true }
+  ];
+
+  // ============ TRAJINERA LANES - Classic Frogger style! ============
+  // 4 lanes with ALTERNATING directions - learn the patterns!
+  const trajineras = [];
+  const speedMult = 1 + (levelNum - 3) * 0.1;  // Gentle speed increase
+
+  // Lanes from bottom to top - player hops upward across boats
+  const lanes = [
+    { y: waterY - 160, dir: 1,  speed: 35, boats: 4 },   // Lane 1: → slowest, most boats
+    { y: waterY - 220, dir: -1, speed: 45, boats: 4 },   // Lane 2: ←
+    { y: waterY - 280, dir: 1,  speed: 55, boats: 3 },   // Lane 3: →
+    { y: waterY - 340, dir: -1, speed: 40, boats: 3 },   // Lane 4: ← to goal
+  ];
+
+  lanes.forEach((lane, laneIdx) => {
+    const laneWidth = width - 300;
+    const spacing = laneWidth / lane.boats;
+
+    for (let i = 0; i < lane.boats; i++) {
+      const startOffset = (laneIdx % 2 === 0) ? 0 : spacing / 3;
+      const xPos = 150 + startOffset + i * spacing;
+
+      trajineras.push({
+        x: xPos,
+        y: lane.y,
+        w: 100 + Math.random() * 30,  // Bigger boats = easier to land
+        h: 25,
+        speed: (lane.speed + Math.random() * 15) * speedMult,
+        dir: lane.dir,
+        color: TRAJINERA_COLORS[(laneIdx * 3 + i) % TRAJINERA_COLORS.length],
+        name: getTrajineraName(),
+        startX: xPos,
+        lane: laneIdx + 1
+      });
+    }
+  });
+
+  // Coins on the path
+  const coins = [
+    { x: 80, y: waterY - 140 },
+    { x: 500, y: waterY - 180 },
+    { x: 900, y: waterY - 240 },
+    { x: 1300, y: waterY - 300 },
+    { x: width - 100, y: waterY - 140 }
+  ];
+
+  // Stars - collect while crossing!
+  const stars = [
+    { x: 600, y: waterY - 180 },
+    { x: 1000, y: waterY - 300 },
+    { x: width - 100, y: waterY - 200 }
+  ];
+
+  // Few flying enemies - don't make it too hard!
+  const enemies = [];
+  const numFlying = Math.floor((1 + levelNum * 0.3) * settings.enemyMult);
+  for (let i = 0; i < numFlying; i++) {
+    enemies.push({
+      x: 400 + i * 500,
+      y: waterY - 400,  // High above the lanes
+      type: 'flying',
+      amplitude: 30,
+      speed: 40,
+      dir: i % 2 === 0 ? 1 : -1
+    });
+  }
+
+  // Powerups - one on start, one on goal
+  const powerups = [
+    { x: 100, y: waterY - 140 },      // Starting platform
+    { x: width - 100, y: waterY - 140 }  // Goal platform
+  ];
+
+  return {
+    width,
+    height,
+    playerSpawn: { x: 90, y: waterY - 150 },  // On starting platform
+    babyPosition: { x: width - 100, y: waterY - 150 },  // On goal platform!
+    platforms,
+    trajineras,
+    coins,
+    stars,
+    enemies,
+    powerups,
+    theme,
+    isFroggerLevel: true,
+    waterY
+  };
+}
+
+// Generate Xochimilco UPSCROLLER level - climb the ancient aqueduct!
+function generateUpscrollerLevel(levelNum) {
+  const width = 600;  // Narrower for vertical gameplay
+  const height = 2500 + levelNum * 200;  // TALL level!
+  const settings = DIFFICULTY_SETTINGS[gameState.difficulty];
+
+  // Use consistent world theme
+  const theme = { ...getThemeForLevel(levelNum), isUpscroller: true };
+
+  const platforms = [];
+  const trajineras = [];  // Horizontal moving boats at different heights
+  const coins = [];
+  const stars = [];
+  const enemies = [];
+  const powerups = [];
+
+  // Starting platform at bottom - safe ground to begin
+  platforms.push({ x: width / 2 - 100, y: height - 50, w: 200, h: 50, isChihampa: true });
+
+  // IMMEDIATE POWERUP on starting platform - you need it!
+  powerups.push({ x: width / 2, y: height - 90 });
+
+  // First platform is GUARANTEED and easy to reach - no RNG death!
+  const firstPlatY = height - 170;
+  platforms.push({
+    x: width / 2 - 70,
+    y: firstPlatY,
+    w: 140,
+    h: 25,
+    isChihampa: true
+  });
+  coins.push({ x: width / 2, y: firstPlatY - 30 });
+
+  // Second platform also guaranteed - build momentum!
+  const secondPlatY = height - 290;
+  trajineras.push({
+    x: width / 2,
+    y: secondPlatY,
+    w: 120,
+    h: 25,
+    speed: 40,
+    dir: 1,
+    color: TRAJINERA_COLORS[0],
+    startX: width / 2
+  });
+
+  // Generate rest of platforms climbing upward
+  let currentY = height - 400;
+  let lastX = width / 2;
+
+  while (currentY > 150) {
+    const platformType = Math.random();
+
+    if (platformType < 0.2) {
+      // Static chinampa (safe zone) - 20% chance
+      const platW = 90 + Math.random() * 50;  // Decent size
+      const platX = Math.max(40, Math.min(width - platW - 40, lastX + (Math.random() - 0.5) * 200));
+      platforms.push({
+        x: platX,
+        y: currentY,
+        w: platW,
+        h: 20,
+        isChihampa: true
+      });
+      lastX = platX + platW / 2;
+
+      // Single coin on platform
+      coins.push({ x: platX + platW / 2, y: currentY - 30 });
+
+    } else if (platformType < 0.7) {
+      // COMMON: Moving trajinera (horizontal boat) - 50% chance! Must time your jumps!
+      const boatW = 100 + Math.random() * 50;  // Bigger boats for easier landing
+      const dir = Math.random() < 0.5 ? 1 : -1;
+      trajineras.push({
+        x: Math.random() * (width - 100) + 50,  // Random start position
+        y: currentY,
+        w: boatW,
+        h: 25,
+        speed: 50 + Math.random() * 50 + levelNum * 5,  // Slightly slower
+        dir: dir,
+        color: [0xff6b6b, 0x4ecdc4, 0xffe66d, 0xc44569, 0xf78fb3, 0x3dc1d3][Math.floor(Math.random() * 6)],
+        startX: Math.random() * (width - 100) + 50
+      });
+      lastX = width / 2;
+
+    } else {
+      // Lily pad - 30% chance
+      const padW = 60 + Math.random() * 30;  // Bigger lily pads
+      const padX = Math.max(30, Math.min(width - padW - 30, lastX + (Math.random() - 0.5) * 180));
+      platforms.push({
+        x: padX,
+        y: currentY,
+        w: padW,
+        h: 15,
+        isLilypad: true
+      });
+      lastX = padX + padW / 2;
+    }
+
+    // Vertical gap between platforms - challenging but fair
+    const gap = 90 + Math.random() * 50 + levelNum * 3;  // Smaller gaps, gentler scaling
+    currentY -= gap;
+
+    // Add powerup periodically - more often since it's harder!
+    if (Math.random() < 0.2 * settings.powerupMult) {
+      powerups.push({ x: lastX, y: currentY + gap / 2 });
+    }
+  }
+
+  // Final platform with baby at top - SMALL target!
+  platforms.push({
+    x: width / 2 - 60,
+    y: 80,
+    w: 120,
+    h: 25,
+    isChihampa: true
+  });
+
+  // Stars at various heights
+  stars.push({ x: width / 2, y: height - 500 });  // Lower third
+  stars.push({ x: width / 2, y: height / 2 });     // Middle
+  stars.push({ x: width / 2, y: 250 });            // Near top
+
+  // GUARANTEED POWERUPS at key heights - don't rely on RNG!
+  powerups.push({ x: width / 2 - 50, y: height - 600 });   // Early boost
+  powerups.push({ x: width / 2 + 50, y: height / 2 });      // Mid level
+  powerups.push({ x: width / 2, y: 350 });                  // Near the end
+
+  // Flying enemies at intervals (fewer - focus is on swimming/gators)
+  const numFlying = Math.floor((1 + levelNum * 0.3) * settings.enemyMult);
+  for (let i = 0; i < numFlying; i++) {
+    enemies.push({
+      x: Math.random() * (width - 100) + 50,
+      y: height - 600 - i * (height / (numFlying + 1)),
+      type: 'flying',
+      amplitude: 30 + Math.random() * 40,
+      speed: 50 + Math.random() * 40,
+      dir: Math.random() < 0.5 ? 1 : -1
+    });
+  }
+
+  // ============ ALLIGATORS - DKC2 style water danger! ============
+  // They swim in the rising water, making swimming risky!
+  const alligators = [];
+  const numGators = 2 + Math.floor(levelNum * 0.5);  // More gators on harder levels
+  for (let i = 0; i < numGators; i++) {
+    alligators.push({
+      x: 50 + Math.random() * (width - 100),
+      baseY: 30 + i * 40,  // Offset from water surface (positive = below surface)
+      speed: 40 + Math.random() * 30,
+      dir: i % 2 === 0 ? 1 : -1
+    });
+  }
+
+  return {
+    width,
+    height,
+    playerSpawn: { x: width / 2, y: height - 100 },
+    babyPosition: { x: width / 2, y: 50 },
+    platforms,
+    trajineras,
+    coins,
+    stars,
+    enemies,
+    powerups,
+    alligators,  // NEW! Water danger!
+    theme,
+    isUpscroller: true,
+    waterY: height - 20  // Water at the very bottom - fall in = death!
+  };
+}
+
+// ============== ESCAPE LEVEL - Indiana Jones / Brave Fencer Musashi style! ==============
+// A giant flood/wave chases you from behind - RUN FOR YOUR LIFE!
+function generateEscapeLevel(levelNum) {
+  const settings = DIFFICULTY_SETTINGS[gameState.difficulty];
+  const width = 3500 + levelNum * 300;  // Long level - it's a chase!
+  const height = 600;
+  const waterY = height - 40;
+
+  const theme = { ...getThemeForLevel(levelNum), isEscapeLevel: true };
+
+  const platforms = [];
+  const trajineras = [];
+  const coins = [];
+  const stars = [];
+  const enemies = [];
+  const powerups = [];
+
+  // Starting platform - you begin here, then RUN!
+  platforms.push({
+    x: 0,
+    y: waterY - 80,
+    w: 300,
+    h: 130,
+    isChihampa: true
+  });
+
+  // Generate a gauntlet of trajineras and small platforms to jump across
+  // The camera auto-scrolls, so you MUST keep moving forward!
+  let currentX = 350;
+  const escapeSpeed = levelNum === 9 ? 1.15 : 1.0;  // Level 9 is faster!
+
+  while (currentX < width - 400) {
+    const segmentType = Math.random();
+
+    if (segmentType < 0.4) {
+      // Trajinera lane section - multiple boats moving
+      const numBoats = 2 + Math.floor(Math.random() * 3);
+      const laneY = waterY - 60 - Math.random() * 80;
+
+      for (let i = 0; i < numBoats; i++) {
+        const boatW = 100 + Math.random() * 50;
+        trajineras.push({
+          x: currentX + i * 180,
+          y: laneY + (Math.random() - 0.5) * 30,
+          w: boatW,
+          h: 28,
+          speed: (30 + Math.random() * 25) * escapeSpeed,
+          dir: i % 2 === 0 ? 1 : -1,
+          color: TRAJINERA_COLORS[Math.floor(Math.random() * TRAJINERA_COLORS.length)],
+          name: getTrajineraName(),
+          startX: currentX + i * 180
+        });
+
+        // Coins on boats
+        coins.push({ x: currentX + i * 180, y: laneY - 35 });
+      }
+      currentX += numBoats * 180 + 100;
+
+    } else if (segmentType < 0.7) {
+      // Small chinampa stepping stones - quick hops!
+      const numStones = 3 + Math.floor(Math.random() * 3);
+      for (let i = 0; i < numStones; i++) {
+        const stoneW = 70 + Math.random() * 40;
+        const stoneY = waterY - 60 - Math.random() * 100;
+        platforms.push({
+          x: currentX + i * 140,
+          y: stoneY,
+          w: stoneW,
+          h: 25,
+          isChihampa: true
+        });
+
+        if (Math.random() < 0.5) {
+          coins.push({ x: currentX + i * 140 + stoneW/2, y: stoneY - 35 });
+        }
+      }
+      currentX += numStones * 140 + 80;
+
+    } else {
+      // Mixed section - trajinera + platform combo
+      const platY = waterY - 100 - Math.random() * 80;
+      platforms.push({
+        x: currentX,
+        y: platY,
+        w: 90 + Math.random() * 40,
+        h: 22,
+        isChihampa: true
+      });
+
+      // Trajinera after platform
+      trajineras.push({
+        x: currentX + 200,
+        y: waterY - 50,
+        w: 120 + Math.random() * 40,
+        h: 28,
+        speed: (35 + Math.random() * 20) * escapeSpeed,
+        dir: Math.random() < 0.5 ? 1 : -1,
+        color: TRAJINERA_COLORS[Math.floor(Math.random() * TRAJINERA_COLORS.length)],
+        name: getTrajineraName(),
+        startX: currentX + 200
+      });
+
+      coins.push({ x: currentX + 45, y: platY - 35 });
+      coins.push({ x: currentX + 200, y: waterY - 85 });
+      currentX += 350;
+    }
+
+    // Occasional powerup
+    if (Math.random() < 0.15 * settings.powerupMult) {
+      powerups.push({
+        x: currentX - 100,
+        y: waterY - 150 - Math.random() * 100
+      });
+    }
+  }
+
+  // Final safe platform with baby - YOU MADE IT!
+  platforms.push({
+    x: width - 350,
+    y: waterY - 80,
+    w: 350,
+    h: 130,
+    isChihampa: true
+  });
+
+  // Stars spread across the escape route
+  stars.push({ x: width * 0.25, y: waterY - 150 });
+  stars.push({ x: width * 0.5, y: waterY - 200 });
+  stars.push({ x: width * 0.75, y: waterY - 120 });
+
+  // Flying enemies - not too many, focus is on the chase!
+  const numFlying = Math.floor(2 * settings.enemyMult);
+  for (let i = 0; i < numFlying; i++) {
+    enemies.push({
+      x: 800 + i * (width / (numFlying + 1)),
+      y: waterY - 250 - Math.random() * 100,
+      type: 'flying',
+      amplitude: 30,
+      speed: 50,
+      dir: 1  // All fly forward (same direction as player)
+    });
+  }
+
+  // Powerup at start and near end
+  powerups.push({ x: 150, y: waterY - 120 });
+  powerups.push({ x: width - 200, y: waterY - 120 });
+
+  return {
+    width,
+    height,
+    playerSpawn: { x: 150, y: waterY - 130 },
+    babyPosition: { x: width - 175, y: waterY - 130 },
+    platforms,
+    trajineras,
+    coins,
+    stars,
+    enemies,
+    powerups,
+    theme,
+    isEscapeLevel: true,
+    escapeSpeed: levelNum === 9 ? 150 : 120,  // Level 9 flood is faster!
+    waterY
+  };
+}
+
+// Generate Xochimilco side-scroller - ALL TRAJINERAS, super lively!
+function generateXochimilcoLevel(levelNum) {
+  const levelDifficulty = Math.min(levelNum / 10, 1);
+  const settings = DIFFICULTY_SETTINGS[gameState.difficulty];
+  const width = 2000 + levelNum * 150;
+  const height = 600;
+  const waterY = height - 40;  // Water at bottom - fall in = death!
+
+  // Use consistent world theme - SAME theme for entire world!
+  const theme = getThemeForLevel(levelNum);
+
+  const platforms = [];
+  const trajineras = [];
+  const coins = [];
+  const stars = [];
+  const enemies = [];
+  const powerups = [];
+
+  // ===== ONLY START AND END PLATFORMS - EVERYTHING ELSE IS BOATS! =====
+
+  // Starting chinampa - safe ground
+  platforms.push({
+    x: 0,
+    y: waterY - 100,
+    w: 200,
+    h: 150,
+    isChihampa: true
+  });
+
+  // Final chinampa with BABY - clear goal!
+  platforms.push({
+    x: width - 250,
+    y: waterY - 100,
+    w: 250,
+    h: 150,
+    isChihampa: true
+  });
+
+  // ===== TRAJINERAS EVERYWHERE! 6 lanes at different heights =====
+  const speedMult = 1 + levelNum * 0.06;
+
+  // Lanes cover the ENTIRE screen height - boats everywhere!
+  const lanes = [
+    { y: waterY - 70,  dir: 1,  baseSpeed: 25, boats: 5 + levelNum },   // Lane 1: Low →
+    { y: waterY - 140, dir: -1, baseSpeed: 35, boats: 5 + levelNum },   // Lane 2: ←
+    { y: waterY - 210, dir: 1,  baseSpeed: 45, boats: 4 + levelNum },   // Lane 3: →
+    { y: waterY - 280, dir: -1, baseSpeed: 40, boats: 4 + levelNum },   // Lane 4: ←
+    { y: waterY - 350, dir: 1,  baseSpeed: 50, boats: 3 + levelNum },   // Lane 5: High →
+    { y: waterY - 420, dir: -1, baseSpeed: 30, boats: 2 + Math.floor(levelNum/2) },  // Lane 6: Very high ←
+  ];
+
+  let nameIdx = 0;
+  lanes.forEach((lane, laneIdx) => {
+    const laneWidth = width - 500;
+    const spacing = laneWidth / lane.boats;
+
+    for (let i = 0; i < lane.boats; i++) {
+      const startOffset = (i * spacing) + (laneIdx % 2 === 0 ? 0 : spacing / 3);
+      const xPos = 250 + startOffset;
+
+      // Colorful boats of varying sizes
+      const boatW = 110 + Math.random() * 50;
+
+      trajineras.push({
+        x: xPos,
+        y: lane.y + (Math.random() - 0.5) * 15,
+        w: boatW,
+        h: 28,
+        speed: (lane.baseSpeed + Math.random() * 20) * speedMult,
+        dir: lane.dir,
+        color: TRAJINERA_COLORS[(laneIdx * 4 + i) % TRAJINERA_COLORS.length],
+        name: TRAJINERA_NAMES[nameIdx % TRAJINERA_NAMES.length],
+        startX: xPos,
+        lane: laneIdx + 1
+      });
+      nameIdx++;
+    }
+  });
+
+  // ===== COINS scattered in the air =====
+  // On starting platform
+  coins.push({ x: 60, y: waterY - 140 });
+  coins.push({ x: 130, y: waterY - 140 });
+
+  // Floating between boats (risky but rewarding!)
+  for (let i = 0; i < 12 + levelNum * 2; i++) {
+    coins.push({
+      x: 300 + Math.random() * (width - 600),
+      y: waterY - 100 - Math.random() * 350
+    });
+  }
+
+  // On final platform
+  coins.push({ x: width - 200, y: waterY - 140 });
+  coins.push({ x: width - 130, y: waterY - 140 });
+  coins.push({ x: width - 60, y: waterY - 140 });
+
+  // ===== STARS - 3 per level at different heights =====
+  stars.push({ x: width * 0.25, y: waterY - 160 });
+  stars.push({ x: width * 0.5, y: waterY - 280 });
+  stars.push({ x: width * 0.75, y: waterY - 380 });
+
+  // ===== FLYING ENEMIES =====
+  const numFlying = Math.floor((2 + levelDifficulty * 2) * settings.enemyMult);
+  for (let i = 0; i < numFlying; i++) {
+    enemies.push({
+      x: 400 + (i * (width - 600) / Math.max(1, numFlying)),
+      y: waterY - 180 - Math.random() * 200,
+      type: 'flying',
+      amplitude: 35 + Math.random() * 35,
+      speed: 35 + Math.random() * 35,
+      dir: i % 2 === 0 ? 1 : -1
+    });
+  }
+
+  // ===== POWERUPS =====
+  const numPowerups = Math.floor((3 + levelDifficulty * 2) * settings.powerupMult);
+  powerups.push({ x: 150, y: waterY - 140 });  // One on start
+  for (let i = 1; i < numPowerups; i++) {
+    powerups.push({
+      x: 300 + i * ((width - 550) / numPowerups),
+      y: waterY - 140 - Math.random() * 250
+    });
+  }
+  powerups.push({ x: width - 130, y: waterY - 140 });  // One on end
+
+  return {
+    width,
+    height,
+    playerSpawn: { x: 100, y: waterY - 150 },
+    babyPosition: { x: width - 125, y: waterY - 150 },  // BABY ON FINAL PLATFORM!
+    platforms,
+    trajineras,
+    coins,
+    stars,
+    enemies,
+    powerups,
+    theme,
+    isXochimilcoLevel: true,
+    waterY
   };
 }
 
@@ -1911,17 +2469,87 @@ class MenuScene extends Phaser.Scene {
         this.scene.start('GameScene', { level: 1 });
       });
 
-    // World names with icons
-    this.add.text(width/2, 520, '🌸 Gardens → 🏛️ Ruins → 💎 Caves → 🌴 Jungle → 🌋 Volcano', {
-      fontFamily: 'Arial', fontSize: '10px', color: '#778899'
+    // ============ WORLD SELECTION ============
+    this.add.text(width/2, 510, 'SELECT WORLD', {
+      fontFamily: 'Arial Black', fontSize: '12px', color: '#aaaaaa'
     }).setOrigin(0.5);
 
+    // World selector buttons
+    const worldData = [
+      { num: 1, icon: '🌅', name: 'Dawn', color: 0xffaa77 },
+      { num: 2, icon: '☀️', name: 'Day', color: 0x55ccee },
+      { num: 3, icon: '💎', name: 'Cave', color: 0x4466aa },
+      { num: 4, icon: '🌸', name: 'Garden', color: 0xffcc44 },
+      { num: 5, icon: '🌙', name: 'Night', color: 0x6644aa },
+      { num: 6, icon: '🎉', name: 'Fiesta', color: 0x44ccaa }
+    ];
+
+    const btnSize = 42;
+    const worldStartX = width/2 - (worldData.length * btnSize) / 2 + btnSize/2;
+
+    worldData.forEach((world, i) => {
+      const x = worldStartX + i * btnSize;
+      const y = 540;
+      const firstLevel = getFirstLevelOfWorld(world.num);
+      const isUnlocked = gameState.currentLevel >= firstLevel || firstLevel === 1;
+      const isCurrent = getWorldForLevel(gameState.currentLevel) === world.num;
+
+      // Button background
+      const btnBg = this.add.rectangle(x, y, btnSize - 4, btnSize - 4,
+        isUnlocked ? world.color : 0x333333, isUnlocked ? 1 : 0.5);
+
+      // Current world indicator
+      if (isCurrent) {
+        this.add.rectangle(x, y, btnSize, btnSize, 0xffffff).setDepth(-1);
+      }
+
+      // World number
+      this.add.text(x, y - 8, world.icon, {
+        fontSize: '14px'
+      }).setOrigin(0.5);
+
+      this.add.text(x, y + 10, `W${world.num}`, {
+        fontFamily: 'Arial', fontSize: '10px',
+        color: isUnlocked ? '#ffffff' : '#666666'
+      }).setOrigin(0.5);
+
+      if (isUnlocked) {
+        btnBg.setInteractive({ useHandCursor: true });
+
+        btnBg.on('pointerover', () => {
+          btnBg.setScale(1.1);
+          // Show world name tooltip
+          if (!this.worldTooltip) {
+            this.worldTooltip = this.add.text(width/2, 575, '', {
+              fontFamily: 'Arial', fontSize: '11px', color: '#ffffff',
+              backgroundColor: '#000000', padding: { x: 8, y: 4 }
+            }).setOrigin(0.5).setDepth(100);
+          }
+          this.worldTooltip.setText(`${WORLDS[world.num].name} - ${WORLDS[world.num].subtitle}`);
+          this.worldTooltip.setVisible(true);
+        });
+
+        btnBg.on('pointerout', () => {
+          btnBg.setScale(1);
+          if (this.worldTooltip) this.worldTooltip.setVisible(false);
+        });
+
+        btnBg.on('pointerdown', () => {
+          const startLevel = getFirstLevelOfWorld(world.num);
+          gameState.currentLevel = startLevel;
+          saveGame();
+          if (gameState.musicEnabled && !mariachiMusic.isPlaying) mariachiMusic.start();
+          this.scene.start('GameScene', { level: startLevel });
+        });
+      }
+    });
+
     // Controls - simplified!
-    this.add.text(width/2, height - 35, 'Arrows/WASD = Move | SPACE = Run', {
-      fontFamily: 'Arial', fontSize: '10px', color: '#555555'
+    this.add.text(width/2, height - 25, 'WASD/Arrows = Move | SPACE = Run | X = Jump | Z = Attack', {
+      fontFamily: 'Arial', fontSize: '9px', color: '#555555'
     }).setOrigin(0.5);
-    this.add.text(width/2, height - 20, 'X = Jump (double jump in air!) | Z = Thunder', {
-      fontFamily: 'Arial', fontSize: '10px', color: '#555555'
+    this.add.text(width/2, height - 10, 'Grab ledges by pressing toward them while falling!', {
+      fontFamily: 'Arial', fontSize: '9px', color: '#666666'
     }).setOrigin(0.5);
 
     // Keyboard shortcut to start
@@ -1959,9 +2587,44 @@ class GameScene extends Phaser.Scene {
 
   init(data) {
     this.levelNum = data.level || 1;
-    // Use procedural generator for most levels, boss arenas for levels 5 and 10
+
+    // ============ WORLD FLOW - Each world has variety! ============
+    //
+    // WORLD 1 - Canal Dawn (Tutorial) - Pink/orange sunrise
+    //   Level 1: Side-scroller - Learn the basics, trajineras everywhere
+    //   Level 2: Side-scroller - Practice, slightly harder
+    //
+    // WORLD 2 - Trajineras Brillantes (Bright Day) - Blue sky
+    //   Level 3: Upscroller - NEW! Climb up, water rises below
+    //   Level 4: Side-scroller - Back to horizontal, faster boats
+    //
+    // WORLD 3 - Cueva de Cristal (Crystal Cave) - Dark blue
+    //   Level 5: BOSS - Dark Xochi appears!
+    //
+    // WORLD 4 - Jardines Flotantes (Floating Gardens) - Golden sunset
+    //   Level 6: Side-scroller - Beautiful but dangerous
+    //   Level 7: Escape - NEW! The flood is coming, RUN!
+    //
+    // WORLD 5 - Canales de Noche (Night Canals) - Moonlit purple
+    //   Level 8: Upscroller - Harder vertical climb in darkness
+    //   Level 9: Escape - Intense chase, faster flood!
+    //
+    // WORLD 6 - La Gran Fiesta (The Grand Festival) - Teal celebration
+    //   Level 10: FINAL BOSS - Dark Xochi rematch!
+
     const isBossLevel = this.levelNum === 5 || this.levelNum === 10;
-    this.levelData = isBossLevel ? generateBossArena(this.levelNum) : generateLevel(this.levelNum);
+    const isUpscrollerLevel = this.levelNum === 3 || this.levelNum === 8;
+    const isEscapeLevel = this.levelNum === 7 || this.levelNum === 9;
+
+    if (isBossLevel) {
+      this.levelData = generateBossArena(this.levelNum);
+    } else if (isUpscrollerLevel) {
+      this.levelData = generateUpscrollerLevel(this.levelNum);
+    } else if (isEscapeLevel) {
+      this.levelData = generateEscapeLevel(this.levelNum);
+    } else {
+      this.levelData = generateXochimilcoLevel(this.levelNum);
+    }
   }
 
   create() {
@@ -2213,6 +2876,99 @@ class GameScene extends Phaser.Scene {
       }
     });
 
+    // ============ XOCHIMILCO WATER LEVEL SPECIAL HANDLING ============
+    this.trajineras = [];  // Moving boats
+    // All level types with water: Frogger, Xochimilco side-scroller, Upscroller
+    this.isWaterLevel = ld.isFroggerLevel || ld.isXochimilcoLevel || ld.isUpscroller || ld.isEscapeLevel || false;
+    this.waterY = ld.waterY || ld.height;
+
+    if (this.isWaterLevel) {
+      // Water visual layer (behind everything else)
+      const waterColor = ld.theme.waterColor || 0x2299aa;
+
+      // Animated water surface
+      this.waterGraphics = this.add.graphics().setDepth(-10);
+      this.waterGraphics.fillStyle(waterColor, 0.8);
+      this.waterGraphics.fillRect(0, this.waterY, ld.width, ld.height - this.waterY + 100);
+
+      // Water shimmer overlay
+      for (let wx = 0; wx < ld.width; wx += 60) {
+        const shimmer = this.add.ellipse(wx, this.waterY + 20, 40, 8, 0x66ddff, 0.3).setDepth(-9);
+        this.tweens.add({
+          targets: shimmer,
+          x: shimmer.x + 30,
+          alpha: 0.5,
+          duration: 1500 + Math.random() * 500,
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.easeInOut'
+        });
+      }
+
+      // Lily pads floating on water
+      for (let lx = 200; lx < ld.width - 300; lx += 300 + Math.random() * 200) {
+        const lilypad = this.add.ellipse(lx, this.waterY + 5, 50 + Math.random() * 30, 20, 0x44aa44, 0.7).setDepth(-8);
+        // Gentle float animation
+        this.tweens.add({
+          targets: lilypad,
+          y: lilypad.y + 3,
+          scaleX: 1.05,
+          duration: 2000 + Math.random() * 500,
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.easeInOut'
+        });
+      }
+
+      // Create trajineras (colorful moving boats!)
+      if (ld.trajineras) {
+        ld.trajineras.forEach((t, i) => {
+          // Boat body (colorful hull)
+          const boat = this.add.container(t.x, t.y);
+
+          // Hull
+          const hull = this.add.rectangle(0, 0, t.w, t.h, t.color);
+          boat.add(hull);
+
+          // Boat decoration stripes
+          const stripe1 = this.add.rectangle(0, -t.h/4, t.w - 10, 4, 0xffffff, 0.5);
+          const stripe2 = this.add.rectangle(0, t.h/4, t.w - 10, 4, 0x000000, 0.3);
+          boat.add(stripe1);
+          boat.add(stripe2);
+
+          // Boat bow (pointed front)
+          const bowDir = t.dir;
+          const bow = this.add.triangle(t.w/2 * bowDir, 0, 0, -t.h/2, 15 * bowDir, 0, 0, t.h/2, t.color);
+          boat.add(bow);
+
+          // Flower decorations (trajineras are famous for flowers!)
+          for (let fx = -t.w/3; fx <= t.w/3; fx += t.w/3) {
+            const flower = this.add.circle(fx, -t.h/2 - 5, 5, [0xff6b6b, 0xffe66d, 0xff69b4, 0x9b59b6][Math.floor(Math.random() * 4)]);
+            boat.add(flower);
+          }
+
+          // Physics body for the boat platform
+          const boatPlatform = this.add.rectangle(t.x, t.y - t.h/2 - 5, t.w + 20, 15, 0x000000, 0);
+          this.physics.add.existing(boatPlatform, true);
+          this.platforms.add(boatPlatform);
+
+          // Store trajinera data for movement (LEGO attachment system needs all properties)
+          this.trajineras.push({
+            container: boat,
+            platform: boatPlatform,
+            x: t.x,
+            y: t.y,
+            w: t.w,
+            h: t.h || 25,  // Store height for ledge grab calculations
+            speed: t.speed || 0,
+            dir: t.dir || 1,
+            minX: -t.w,  // Wrap around
+            maxX: ld.width + t.w
+          });
+        });
+      }
+    }
+
     // Coins
     this.coins = this.physics.add.group();
     ld.coins.forEach(c => {
@@ -2283,6 +3039,25 @@ class GameScene extends Phaser.Scene {
       }
       enemy.setFlipX(enemy.getData('dir') > 0);
     });
+
+    // ============ ALLIGATORS - DKC2 style water danger! ============
+    this.alligators = this.physics.add.group();
+    if (ld.alligators && ld.alligators.length > 0) {
+      ld.alligators.forEach(gator => {
+        // Create alligator sprite (reuse enemy sprite with green tint)
+        const alligator = this.alligators.create(gator.x, this.levelData.height + 100, 'enemy').setScale(2);
+        alligator.body.allowGravity = false;
+        alligator.setTint(0x228833);  // Dark green for alligator
+        alligator.setData('baseY', gator.baseY);
+        alligator.setData('speed', gator.speed);
+        alligator.setData('dir', gator.dir);
+        alligator.body.setVelocityX(gator.speed * gator.dir);
+        alligator.setFlipX(gator.dir > 0);
+
+        // Make alligator look more menacing - stretch horizontally
+        alligator.setScale(2.5, 1.5);
+      });
+    }
 
     // DARK XOCHI - Boss fight on levels 5 and 10!
     // DKC2-style boss: APPROACH -> TELEGRAPH -> ATTACK -> RECOVER (vulnerable)
@@ -2385,10 +3160,8 @@ class GameScene extends Phaser.Scene {
       });
     }
 
-    // Starting powerup next to player spawn (easy to grab!)
-    const startPowerup = this.powerups.create(ld.playerSpawn.x + 80, ld.playerSpawn.y - 30, 'superjump').setScale(1.8);
-    startPowerup.body.allowGravity = false;
-    this.tweens.add({ targets: startPowerup, y: ld.playerSpawn.y - 40, duration: 500, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    // NO free starting powerup - earn your powers!
+    // (Powerups are placed throughout the level based on difficulty settings)
 
     // Player (Aztec axolotl warrior - ~420x450 sprite frames at 0.15 scale)
     this.player = this.physics.add.sprite(ld.playerSpawn.x, ld.playerSpawn.y, 'xochi_walk').setScale(0.15);
@@ -2400,9 +3173,87 @@ class GameScene extends Phaser.Scene {
     this.player.setData('invincible', false);
     this.player.setData('dead', false);
 
-    // Camera
+    // Camera - different behavior for each level type
     this.cameras.main.setBounds(0, 0, ld.width, ld.height);
-    this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
+    this.isUpscroller = ld.isUpscroller || false;
+    this.isEscapeLevel = ld.isEscapeLevel || false;
+
+    if (this.isUpscroller) {
+      // Upscroller: tighter vertical follow, camera stays centered horizontally
+      this.cameras.main.startFollow(this.player, true, 0.1, 0.15);
+      // Offset camera to show more above player (where they're climbing to)
+      this.cameras.main.setFollowOffset(0, 100);
+
+      // ============ RISING WATER - FLAPPY BIRD PRESSURE! ============
+      // Water starts at bottom and rises - keeps you moving!
+      this.risingWaterY = ld.height + 50;  // Start just below screen
+      this.risingWaterSpeed = 25 + this.levelNum * 5;  // Faster on harder levels
+      this.risingWaterGraphics = this.add.graphics().setDepth(100);  // Above everything
+      this.risingWaterGraphics.setScrollFactor(0);  // Fixed to camera
+
+      // Warning line showing where water will be
+      this.waterWarningLine = this.add.rectangle(
+        ld.width / 2, this.cameras.main.height - 30,
+        ld.width, 4, 0xff0000, 0.5
+      ).setScrollFactor(0).setDepth(99);
+
+      // Pulsing warning
+      this.tweens.add({
+        targets: this.waterWarningLine,
+        alpha: 0.2,
+        duration: 300,
+        yoyo: true,
+        repeat: -1
+      });
+
+    } else if (this.isEscapeLevel) {
+      // ============ ESCAPE LEVEL - INDIANA JONES STYLE! ============
+      // Camera auto-scrolls forward, flood chases from behind!
+
+      // Camera follows player but also auto-scrolls forward
+      this.cameras.main.startFollow(this.player, true, 0.1, 0.08);
+      this.cameras.main.setFollowOffset(-100, 0);  // Show more ahead
+
+      // Chasing flood starts at the left
+      this.chasingFloodX = -100;  // Start just off-screen left
+      this.floodSpeed = ld.escapeSpeed || 120;  // Pixels per second
+      this.floodGraphics = this.add.graphics().setDepth(100);
+      this.floodGraphics.setScrollFactor(0);
+
+      // Warning indicator on left side
+      this.floodWarning = this.add.rectangle(
+        30, this.cameras.main.height / 2,
+        8, this.cameras.main.height, 0xff0000, 0.6
+      ).setScrollFactor(0).setDepth(99);
+
+      this.tweens.add({
+        targets: this.floodWarning,
+        alpha: 0.2,
+        duration: 200,
+        yoyo: true,
+        repeat: -1
+      });
+
+      // Show "RUN!" text at start
+      const runText = this.add.text(this.cameras.main.width / 2, this.cameras.main.height / 2 - 50,
+        'RUN!', {
+        fontFamily: 'Arial Black', fontSize: '64px', color: '#ff4444',
+        stroke: '#000000', strokeThickness: 6
+      }).setOrigin(0.5).setScrollFactor(0).setDepth(200);
+
+      this.tweens.add({
+        targets: runText,
+        scale: 1.3,
+        alpha: 0,
+        duration: 1500,
+        ease: 'Power2',
+        onComplete: () => runText.destroy()
+      });
+
+    } else {
+      // Side-scroller: normal horizontal follow
+      this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
+    }
 
     // Collisions
     this.physics.add.collider(this.player, this.platforms);
@@ -2449,13 +3300,80 @@ class GameScene extends Phaser.Scene {
     // UI
     this.scene.launch('UIScene', { levelNum: this.levelNum });
 
+    // ============ WORLD INTRO - Show world name when entering new world! ============
+    try {
+      if (typeof isFirstLevelOfWorld === 'function' && isFirstLevelOfWorld(this.levelNum)) {
+        const worldNum = getWorldForLevel(this.levelNum);
+        const world = WORLDS[worldNum];
+        if (world) {
+          const levelType = getLevelTypeDescription(this.levelNum);
+          const camW = this.cameras.main.width;
+          const camH = this.cameras.main.height;
+
+          // Dark overlay for dramatic effect
+          const overlay = this.add.rectangle(camW/2, camH/2, camW, camH, 0x000000, 0.7)
+            .setScrollFactor(0).setDepth(500);
+
+          // World name (English)
+          const worldName = this.add.text(camW/2, camH/2 - 40, (world.name || '').toUpperCase(), {
+            fontFamily: 'Arial Black', fontSize: '36px', color: '#ffffff',
+            stroke: '#000000', strokeThickness: 4
+          }).setOrigin(0.5).setScrollFactor(0).setDepth(501).setAlpha(0);
+
+          // World subtitle (Spanish)
+          const worldSubtitle = this.add.text(camW/2, camH/2, world.subtitle || '', {
+            fontFamily: 'Arial', fontSize: '20px', color: '#ffcc66',
+            stroke: '#000000', strokeThickness: 2, fontStyle: 'italic'
+          }).setOrigin(0.5).setScrollFactor(0).setDepth(501).setAlpha(0);
+
+          // Level type
+          const typeText = this.add.text(camW/2, camH/2 + 50, levelType || '', {
+            fontFamily: 'Arial Black', fontSize: '18px', color: '#66ffcc',
+            stroke: '#000000', strokeThickness: 3
+          }).setOrigin(0.5).setScrollFactor(0).setDepth(501).setAlpha(0);
+
+          // Level number
+          const levelText = this.add.text(camW/2, camH/2 + 85, `Level ${this.levelNum}`, {
+            fontFamily: 'Arial', fontSize: '14px', color: '#aaaaaa'
+          }).setOrigin(0.5).setScrollFactor(0).setDepth(501).setAlpha(0);
+
+          // Animate in
+          this.tweens.add({
+            targets: [worldName, worldSubtitle, typeText, levelText],
+            alpha: 1,
+            duration: 500,
+            ease: 'Power2'
+          });
+
+          // Animate out after delay
+          this.time.delayedCall(2000, () => {
+            this.tweens.add({
+              targets: [overlay, worldName, worldSubtitle, typeText, levelText],
+              alpha: 0,
+              duration: 500,
+              ease: 'Power2',
+              onComplete: () => {
+                if (overlay && overlay.destroy) overlay.destroy();
+                if (worldName && worldName.destroy) worldName.destroy();
+                if (worldSubtitle && worldSubtitle.destroy) worldSubtitle.destroy();
+                if (typeText && typeText.destroy) typeText.destroy();
+                if (levelText && levelText.destroy) levelText.destroy();
+              }
+            });
+          });
+        }
+      }
+    } catch (e) {
+      console.error('World intro error:', e);
+    }
+
     // Pause
     this.input.keyboard.on('keydown-ESC', () => {
       this.scene.launch('PauseScene');
       this.scene.pause();
     });
 
-    // Start MARIACHI music! 🎺
+    // Start MARIACHI music!
     if (gameState.musicEnabled && !mariachiMusic.isPlaying) {
       mariachiMusic.start();
     }
@@ -2465,6 +3383,54 @@ class GameScene extends Phaser.Scene {
     if (gameState.sfxEnabled) {
       this.sound.play(key, { volume: 0.5 });
     }
+  }
+
+  // ============ LEDGE GRAB - DKC style! ============
+  grabLedge(edgeX, edgeY, side, movingPlatform = null) {
+    if (!this.player || !this.player.body) return;
+    if (this.player.getData('hanging')) return;
+    if (this.player.getData('climbing')) return;  // Don't grab while climbing up
+
+    // Snap to ledge position (closer to edge for cleaner look)
+    this.player.setPosition(
+      side === 'left' ? edgeX - 12 : edgeX + 12,
+      edgeY + 15
+    );
+
+    // Enter hanging state
+    this.player.setData('hanging', true);
+    this.player.setData('ledgeX', edgeX);
+    this.player.setData('ledgeY', edgeY);
+    this.player.setData('ledgeSide', side);
+    this.player.setData('ledgePlatform', movingPlatform);
+
+    // Stop movement
+    this.player.body.setVelocity(0, 0);
+    this.player.body.allowGravity = false;
+
+    // Visual feedback - use RUN sprite for hanging pose (arms forward)
+    this.player.setTexture('xochi_run');
+    this.player.setFlipX(side === 'right');
+    this.player.clearTint();  // No tint - natural look
+
+    // Small particle burst
+    for (let i = 0; i < 3; i++) {
+      const spark = this.add.circle(
+        edgeX + (Math.random() - 0.5) * 15,
+        edgeY + 5,
+        2 + Math.random() * 2, 0xffffff, 0.8
+      );
+      this.tweens.add({
+        targets: spark,
+        y: spark.y - 15,
+        alpha: 0,
+        scale: 0,
+        duration: 250,
+        onComplete: () => spark.destroy()
+      });
+    }
+
+    this.playSound('sfx-coin');  // Small feedback sound
   }
 
   // ============ TOUCH CONTROLS SETUP ============
@@ -2638,10 +3604,10 @@ class GameScene extends Phaser.Scene {
 
   collectPowerup(player, powerup) {
     powerup.destroy();
-    gameState.superJumps += 2;
-    gameState.maceAttacks += 2;  // Also get thunder attacks!
+    gameState.superJumps += 1;   // Only +1 now (was +2)
+    gameState.maceAttacks += 1;  // Only +1 now (was +2)
     this.playSound('sfx-powerup');
-    this.showBigText('+2 SUPER! +2 THUNDER!', '#00ffff');
+    this.showBigText('+1 JUMP! +1 THUNDER!', '#00ffff');
     this.events.emit('updateUI');
   }
 
@@ -2667,9 +3633,9 @@ class GameScene extends Phaser.Scene {
 
   collectStar(player, star) {
     gameState.stars.push(star.starId);
-    gameState.superJumps += 1;
-    gameState.maceAttacks += 1;  // Stars also give thunder!
-    gameState.score += 500; // +500 points per star!
+    gameState.superJumps += 1;   // Only super jump, no thunder!
+    // Stars are collectibles - earn thunder from powerups!
+    gameState.score += 500;
     star.destroy();
     this.playSound('sfx-powerup');
     this.showBigText('STAR! +500pts', '#ffff00');
@@ -2906,17 +3872,70 @@ class GameScene extends Phaser.Scene {
     this.player.body.setVelocity(0, -300);
     this.player.setTint(0xff0000);
     gameState.lives--;
+    this.playSound('sfx-hurt');
 
-    this.time.delayedCall(1500, () => {
-      if (gameState.lives <= 0) {
-        gameState.lives = 3;
-        gameState.coins = 0;
-        mariachiMusic.stop();
-        this.scene.stop('UIScene');
-        this.scene.start('MenuScene');
+    // Show instant restart prompt - ALWAYS restart, never go to menu!
+    const { width, height } = this.cameras.main;
+    const outOfLives = gameState.lives <= 0;
+    const checkpointLevel = getCheckpointLevel(this.levelNum);
+    const worldName = WORLDS[getWorldForLevel(this.levelNum)].name;
+
+    // Show restart message with checkpoint info
+    let message = 'X to retry!';
+    if (outOfLives) {
+      if (checkpointLevel === 1) {
+        message = 'GAME OVER - X to restart!';
       } else {
+        message = `GAME OVER - X for ${worldName}`;
+      }
+    }
+
+    const restartText = this.add.text(width/2, height/2, message, {
+      fontFamily: 'Arial Black', fontSize: '22px', color: outOfLives ? '#ff6666' : '#ffffff',
+      stroke: '#000000', strokeThickness: 4
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
+
+    // Pulse animation
+    this.tweens.add({
+      targets: restartText, scale: 1.1, duration: 300, yoyo: true, repeat: -1
+    });
+
+    // INSTANT RESTART - no menu, just play again!
+    const restartHandler = () => {
+      const settings = DIFFICULTY_SETTINGS[gameState.difficulty];
+
+      if (gameState.lives <= 0) {
+        // Out of lives - Restart from WORLD CHECKPOINT (not level 1!)
+        const checkpointLevel = getCheckpointLevel(this.levelNum);
+        const world = getWorldForLevel(this.levelNum);
+
+        gameState.lives = settings.lives;
+        gameState.superJumps = settings.startingSuperJumps;
+        gameState.maceAttacks = settings.startingMaceAttacks;
+        gameState.currentLevel = checkpointLevel;
+
+        // Only reset babies/stars for current world and beyond
+        gameState.rescuedBabies = gameState.rescuedBabies.filter(id => {
+          const lvl = parseInt(id.split('-')[1]);
+          return lvl < checkpointLevel;
+        });
+        gameState.stars = gameState.stars.filter(id => {
+          const lvl = parseInt(id.split('-')[0]);
+          return lvl < checkpointLevel;
+        });
+
+        saveGame();
+        this.scene.restart({ level: checkpointLevel });
+      } else {
+        // Still have lives - retry same level (baby should still be there if not rescued)
         this.scene.restart({ level: this.levelNum });
       }
+    };
+
+    // Enable restart after VERY brief delay (150ms - just enough to prevent double-tap)
+    this.time.delayedCall(150, () => {
+      this.input.keyboard.once('keydown-X', restartHandler);
+      this.input.once('pointerdown', restartHandler);
     });
   }
 
@@ -2946,24 +3965,258 @@ class GameScene extends Phaser.Scene {
   }
 
   update(time, delta) {
+    // Safety check - make sure player exists
+    if (!this.player || !this.player.body) return;
     if (this.player.getData('dead')) return;
+
+    // Track if player can move (climbing/hanging blocks movement but NOT world updates)
+    const playerCanMove = !this.player.getData('climbing') && !this.player.getData('hanging');
 
     // Default delta to 16ms (~60fps) if not provided
     if (!delta) delta = 16;
 
+    const tc = this.touchControls || { left: false, right: false, jump: false, superJump: false, attack: false };
+
+    // ============ LEDGE GRAB MECHANIC - Improved for Upscroller! ============
+    const isHanging = this.player.getData('hanging') || false;
+    const grabCooldown = this.player.getData('grabCooldown') || 0;
+
+    // Update grab cooldown
+    if (grabCooldown > 0) {
+      this.player.setData('grabCooldown', grabCooldown - delta);
+    }
+
+    if (isHanging) {
+      // HANGING STATE - player is grabbing a ledge!
+      this.player.body.setVelocityX(0);
+      this.player.body.setVelocityY(0);
+      this.player.body.allowGravity = false;
+
+      // ============ LEGO-STYLE ATTACHMENT SYSTEM ============
+      // If hanging on a moving trajinera, LATCH to it and move together!
+      const attachedTrajinera = this.player.getData('ledgePlatform');
+      if (attachedTrajinera && attachedTrajinera.w) {
+        // This is a trajinera DATA object (has w, h, x, y, speed, dir)
+        const side = this.player.getData('ledgeSide');
+        const trajW = attachedTrajinera.w;
+        const trajH = attachedTrajinera.h || 25;
+
+        // Calculate edge position based on trajinera's CURRENT position
+        const edgeX = side === 'left'
+          ? attachedTrajinera.x - trajW / 2
+          : attachedTrajinera.x + trajW / 2;
+        const edgeY = attachedTrajinera.y - trajH / 2 - 5;  // Platform top
+
+        // LATCH: Move Xochi with the trajinera
+        this.player.x = side === 'left' ? edgeX - 12 : edgeX + 12;
+        this.player.y = edgeY + 15;
+
+        // Update stored ledge position for climb calculations
+        this.player.setData('ledgeX', edgeX);
+        this.player.setData('ledgeY', edgeY);
+      }
+
+      // Visual feedback - slight sway
+      this.player.rotation = Math.sin(time / 300) * 0.03;
+
+      // PULL UP - press UP or JUMP to climb onto ledge
+      const wantClimb = (this.keys && this.keys.X && Phaser.Input.Keyboard.JustDown(this.keys.X)) ||
+                        (this.cursors && this.cursors.up && Phaser.Input.Keyboard.JustDown(this.cursors.up)) ||
+                        (this.keys && this.keys.W && Phaser.Input.Keyboard.JustDown(this.keys.W)) ||
+                        tc.jump;
+
+      if (wantClimb && !this.player.getData('climbing')) {
+        const ledgeX = this.player.getData('ledgeX');
+        const ledgeY = this.player.getData('ledgeY');
+        const ledgeSide = this.player.getData('ledgeSide');
+        const attachedTraj = this.player.getData('ledgePlatform');
+
+        // Enter climbing state (prevents movement during animation)
+        this.player.setData('climbing', true);
+        this.player.setData('hanging', false);
+        this.player.setData('ledgePlatform', null);  // Detach from trajinera
+        this.player.rotation = 0;
+
+        // Calculate target position on top of platform
+        // If attached to trajinera, use its current position for accuracy
+        let targetX, targetY;
+        if (attachedTraj && attachedTraj.w) {
+          const trajW = attachedTraj.w;
+          const trajH = attachedTraj.h || 25;
+          const currentEdgeX = ledgeSide === 'left'
+            ? attachedTraj.x - trajW / 2
+            : attachedTraj.x + trajW / 2;
+          const currentEdgeY = attachedTraj.y - trajH / 2 - 5;
+          targetX = currentEdgeX + (ledgeSide === 'left' ? 30 : -30);
+          targetY = currentEdgeY - 35;
+        } else {
+          targetX = ledgeX + (ledgeSide === 'left' ? 30 : -30);
+          targetY = ledgeY - 35;
+        }
+
+        // PHASE 1: Pull-up - use JUMP sprite (reaching up pose)
+        this.player.setTexture('xochi_jump');
+        this.player.clearTint();
+
+        this.tweens.add({
+          targets: this.player,
+          x: ledgeX + (ledgeSide === 'left' ? 10 : -10),
+          y: ledgeY - 15,
+          duration: 100,
+          ease: 'Power2.easeOut',
+          onComplete: () => {
+            // PHASE 2: Vault over - use ATTACK sprite (dynamic action pose)
+            this.player.setTexture('xochi_attack');
+
+            this.tweens.add({
+              targets: this.player,
+              x: targetX,
+              y: targetY,
+              duration: 120,
+              ease: 'Sine.easeOut',
+              onComplete: () => {
+                // PHASE 3: Landing - back to WALK sprite
+                this.player.setTexture('xochi_walk');
+                this.player.setData('climbing', false);
+                this.player.setData('grabCooldown', 200);
+                this.player.body.allowGravity = true;
+                this.player.body.setVelocityY(0);
+                this.player.body.setVelocityX(0);
+              }
+            });
+          }
+        });
+
+        this.playSound('sfx-jump');
+      }
+
+      // DROP DOWN - press DOWN to let go
+      const wantDrop = (this.cursors && this.cursors.down && Phaser.Input.Keyboard.JustDown(this.cursors.down));
+      if (wantDrop) {
+        this.player.setData('hanging', false);
+        this.player.setData('ledgePlatform', null);  // Detach from trajinera
+        this.player.setData('grabCooldown', 400);  // Longer cooldown when dropping
+        this.player.body.allowGravity = true;
+        this.player.rotation = 0;
+        this.player.setTexture('xochi_jump');  // Falling pose
+        this.player.body.setVelocityY(100);  // Drop down
+      }
+
+      // SCREEN EDGE CHECK - if trajinera moves Xochi off screen edge, release grab and fall
+      const camBounds = this.cameras.main.worldView;
+      if (this.player.x < camBounds.left - 20 || this.player.x > camBounds.right + 20) {
+        this.player.setData('hanging', false);
+        this.player.setData('ledgePlatform', null);  // Detach from trajinera
+        this.player.setData('grabCooldown', 300);
+        this.player.body.allowGravity = true;
+        this.player.rotation = 0;
+        this.player.setTexture('xochi_jump');
+        this.player.body.setVelocityY(50);
+      }
+      // Don't process normal movement while hanging, but DON'T return - let world update continue
+    }
+
+    // LEDGE DETECTION - only when falling AND pressing toward a ledge
+    const isFalling = this.player.body.velocity.y > 80;  // Must be falling faster
+    const notOnGround = !this.player.body.blocked.down;
+    const canGrab = grabCooldown <= 0;
+
+    // Only try to grab if pressing left or right (intentional grab)
+    const pressingLeft = this.cursors && this.cursors.left && this.cursors.left.isDown;
+    const pressingRight = this.cursors && this.cursors.right && this.cursors.right.isDown;
+    const pressingDirection = pressingLeft || pressingRight;
+
+    if (isFalling && notOnGround && canGrab && pressingDirection &&
+        !this.player.getData('swimming') && !this.player.getData('hanging') && !this.player.getData('climbing')) {
+
+      const grabRange = 30;  // Slightly more forgiving
+      const playerH = this.player.displayHeight || this.player.height || 50;
+      const playerW = this.player.displayWidth || this.player.width || 30;
+      const playerTop = this.player.y - playerH / 2;
+      const playerLeft = this.player.x - playerW / 2;
+      const playerRight = this.player.x + playerW / 2;
+
+      let grabbed = false;
+
+      // Check trajineras FIRST (more important for upscroller)
+      // trajineras is an ARRAY of data objects, not a Phaser group!
+      if (!grabbed && this.trajineras && Array.isArray(this.trajineras)) {
+        for (let i = 0; i < this.trajineras.length && !grabbed; i++) {
+          const traj = this.trajineras[i];
+          if (!traj) continue;
+
+          // Trajinera data object has: x, y, w, h, speed, dir, container, platform
+          const trajH = traj.h || 25;
+          const trajW = traj.w || 100;
+          const trajTop = traj.y - trajH / 2 - 5;  // Platform sits on top of boat
+          const trajLeft = traj.x - trajW / 2;
+          const trajRight = traj.x + trajW / 2;
+
+          // Height check - player's hands should be near platform top
+          const heightMatch = playerTop > trajTop - grabRange && playerTop < trajTop + grabRange;
+
+          if (heightMatch) {
+            // Grab LEFT edge (pressing right toward platform)
+            if (pressingRight && Math.abs(playerRight - trajLeft) < grabRange) {
+              this.grabLedge(trajLeft, trajTop, 'left', traj);  // Pass trajinera DATA object
+              grabbed = true;
+              break;
+            }
+            // Grab RIGHT edge (pressing left toward platform)
+            if (pressingLeft && Math.abs(playerLeft - trajRight) < grabRange) {
+              this.grabLedge(trajRight, trajTop, 'right', traj);  // Pass trajinera DATA object
+              grabbed = true;
+              break;
+            }
+          }
+        }
+      }
+
+      // Then check static platforms
+      if (!grabbed && this.platforms && typeof this.platforms.getChildren === 'function') {
+        const platformList = this.platforms.getChildren();
+        for (let i = 0; i < platformList.length && !grabbed; i++) {
+          const platform = platformList[i];
+          if (!platform) continue;
+
+          const platH = platform.displayHeight || platform.height || 20;
+          const platW = platform.displayWidth || platform.width || 100;
+          const platTop = platform.y - platH / 2;
+          const platLeft = platform.x - platW / 2;
+          const platRight = platform.x + platW / 2;
+
+          const heightMatch = playerTop > platTop - grabRange && playerTop < platTop + grabRange;
+
+          if (heightMatch) {
+            if (pressingRight && Math.abs(playerRight - platLeft) < grabRange) {
+              this.grabLedge(platLeft, platTop, 'left');
+              grabbed = true;
+              break;
+            }
+            if (pressingLeft && Math.abs(playerLeft - platRight) < grabRange) {
+              this.grabLedge(platRight, platTop, 'right');
+              grabbed = true;
+              break;
+            }
+          }
+        }
+      }
+    }
+
     const onGround = this.player.body.blocked.down;
     const speed = this.keys.SPACE.isDown ? 280 : 180;  // SPACE = run
-    const tc = this.touchControls;
 
-    // Movement (keyboard + touch)
-    if (this.cursors.left.isDown || this.keys.A.isDown || tc.left) {
-      this.player.body.setVelocityX(-speed);
-      this.player.setFlipX(true);
-    } else if (this.cursors.right.isDown || this.keys.D.isDown || tc.right) {
-      this.player.body.setVelocityX(speed);
-      this.player.setFlipX(false);
-    } else {
-      this.player.body.setVelocityX(this.player.body.velocity.x * 0.8);
+    // Movement (keyboard + touch) - ONLY when not hanging/climbing
+    if (playerCanMove) {
+      if (this.cursors.left.isDown || this.keys.A.isDown || tc.left) {
+        this.player.body.setVelocityX(-speed);
+        this.player.setFlipX(true);
+      } else if (this.cursors.right.isDown || this.keys.D.isDown || tc.right) {
+        this.player.body.setVelocityX(speed);
+        this.player.setFlipX(false);
+      } else {
+        this.player.body.setVelocityX(this.player.body.velocity.x * 0.8);
+      }
     }
 
     // ============ SIMPLIFIED JUMP SYSTEM (X key) ============
@@ -2996,8 +4249,8 @@ class GameScene extends Phaser.Scene {
     // Can normal jump if: on ground OR within coyote time
     const canNormalJump = onGround || this.coyoteTime > 0;
 
-    // Execute jump
-    if (jumpJustPressed || this.jumpBufferTime > 0) {
+    // Execute jump - ONLY when not hanging/climbing
+    if (playerCanMove && (jumpJustPressed || this.jumpBufferTime > 0)) {
       if (canNormalJump) {
         // Normal jump from ground
         this.player.body.setVelocityY(-450);
@@ -3047,8 +4300,8 @@ class GameScene extends Phaser.Scene {
 
     const attackPressed = Phaser.Input.Keyboard.JustDown(this.keys.Z) || touchAttackJustPressed;
 
-    // Regular mace swing (no thunderbolt) - always available
-    if (attackPressed && this.attackCooldown <= 0 && !this.isAttacking) {
+    // Regular mace swing (no thunderbolt) - only when not hanging/climbing
+    if (playerCanMove && attackPressed && this.attackCooldown <= 0 && !this.isAttacking) {
       this.isAttacking = true;
       this.attackCooldown = 500; // 0.5 second cooldown for regular swing
 
@@ -3102,79 +4355,94 @@ class GameScene extends Phaser.Scene {
         }
       }
 
-      // THUNDERBOLT - only if we have mace attacks!
+      // THUNDERBOLT - Mario fireball style! Single projectile, hits ONE enemy
       if (gameState.maceAttacks > 0) {
         gameState.maceAttacks--;
         this.events.emit('updateUI');
-        this.showText(this.player.x, this.player.y - 40, 'THUNDER!', '#ffff00');
 
-        // Create THUNDERSHOCK lightning rays!
-        const startX = this.player.x + dir * 40;
-        const startY = this.player.y;
+        // Create a SINGLE lightning bolt projectile (like Mario fireball)
+        const boltX = this.player.x + dir * 30;
+        const boltY = this.player.y;
 
-        // Main lightning bolt - more dramatic!
-        for (let i = 0; i < 10; i++) {
-          this.time.delayedCall(i * 25, () => {
-            const boltX = startX + dir * (i * 30 + Math.random() * 15);
-            const boltY = startY + (Math.random() - 0.5) * 40;
+        // The bolt visual
+        const bolt = this.add.container(boltX, boltY);
+        const boltCore = this.add.ellipse(0, 0, 20, 12, 0xffff00);
+        const boltGlow = this.add.ellipse(0, 0, 28, 18, 0x88ffff, 0.5);
+        bolt.add(boltGlow);
+        bolt.add(boltCore);
 
-            // Forked lightning bolt
-            const bolt = this.add.rectangle(boltX, boltY, 25, 5, 0xffff00);
-            bolt.setRotation((Math.random() - 0.5) * 0.6);
+        // Add physics to the bolt
+        this.physics.add.existing(bolt);
+        bolt.body.setVelocity(dir * 400, 0);  // Flies straight horizontally
+        bolt.body.allowGravity = false;
+        bolt.body.setSize(20, 12);
+        bolt.setData('alive', true);
+        bolt.setData('dir', dir);
 
-            // Electric glow
-            const glow = this.add.circle(boltX, boltY, 15, 0x88ffff, 0.7);
-
-            // More spark particles
-            for (let s = 0; s < 5; s++) {
-              const spark = this.add.circle(
-                boltX + (Math.random() - 0.5) * 30,
-                boltY + (Math.random() - 0.5) * 30,
-                3, 0xffffff
-              );
-              this.tweens.add({
-                targets: spark,
-                alpha: 0, scale: 0,
-                duration: 200,
-                onComplete: () => spark.destroy()
-              });
-            }
-
+        // Spark trail effect
+        this.time.addEvent({
+          delay: 50,
+          repeat: 20,
+          callback: () => {
+            if (!bolt.getData('alive')) return;
+            const spark = this.add.circle(bolt.x, bolt.y + (Math.random() - 0.5) * 10, 3, 0xffff00, 0.8);
             this.tweens.add({
-              targets: [bolt, glow],
-              alpha: 0,
+              targets: spark,
+              alpha: 0, scale: 0,
               duration: 150,
-              onComplete: () => { bolt.destroy(); glow.destroy(); }
+              onComplete: () => spark.destroy()
             });
-          });
-        }
-
-        // Damage enemies in thunderbolt range
-        const attackRange = 250;
-        this.enemies.getChildren().forEach(enemy => {
-          if (!enemy.getData('alive')) return;
-          const dist = Math.abs(enemy.x - this.player.x);
-          const sameDirection = (enemy.x - this.player.x) * dir > 0;
-          if (dist < attackRange && sameDirection) {
-            enemy.setData('alive', false);
-            enemy.body.setVelocity(dir * 250, -250);
-            enemy.setTint(0xffff00);
-            this.playSound('sfx-stomp');
-            gameState.score += 300;
-            this.showText(enemy.x, enemy.y - 20, '+300', '#ffff00');
-            this.time.delayedCall(500, () => enemy.destroy());
           }
         });
 
-        // THUNDERBOLT HIT BOSS - 2 damage!
-        if (this.darkXochi && this.darkXochi.getData('alive')) {
-          const bossDist = Math.abs(this.darkXochi.x - this.player.x);
-          const bossSameDir = (this.darkXochi.x - this.player.x) * dir > 0;
-          if (bossDist < attackRange && bossSameDir) {
-            this.damageBoss(2, false);
-            this.showText(this.darkXochi.x, this.darkXochi.y - 30, 'CRITICAL!', '#ffff00');
+        // Check collision with enemies - hits ONLY ONE then disappears!
+        const hitEnemy = (bolt, enemy) => {
+          if (!bolt.getData('alive') || !enemy.getData('alive')) return;
+          bolt.setData('alive', false);
+          enemy.setData('alive', false);
+          enemy.body.setVelocity(dir * 150, -150);
+          enemy.setTint(0xffff00);
+          this.playSound('sfx-stomp');
+          gameState.score += 200;
+          this.showText(enemy.x, enemy.y - 20, '+200', '#ffff00');
+
+          // Explosion effect
+          for (let i = 0; i < 8; i++) {
+            const spark = this.add.circle(bolt.x, bolt.y, 5, 0xffff00);
+            const angle = (i / 8) * Math.PI * 2;
+            this.tweens.add({
+              targets: spark,
+              x: bolt.x + Math.cos(angle) * 30,
+              y: bolt.y + Math.sin(angle) * 30,
+              alpha: 0,
+              duration: 200,
+              onComplete: () => spark.destroy()
+            });
           }
+
+          bolt.destroy();
+          this.time.delayedCall(500, () => enemy.destroy());
+        };
+
+        this.physics.add.overlap(bolt, this.enemies, hitEnemy);
+
+        // Boss collision - only 1 damage now (not 2)
+        if (this.darkXochi) {
+          this.physics.add.overlap(bolt, this.darkXochi, (bolt, boss) => {
+            if (!bolt.getData('alive')) return;
+            bolt.setData('alive', false);
+            this.damageBoss(1, false);  // Only 1 damage, not 2!
+            bolt.destroy();
+          });
         }
+
+        // Destroy bolt after traveling too far or hitting wall
+        this.time.delayedCall(1500, () => {
+          if (bolt && bolt.getData('alive')) {
+            bolt.setData('alive', false);
+            bolt.destroy();
+          }
+        });
       }
 
       // Return to normal after attack
@@ -3192,45 +4460,48 @@ class GameScene extends Phaser.Scene {
     // Walk animation timer (cycle every 200ms for walk, 120ms for run)
     if (!this.walkAnimTime) this.walkAnimTime = 0;
 
-    // JUMPING - use jump frame
-    if (isInAir && !this.isAttacking) {
-      this.player.setTexture('xochi_jump');
-      this.player.setScale(0.15);
-      this.player.setRotation(0);
+    // SKIP animation switching when hanging/climbing (we control texture manually)
+    if (playerCanMove) {
+      // JUMPING - use jump frame
+      if (isInAir && !this.isAttacking) {
+        this.player.setTexture('xochi_jump');
+        this.player.setScale(0.15);
+        this.player.setRotation(0);
 
-    // RUNNING (SHIFT held) - use run frame with fast bob
-    } else if (isMoving && isRunning && onGround && !this.isAttacking) {
-      this.player.setTexture('xochi_run');
-      // Fast bobbing for running
-      const runCycle = Math.sin(now * 0.025) * 0.5; // Faster cycle
-      const bobScale = 0.15 + runCycle * 0.008; // Subtle scale pulse
-      const tilt = Math.sin(now * 0.025) * 0.08; // Side-to-side tilt
-      this.player.setScale(bobScale);
-      this.player.setRotation(tilt);
+      // RUNNING (SHIFT held) - use run frame with fast bob
+      } else if (isMoving && isRunning && onGround && !this.isAttacking) {
+        this.player.setTexture('xochi_run');
+        // Fast bobbing for running
+        const runCycle = Math.sin(now * 0.025) * 0.5; // Faster cycle
+        const bobScale = 0.15 + runCycle * 0.008; // Subtle scale pulse
+        const tilt = Math.sin(now * 0.025) * 0.08; // Side-to-side tilt
+        this.player.setScale(bobScale);
+        this.player.setRotation(tilt);
 
-    // WALKING - use walk frame with bob animation
-    } else if (isMoving && onGround && !this.isAttacking) {
-      this.player.setTexture('xochi_walk');
-      // DKC-style walk bob - body bounces up/down, slight tilt
-      const walkCycle = Math.sin(now * 0.015); // Smooth cycle
-      const bobScale = 0.15 + walkCycle * 0.006; // Subtle vertical squash/stretch
-      const tilt = Math.sin(now * 0.015) * 0.05; // Gentle side lean
-      this.player.setScale(bobScale);
-      this.player.setRotation(tilt);
+      // WALKING - use walk frame with bob animation
+      } else if (isMoving && onGround && !this.isAttacking) {
+        this.player.setTexture('xochi_walk');
+        // DKC-style walk bob - body bounces up/down, slight tilt
+        const walkCycle = Math.sin(now * 0.015); // Smooth cycle
+        const bobScale = 0.15 + walkCycle * 0.006; // Subtle vertical squash/stretch
+        const tilt = Math.sin(now * 0.015) * 0.05; // Gentle side lean
+        this.player.setScale(bobScale);
+        this.player.setRotation(tilt);
 
-    // IDLE - subtle breathing animation
-    } else if (!this.isAttacking) {
-      this.player.setTexture('xochi_walk');
-      // Gentle breathing effect
-      const breathe = Math.sin(now * 0.003) * 0.004;
-      this.player.setScale(0.15 + breathe);
-      this.player.setRotation(0);
-    }
+      // IDLE - subtle breathing animation
+      } else if (!this.isAttacking) {
+        this.player.setTexture('xochi_walk');
+        // Gentle breathing effect
+        const breathe = Math.sin(now * 0.003) * 0.004;
+        this.player.setScale(0.15 + breathe);
+        this.player.setRotation(0);
+      }
 
-    // ATTACKING - keep stable scale/rotation to prevent physics issues
-    if (this.isAttacking) {
-      this.player.setScale(0.15);
-      this.player.setRotation(0);
+      // ATTACKING - keep stable scale/rotation to prevent physics issues
+      if (this.isAttacking) {
+        this.player.setScale(0.15);
+        this.player.setRotation(0);
+      }
     }
 
     // Enemies patrol
@@ -3562,7 +4833,247 @@ class GameScene extends Phaser.Scene {
       });
     }
 
-    // Fall death
+    // ============ TRAJINERA (BOAT) MOVEMENT - Xochimilco Level ============
+    if (this.trajineras && this.trajineras.length > 0) {
+      const dt = delta / 1000;  // Convert to seconds
+
+      this.trajineras.forEach(traj => {
+        // Move the boat
+        traj.x += traj.speed * traj.dir * dt;
+
+        // Wrap around when going off screen
+        if (traj.dir > 0 && traj.x > traj.maxX) {
+          traj.x = traj.minX;
+        } else if (traj.dir < 0 && traj.x < traj.minX) {
+          traj.x = traj.maxX;
+        }
+
+        // Update visual position
+        traj.container.setPosition(traj.x, traj.y);
+
+        // Update physics body position (use reset for static bodies)
+        traj.platform.x = traj.x;
+        traj.platform.y = traj.y - 15;
+        traj.platform.body.reset(traj.x, traj.y - 15);
+
+        // If player is on this boat, move them with it!
+        if (this.player.body.touching.down || this.player.body.blocked.down) {
+          const playerOnBoat = Math.abs(this.player.x - traj.x) < traj.w / 2 + 20 &&
+                               Math.abs(this.player.y - (traj.y - 25)) < 30;
+          if (playerOnBoat) {
+            this.player.x += traj.speed * traj.dir * dt;
+          }
+        }
+      });
+    }
+
+    // ============ RISING WATER - DKC2 Style with Swimming! ============
+    if (this.isUpscroller && this.risingWaterY !== undefined) {
+      const dt = delta / 1000;
+
+      // Water rises constantly
+      this.risingWaterY -= this.risingWaterSpeed * dt;
+
+      // Draw rising water relative to camera
+      const camY = this.cameras.main.scrollY;
+      const screenWaterY = this.risingWaterY - camY;
+      const camHeight = this.cameras.main.height;
+
+      this.risingWaterGraphics.clear();
+      if (screenWaterY < camHeight + 100) {
+        // Water surface
+        this.risingWaterGraphics.fillStyle(0x2299aa, 0.85);
+        this.risingWaterGraphics.fillRect(0, screenWaterY, this.levelData.width, camHeight - screenWaterY + 200);
+
+        // Foamy top edge
+        this.risingWaterGraphics.fillStyle(0x66ddff, 0.6);
+        this.risingWaterGraphics.fillRect(0, screenWaterY - 8, this.levelData.width, 12);
+
+        // Bubbles animation
+        for (let bx = 0; bx < this.levelData.width; bx += 50) {
+          const bubbleY = screenWaterY + Math.sin(time / 200 + bx) * 5;
+          this.risingWaterGraphics.fillStyle(0xaaeeff, 0.4);
+          this.risingWaterGraphics.fillCircle(bx + Math.sin(time / 300 + bx) * 10, bubbleY + 15, 4);
+        }
+      }
+
+      // ============ SWIMMING MECHANICS - DKC2 Style! ============
+      const isInWater = this.player.y > this.risingWaterY - 10;
+      const wasInWater = this.player.getData('swimming') || false;
+
+      if (isInWater) {
+        // ENTER WATER - can swim!
+        if (!wasInWater) {
+          this.player.setData('swimming', true);
+          this.player.setTint(0x66aacc);  // Blue tint when swimming
+          this.showText(this.player.x, this.player.y - 30, 'SWIM!', '#66ddff');
+        }
+
+        // Swimming physics - reduced gravity, can move freely
+        this.player.body.setGravityY(-800);  // Counteract gravity for buoyancy
+        this.player.body.setDragY(300);
+
+        // Swim controls
+        const swimSpeed = 180;
+        if (this.cursors.up.isDown || this.keys.W.isDown || this.keys.SPACE.isDown) {
+          this.player.body.setVelocityY(-swimSpeed);  // Swim up!
+        } else if (this.cursors.down.isDown) {
+          this.player.body.setVelocityY(swimSpeed * 0.7);  // Sink down
+        }
+
+        // Horizontal swim
+        if (this.cursors.left.isDown || this.keys.A.isDown) {
+          this.player.body.setVelocityX(-swimSpeed * 0.8);
+          this.player.setFlipX(true);
+        } else if (this.cursors.right.isDown || this.keys.D.isDown) {
+          this.player.body.setVelocityX(swimSpeed * 0.8);
+          this.player.setFlipX(false);
+        }
+
+        // Bubble trail when swimming
+        if (Math.random() < 0.3) {
+          const bubble = this.add.circle(
+            this.player.x + (Math.random() - 0.5) * 20,
+            this.player.y + 10,
+            3 + Math.random() * 3,
+            0xaaeeff, 0.6
+          );
+          this.tweens.add({
+            targets: bubble,
+            y: bubble.y - 50,
+            alpha: 0,
+            duration: 600,
+            onComplete: () => bubble.destroy()
+          });
+        }
+
+        // Die if too deep below the water (can't escape)
+        if (this.player.y > this.risingWaterY + 150) {
+          this.showText(this.player.x, this.player.y - 30, 'TOO DEEP!', '#ff4444');
+          this.playerDie();
+          return;
+        }
+
+      } else if (wasInWater) {
+        // EXIT WATER - restore normal physics
+        this.player.setData('swimming', false);
+        this.player.clearTint();
+        this.player.body.setGravityY(0);  // Reset to world gravity
+        this.player.body.setDragY(0);
+
+        // Boost out of water!
+        if (this.player.body.velocity.y < 0) {
+          this.player.body.setVelocityY(this.player.body.velocity.y * 1.3);
+        }
+      }
+
+      // Update warning line
+      const waterProximity = Math.max(0, Math.min(1, (camHeight - screenWaterY) / camHeight));
+      this.waterWarningLine.setAlpha(0.3 + waterProximity * 0.5);
+
+      // ============ ALLIGATOR ENEMIES IN WATER ============
+      if (this.alligators) {
+        this.alligators.children.iterate(gator => {
+          if (!gator || !gator.active) return;
+
+          // Alligators swim horizontally in the water
+          const gatorY = gator.getData('baseY') + this.risingWaterY;
+          gator.y = gatorY + Math.sin(time / 500 + gator.x) * 10;
+
+          // Keep alligators in water bounds
+          if (gator.x < 30 || gator.x > this.levelData.width - 30) {
+            gator.setData('dir', gator.getData('dir') * -1);
+          }
+          gator.body.setVelocityX(gator.getData('speed') * gator.getData('dir'));
+          gator.setFlipX(gator.getData('dir') > 0);
+
+          // Check collision with swimming player
+          if (isInWater && Phaser.Math.Distance.Between(this.player.x, this.player.y, gator.x, gator.y) < 35) {
+            if (!this.player.getData('invincible')) {
+              this.showText(this.player.x, this.player.y - 30, 'CHOMP!', '#ff0000');
+              this.playerDie();
+            }
+          }
+        });
+      }
+    }
+
+    // ============ ESCAPE LEVEL - Chasing Flood! Indiana Jones style! ============
+    if (this.isEscapeLevel && this.chasingFloodX !== undefined) {
+      const dt = delta / 1000;
+
+      // Flood advances from the left - RUN OR DIE!
+      this.chasingFloodX += this.floodSpeed * dt;
+
+      // Draw chasing flood relative to camera
+      const camX = this.cameras.main.scrollX;
+      const screenFloodX = this.chasingFloodX - camX;
+      const camWidth = this.cameras.main.width;
+      const camHeight = this.cameras.main.height;
+
+      this.floodGraphics.clear();
+
+      // Only draw if flood is visible on screen
+      if (screenFloodX > -200) {
+        // Main flood wall - towering wave!
+        this.floodGraphics.fillStyle(0x1166aa, 0.9);
+        this.floodGraphics.fillRect(0, 0, Math.max(0, screenFloodX + 50), camHeight);
+
+        // Foamy edge of the wave
+        this.floodGraphics.fillStyle(0x66ccff, 0.8);
+        this.floodGraphics.fillRect(screenFloodX + 30, 0, 30, camHeight);
+
+        // Spray particles at the top of the wave
+        this.floodGraphics.fillStyle(0xaaeeff, 0.6);
+        for (let sy = 0; sy < camHeight; sy += 40) {
+          const sprayX = screenFloodX + 50 + Math.sin(time / 100 + sy) * 20;
+          this.floodGraphics.fillCircle(sprayX, sy + Math.cos(time / 150 + sy) * 10, 6);
+          this.floodGraphics.fillCircle(sprayX + 15, sy + 20 + Math.sin(time / 120 + sy) * 8, 4);
+        }
+
+        // Wave crest effect
+        this.floodGraphics.fillStyle(0x88ddff, 0.7);
+        for (let wy = 0; wy < camHeight; wy += 60) {
+          const waveX = screenFloodX + 45 + Math.sin(time / 80 + wy * 0.1) * 15;
+          this.floodGraphics.fillTriangle(
+            waveX, wy,
+            waveX + 25, wy + 30,
+            waveX, wy + 60
+          );
+        }
+      }
+
+      // Did the flood catch the player?
+      if (this.player.x < this.chasingFloodX + 30) {
+        this.showText(this.player.x, this.player.y - 30, 'CAUGHT!', '#4488ff');
+        this.playerDie();
+        return;
+      }
+
+      // Update warning indicator intensity based on how close flood is
+      const floodProximity = Math.max(0, Math.min(1, screenFloodX / 150));
+      if (this.floodWarning) {
+        this.floodWarning.setAlpha(0.3 + floodProximity * 0.6);
+        this.floodWarning.setFillStyle(floodProximity > 0.5 ? 0xff0000 : 0xffaa00);
+      }
+
+      // Player also dies if they fall in regular water
+      if (this.player.y > this.levelData.waterY - 10) {
+        this.showText(this.player.x, this.player.y - 30, 'SPLASH!', '#00aaff');
+        this.playerDie();
+        return;
+      }
+    }
+
+    // ============ WATER DEATH - Xochimilco Level (non-upscroller, non-escape) ============
+    if (this.isWaterLevel && !this.isUpscroller && !this.isEscapeLevel && this.player.y > this.waterY - 10) {
+      // Player touched the water! Instant death!
+      this.showText(this.player.x, this.player.y - 30, 'SPLASH!', '#00aaff');
+      this.playerDie();
+      return;  // Don't process further
+    }
+
+    // Fall death (normal levels)
     if (this.player.y > this.levelData.height + 50) {
       this.playerDie();
     }
@@ -3594,14 +5105,20 @@ class UIScene extends Phaser.Scene {
     this.maceText = this.add.text(320, 12, `Thunder: ${gameState.maceAttacks}`, { fontFamily: 'Arial', fontSize: '11px', color: '#ffff00' });
     this.add.text(320, 32, '[Z] key', { fontFamily: 'Arial', fontSize: '9px', color: '#aaaa00' });
 
-    // Level names - 10 levels across 5 worlds
+    // Level names with World indicators - LEARN each world!
+    // World 1: Canal Dawn (1-2), World 2: Trajineras (3-4), World 3: Crystal Cave (5)
+    // World 4: Floating Gardens (6-7), World 5: Night Canals (8-9), World 6: La Fiesta (10)
     const names = [
-      'Gardens 1', 'Gardens 2',       // World 1
-      'Ruins 1', 'Ruins 2',           // World 2
-      'Crystal Cave',                  // World 3
-      'Jungle 1', 'Jungle 2',         // World 4
-      'Volcano 1', 'Volcano 2',       // World 5
-      'Final Challenge'               // World 6
+      'Canal Dawn 1',         // World 1
+      'Canal Dawn 2',         // World 1
+      'Trajineras 1',         // World 2 - Frogger
+      'Trajineras 2',         // World 2 - Upscroller
+      'Crystal Cave',         // World 3 - BOSS
+      'Floating Gardens 1',   // World 4
+      'Floating Gardens 2',   // World 4
+      'Night Canals 1',       // World 5 - Upscroller
+      'Night Canals 2',       // World 5 - Frogger
+      'La Fiesta Final'       // World 6 - FINAL BOSS
     ];
     this.add.text(width/2, 22, names[this.levelNum-1] || `Level ${this.levelNum}`, { fontFamily: 'Arial', fontSize: '14px', color: '#4ecdc4' }).setOrigin(0.5);
 
