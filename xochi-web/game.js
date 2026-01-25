@@ -1260,11 +1260,11 @@ function calculateDensityMultipliers(levelNum) {
     // Mid-early levels: Balanced enemies/platforms, more coins as reward
     return { enemies: 1.0, platforms: 1.0, coins: 1.2 };
   } else if (levelNum <= 8) {
-    // Mid-late levels: More enemies, fewer platforms for challenge, more coins
-    return { enemies: 1.2, platforms: 0.9, coins: 1.3 };
+    // Mid-late levels: Challenging but fair, fewer platforms
+    return { enemies: 1.15, platforms: 0.9, coins: 1.3 };
   } else {
-    // Final levels (9-10): Maximum enemy density, minimal platforms, maximum coins
-    return { enemies: 1.3, platforms: 0.85, coins: 1.5 };
+    // Final levels (9-10): Intense but not overwhelming, minimal platforms, maximum coins
+    return { enemies: 1.15, platforms: 0.85, coins: 1.5 };
   }
 }
 
@@ -1282,9 +1282,9 @@ function getBreathingRoomZones(levelWidth, levelNum) {
   } else if (levelNum <= 5) {
     spacing = 600;  // Every 600px
   } else if (levelNum <= 8) {
-    spacing = 800;  // Every 800px
+    spacing = 850;  // Every 850px
   } else {
-    spacing = 1000; // Every 1000px - fewest safe zones
+    spacing = 900;  // Every 900px - more breathing rooms for intense final levels
   }
 
   const breathingWidth = 200; // Each breathing room is 200px wide
