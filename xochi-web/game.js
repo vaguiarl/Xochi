@@ -4708,30 +4708,25 @@ class GameScene extends Phaser.Scene {
     if (this.player.getData('hanging')) return;
     if (this.player.getData('climbing')) return;  // Don't grab while climbing up
 
-    // Snap to ledge position (closer to edge for cleaner look)
-    this.player.setPosition(
-      side === 'left' ? edgeX - 12 : edgeX + 12,
-      edgeY + 15
-    );
+    // AUTO-CLIMB: Skip hanging entirely, immediately climb up!
+    // This eliminates all hanging-related bugs
 
-    // Enter hanging state
-    this.player.setData('hanging', true);
-    this.player.setData('hangStartTime', this.time.now);  // Track when hang started for auto-release
-    this.player.setData('ledgeX', edgeX);
-    this.player.setData('ledgeY', edgeY);
-    this.player.setData('ledgeSide', side);
-    this.player.setData('ledgePlatform', movingPlatform);
-
-    // Stop movement
+    // Stop movement and disable gravity during climb
     this.player.body.setVelocity(0, 0);
     this.player.body.allowGravity = false;
 
-    // Visual feedback - use RUN sprite for hanging pose (arms forward)
-    this.player.setTexture('xochi_run');
+    // Enter climbing state (prevents input during animation)
+    this.player.setData('climbing', true);
+    this.player.setData('climbPlatform', movingPlatform);  // Track platform for sync
+    this.player.setData('grabCooldown', 400);  // Cooldown after climb
     this.player.setFlipX(side === 'right');
-    this.player.clearTint();  // No tint - natural look
+    this.player.rotation = 0;
 
-    // Small particle burst
+    // Store initial grab position for offset tracking
+    const initialPlatX = movingPlatform ? movingPlatform.x : edgeX;
+    const initialPlatY = movingPlatform ? movingPlatform.y : edgeY;
+
+    // Small particle burst for grab feedback
     for (let i = 0; i < 3; i++) {
       const spark = this.add.circle(
         edgeX + (Math.random() - 0.5) * 15,
@@ -4748,7 +4743,82 @@ class GameScene extends Phaser.Scene {
       });
     }
 
-    this.playSound('sfx-coin');  // Small feedback sound
+    // Helper to get current edge position (tracks moving platforms)
+    const getCurrentEdge = () => {
+      if (movingPlatform && movingPlatform.w) {
+        const trajW = movingPlatform.w;
+        const trajH = movingPlatform.h || 25;
+        return {
+          x: side === 'left' ? movingPlatform.x - trajW / 2 : movingPlatform.x + trajW / 2,
+          y: movingPlatform.y - trajH / 2 - 5
+        };
+      }
+      return { x: edgeX, y: edgeY };
+    };
+
+    // PHASE 1: Quick grab (snap to edge)
+    this.player.setTexture('xochi_run');
+    const edge1 = getCurrentEdge();
+    this.player.setPosition(
+      side === 'left' ? edge1.x - 8 : edge1.x + 8,
+      edge1.y + 10
+    );
+
+    // PHASE 2: Pull-up with platform tracking
+    this.player.setTexture('xochi_jump');
+    this.tweens.add({
+      targets: this.player,
+      x: edge1.x + (side === 'left' ? 10 : -10),
+      y: edge1.y - 10,
+      duration: 80,
+      ease: 'Power2.easeOut',
+      onUpdate: () => {
+        // Track moving platform during climb
+        if (movingPlatform && movingPlatform.w) {
+          const currentEdge = getCurrentEdge();
+          const driftX = currentEdge.x - edge1.x;
+          const driftY = currentEdge.y - edge1.y;
+          this.player.x += driftX * 0.5;  // Smooth follow
+          this.player.y += driftY * 0.5;
+        }
+      },
+      onComplete: () => {
+        // PHASE 3: Vault over with platform tracking
+        this.player.setTexture('xochi_attack');
+        const edge2 = getCurrentEdge();
+        const targetX = edge2.x + (side === 'left' ? 30 : -30);
+        const targetY = edge2.y - 35;
+
+        this.tweens.add({
+          targets: this.player,
+          x: targetX,
+          y: targetY,
+          duration: 100,
+          ease: 'Sine.easeOut',
+          onUpdate: () => {
+            // Keep tracking during vault
+            if (movingPlatform && movingPlatform.w) {
+              const currentEdge = getCurrentEdge();
+              const newTargetX = currentEdge.x + (side === 'left' ? 30 : -30);
+              const newTargetY = currentEdge.y - 35;
+              const driftX = newTargetX - targetX;
+              const driftY = newTargetY - targetY;
+              this.player.x += driftX * 0.3;
+              this.player.y += driftY * 0.3;
+            }
+          },
+          onComplete: () => {
+            // PHASE 4: Land on platform
+            this.player.setTexture('xochi_walk');
+            this.player.body.allowGravity = true;
+            this.player.setData('climbing', false);
+            this.player.setData('climbPlatform', null);
+            this.player.body.setVelocityY(50);  // Gentle landing
+            this.playSound('sfx-jump');
+          }
+        });
+      }
+    });
   }
 
   // ============ TOUCH CONTROLS SETUP ============
