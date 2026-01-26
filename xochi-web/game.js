@@ -3704,7 +3704,7 @@ class MenuScene extends Phaser.Scene {
       const x = worldStartX + i * btnSize;
       const y = 540;
       const firstLevel = getFirstLevelOfWorld(world.num);
-      const isUnlocked = gameState.currentLevel >= firstLevel || firstLevel === 1;
+      const isUnlocked = true;  // All worlds always available for selection!
       const isCurrent = getWorldForLevel(gameState.currentLevel) === world.num;
 
       // Button background
@@ -5813,8 +5813,8 @@ class GameScene extends Phaser.Scene {
       // Don't process normal movement while hanging, but DON'T return - let world update continue
     }
 
-    // LEDGE DETECTION - more forgiving for all platforms including small ones
-    const isFalling = this.player.body.velocity.y > 20;  // Lower threshold - can grab earlier
+    // LEDGE DETECTION - only when clearly falling from ABOVE (not jumping from below)
+    const isFalling = this.player.body.velocity.y > 100;  // Must be clearly falling downward to grab
     const notOnGround = !this.player.body.blocked.down;
     const canGrab = grabCooldown <= 0;
 
