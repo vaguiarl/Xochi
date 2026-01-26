@@ -4716,6 +4716,7 @@ class GameScene extends Phaser.Scene {
 
     // Enter hanging state
     this.player.setData('hanging', true);
+    this.player.setData('hangStartTime', this.time.now);  // Track when hang started for auto-release
     this.player.setData('ledgeX', edgeX);
     this.player.setData('ledgeY', edgeY);
     this.player.setData('ledgeSide', side);
@@ -5724,6 +5725,20 @@ class GameScene extends Phaser.Scene {
         this.player.rotation = 0;
         this.player.setTexture('xochi_jump');
         this.player.body.setVelocityY(50);
+      }
+
+      // AUTO-RELEASE after 2 seconds - prevents hanging bugs and encourages action
+      const hangStartTime = this.player.getData('hangStartTime') || 0;
+      const hangDuration = time - hangStartTime;
+      if (hangDuration > 2000) {  // 2 seconds max hang time
+        this.player.setData('hanging', false);
+        this.player.setData('ledgePlatform', null);
+        this.player.setData('grabCooldown', 500);  // Longer cooldown after auto-release
+        this.player.body.allowGravity = true;
+        this.player.rotation = 0;
+        this.player.setTexture('xochi_jump');
+        this.player.body.setVelocityY(80);  // Gentle drop
+        this.showText(this.player.x, this.player.y - 30, 'SLIP!', '#ff6666');  // Visual feedback
       }
       // Don't process normal movement while hanging, but DON'T return - let world update continue
     }
