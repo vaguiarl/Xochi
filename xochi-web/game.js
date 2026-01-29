@@ -1,1085 +1,72 @@
 // Xochi - Aztec Warrior Adventure
 // A Phaser 3 platformer game
 
-// ============== LA CUCARACHA MUSIC ==============
-class MariachiMusic {
+// ============== XOCHI MUSIC MANAGER ==============
+// Uses Suno-generated tracks for authentic Xochimilco atmosphere
+class XochiMusicManager {
   constructor() {
-    this.audioCtx = null;
-    this.isPlaying = false;
-    this.timeoutIds = [];
-    this.gainNode = null;
-  }
-
-  start() {
-    if (this.isPlaying) return;
-    this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    this.gainNode = this.audioCtx.createGain();
-    this.gainNode.gain.value = 0.22; // Reduced volume for less noise
-    this.gainNode.connect(this.audioCtx.destination);
-    this.isPlaying = true;
-    this.playLaCucaracha();
-  }
-
-  stop() {
-    this.isPlaying = false;
-    this.timeoutIds.forEach(id => clearTimeout(id));
-    this.timeoutIds = [];
-    if (this.audioCtx) {
-      this.audioCtx.close();
-      this.audioCtx = null;
-    }
-  }
-
-  // La Cucaracha melody in C major
-  // Notes: C4=262, D4=294, E4=330, F4=349, G4=392, A4=440, B4=494, C5=523
-  playLaCucaracha() {
-    const C4 = 262, D4 = 294, E4 = 330, F4 = 349, G4 = 392, A4 = 440, C5 = 523;
-    const C3 = 131, G3 = 196, F3 = 175, E3 = 165;
-
-    // La Cucaracha melody - the famous tune!
-    // "La cu-ca-ra-cha, la cu-ca-ra-cha, ya no pue-de ca-mi-nar..."
-    const melody = [
-      // "La cu-ca-" (pickup)
-      { note: C4, dur: 0.15 }, { note: C4, dur: 0.15 }, { note: C4, dur: 0.15 },
-      // "ra-cha, la cu-ca-"
-      { note: F4, dur: 0.4 }, { note: A4, dur: 0.3 },
-      { note: C4, dur: 0.15 }, { note: C4, dur: 0.15 }, { note: C4, dur: 0.15 },
-      // "ra-cha, la cu-ca-"
-      { note: F4, dur: 0.4 }, { note: A4, dur: 0.3 },
-      { note: C4, dur: 0.15 }, { note: C4, dur: 0.15 }, { note: C4, dur: 0.15 },
-      // "ra-cha"
-      { note: F4, dur: 0.3 }, { note: A4, dur: 0.2 },
-      // "ya no"
-      { note: F4, dur: 0.2 }, { note: E4, dur: 0.2 },
-      // "pue-de ca-mi-nar"
-      { note: D4, dur: 0.2 }, { note: D4, dur: 0.2 },
-      { note: E4, dur: 0.2 }, { note: F4, dur: 0.2 },
-      { note: E4, dur: 0.3 }, { note: D4, dur: 0.3 },
-      { note: C4, dur: 0.5 },
-      // Rest
-      { note: 0, dur: 0.3 },
-      // Second part - "Por-que no tie-ne, por-que le fal-ta..."
-      { note: E4, dur: 0.15 }, { note: E4, dur: 0.15 }, { note: E4, dur: 0.15 },
-      { note: G4, dur: 0.4 }, { note: C5, dur: 0.3 },
-      { note: E4, dur: 0.15 }, { note: E4, dur: 0.15 }, { note: E4, dur: 0.15 },
-      { note: G4, dur: 0.4 }, { note: C5, dur: 0.3 },
-      { note: C5, dur: 0.2 }, { note: A4, dur: 0.2 },
-      { note: G4, dur: 0.2 }, { note: F4, dur: 0.2 },
-      { note: E4, dur: 0.2 }, { note: D4, dur: 0.2 },
-      { note: C4, dur: 0.6 },
-      // Rest before repeat
-      { note: 0, dur: 0.4 },
-    ];
-
-    // Bass pattern (oom-pah style)
-    const bassPattern = [
-      { note: C3, dur: 0.25 }, { note: G3, dur: 0.25 },
-      { note: C3, dur: 0.25 }, { note: G3, dur: 0.25 },
-      { note: F3, dur: 0.25 }, { note: C3, dur: 0.25 },
-      { note: F3, dur: 0.25 }, { note: C3, dur: 0.25 },
-    ];
-
-    let melodyTime = 0;
-    let bassTime = 0;
-    const tempo = 162; // BPM - 10% slower for a nicer feel
-    const beatDur = 60 / tempo;
-
-    const playMelodyLoop = () => {
-      if (!this.isPlaying) return;
-      melody.forEach((n, i) => {
-        const id = setTimeout(() => {
-          if (!this.isPlaying) return;
-          if (n.note > 0) {
-            this.playTrumpet(n.note, n.dur * beatDur * 0.9);
-          }
-        }, melodyTime * 1000);
-        this.timeoutIds.push(id);
-        melodyTime += n.dur * beatDur;
-      });
-      // Loop
-      const loopId = setTimeout(() => {
-        if (this.isPlaying) playMelodyLoop();
-      }, melodyTime * 1000);
-      this.timeoutIds.push(loopId);
-    };
-
-    const playBassLoop = () => {
-      if (!this.isPlaying) return;
-      for (let repeat = 0; repeat < 20; repeat++) { // Enough bass for the melody
-        bassPattern.forEach((n, i) => {
-          const id = setTimeout(() => {
-            if (!this.isPlaying) return;
-            this.playBass(n.note);
-          }, bassTime * 1000);
-          this.timeoutIds.push(id);
-          bassTime += n.dur * beatDur;
-        });
-      }
-      // Loop
-      const loopId = setTimeout(() => {
-        if (this.isPlaying) {
-          bassTime = 0;
-          playBassLoop();
-        }
-      }, bassTime * 1000);
-      this.timeoutIds.push(loopId);
-    };
-
-    const playGuitarLoop = () => {
-      if (!this.isPlaying) return;
-      let gTime = 0;
-      const chords = [
-        [262, 330, 392], // C
-        [262, 330, 392], // C
-        [349, 440, 523], // F
-        [349, 440, 523], // F
-        [392, 494, 587], // G
-        [392, 494, 587], // G
-        [262, 330, 392], // C
-        [262, 330, 392], // C
-      ];
-      chords.forEach((chord, i) => {
-        const id = setTimeout(() => {
-          if (!this.isPlaying) return;
-          this.playGuitarStrum(chord);
-        }, gTime * 1000);
-        this.timeoutIds.push(id);
-        gTime += beatDur * 2;
-      });
-      const loopId = setTimeout(() => {
-        if (this.isPlaying) playGuitarLoop();
-      }, gTime * 1000);
-      this.timeoutIds.push(loopId);
-    };
-
-    playMelodyLoop();
-    playBassLoop();
-    playGuitarLoop();
-  }
-
-  playTrumpet(freq, duration) {
-    if (!this.audioCtx || !this.isPlaying) return;
-    const osc = this.audioCtx.createOscillator();
-    const gain = this.audioCtx.createGain();
-    osc.type = 'sawtooth';
-    osc.frequency.value = freq;
-    // Vibrato
-    const vibrato = this.audioCtx.createOscillator();
-    const vibratoGain = this.audioCtx.createGain();
-    vibrato.frequency.value = 6;
-    vibratoGain.gain.value = 4;
-    vibrato.connect(vibratoGain);
-    vibratoGain.connect(osc.frequency);
-    vibrato.start();
-    vibrato.stop(this.audioCtx.currentTime + duration);
-
-    gain.gain.setValueAtTime(0.001, this.audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.12, this.audioCtx.currentTime + 0.03);
-    gain.gain.setValueAtTime(0.10, this.audioCtx.currentTime + duration * 0.7);
-    gain.gain.exponentialRampToValueAtTime(0.001, this.audioCtx.currentTime + duration);
-    osc.connect(gain);
-    gain.connect(this.gainNode);
-    osc.start();
-    osc.stop(this.audioCtx.currentTime + duration);
-  }
-
-  playBass(freq) {
-    if (!this.audioCtx || !this.isPlaying) return;
-    const osc = this.audioCtx.createOscillator();
-    const gain = this.audioCtx.createGain();
-    osc.type = 'triangle';
-    osc.frequency.value = freq;
-    gain.gain.setValueAtTime(0.15, this.audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, this.audioCtx.currentTime + 0.12);
-    osc.connect(gain);
-    gain.connect(this.gainNode);
-    osc.start();
-    osc.stop(this.audioCtx.currentTime + 0.15);
-  }
-
-  playGuitarStrum(chord) {
-    if (!this.audioCtx || !this.isPlaying) return;
-    chord.forEach((freq, i) => {
-      setTimeout(() => {
-        if (!this.audioCtx || !this.isPlaying) return;
-        const osc = this.audioCtx.createOscillator();
-        const gain = this.audioCtx.createGain();
-        osc.type = 'sawtooth';
-        osc.frequency.value = freq;
-        gain.gain.setValueAtTime(0.05, this.audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, this.audioCtx.currentTime + 0.15);
-        osc.connect(gain);
-        gain.connect(this.gainNode);
-        osc.start();
-        osc.stop(this.audioCtx.currentTime + 0.2);
-      }, i * 20);
-    });
-  }
-
-  setVolume(vol) {
-    if (this.gainNode) this.gainNode.gain.value = vol;
-  }
-}
-
-const mariachiMusic = new MariachiMusic();
-
-// ============== XOCHI DYNAMIC MUSIC SYSTEM ==============
-// Based on XOCHI_MUSIC_SPECIFICATION.md
-// Supports: 6 worlds x 5 track types, 2 boss tracks with phases, 7 stingers
-// Features: Dynamic stem mixing, world-based selection, boss phases, stinger ducking
-
-class XochiMusicSystem {
-  constructor() {
-    this.audioCtx = null;
-    this.isInitialized = false;
-    this.isPlaying = false;
-
-    // Track management
-    this.currentWorld = 1;
-    this.currentTrackType = 'peace';
+    this.currentMusic = null;
     this.currentTrack = null;
-    this.loadedTracks = {};
-    this.loadedStingers = {};
-
-    // Stem mixing (4 stems per track)
-    // IMPORTANT: this.stems stores currently-playing AudioBufferSourceNode instances
-    // These nodes can only be started ONCE - we create fresh instances for each playback
-    // The actual audio data (AudioBuffer) is stored in this.loadedTracks
-    this.stems = {
-      base: null,       // Pads, ambient, always playing
-      percussion: null, // Drums, shakers - intensity based
-      harmony: null,    // Bass, harmonic layers
-      melody: null      // Lead instruments, motifs
-    };
-    this.stemGains = {
-      base: null,
-      percussion: null,
-      harmony: null,
-      melody: null
-    };
-
-    // Volume restoration tracking (for death stinger fix)
-    this.savedMasterVolume = 0.7;
-    this.volumeNeedsRestore = false;
-
-    // Master controls
-    this.masterGain = null;
-    this.intensity = 0.3; // 0.0 (calm) to 1.0 (intense)
-
-    // Boss music phases
-    this.bossPhase = 'APPROACH'; // APPROACH, TELEGRAPH, ATTACK, RECOVER
-    this.bossPhaseAudio = {};
-
-    // Stinger system
-    this.stingerPlaying = false;
-    this.stingerCooldowns = {};
-    this.lastDangerAlertTime = 0;
-    this.DANGER_ALERT_COOLDOWN = 3000; // 3 seconds
-
-    // Crossfade settings
-    this.crossfadeDuration = 1000; // ms
-    // NOTE: crossfadeInterval removed - now using Web Audio API scheduling instead of setInterval
-
-    // Fallback to MariachiMusic
-    this.useFallback = true;
-
-    // Track type definitions per spec
-    this.TRACK_TYPES = ['peace', 'chase', 'underwater', 'upscroller', 'menu'];
-    this.STINGER_TYPES = ['victory', 'baby_rescue', 'checkpoint', 'danger', 'world_transition', 'death', 'level_complete'];
-    this.BOSS_PHASES = ['approach', 'telegraph', 'attack', 'recover'];
-
-    // World names for file paths (matching spec)
-    this.WORLD_NAMES = {
-      1: 'world1', // Dawn
-      2: 'world2', // Day
-      3: 'world3', // Cave
-      4: 'world4', // Garden
-      5: 'world5', // Night
-      6: 'world6'  // Fiesta
-    };
-
-    // Stem volume presets per track type (from spec Section VII)
-    this.STEM_PRESETS = {
-      peace: { base: 1.0, percussion: 0.3, harmony: 0.7, melody: 0.5 },
-      chase: { base: 0.8, percussion: 1.0, harmony: 0.5, melody: 0.7 },
-      underwater: { base: 1.0, percussion: 0.2, harmony: 0.9, melody: 0.6 },
-      upscroller: { base: 0.7, percussion: 1.0, harmony: 0.4, melody: 0.8 },
-      menu: { base: 1.0, percussion: 0.2, harmony: 0.8, melody: 0.6 },
-      boss_approach: { base: 1.0, percussion: 0.2, harmony: 0.2, melody: 0.2 },
-      boss_telegraph: { base: 0.8, percussion: 0.6, harmony: 0.3, melody: 0.4 },
-      boss_attack: { base: 1.0, percussion: 1.0, harmony: 1.0, melody: 1.0 },
-      boss_recover: { base: 0.9, percussion: 0.3, harmony: 0.5, melody: 0.2 }
-    };
-
-    // Crossfade durations per transition type (from spec VIa)
-    this.CROSSFADE_DURATIONS = {
-      peace_to_underwater: 1000,
-      underwater_to_peace: 1000,
-      peace_to_chase: 750,
-      chase_to_peace: 1500,
-      any_to_upscroller: 300,
-      upscroller_to_any: 1000,
-      any_to_menu: 2000,
-      menu_to_any: 1000,
-      world_transition: 1000,
-      default: 1000
-    };
-  }
-
-  // Initialize the audio context
-  init() {
-    if (this.isInitialized) return;
-
-    try {
-      this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-
-      // Create master gain node
-      this.masterGain = this.audioCtx.createGain();
-      this.masterGain.gain.value = 0.7;
-      this.masterGain.connect(this.audioCtx.destination);
-
-      // Create stem gain nodes
-      for (const stem of Object.keys(this.stems)) {
-        this.stemGains[stem] = this.audioCtx.createGain();
-        this.stemGains[stem].connect(this.masterGain);
-      }
-
-      this.isInitialized = true;
-      console.log('[XochiMusic] Audio system initialized');
-
-      // Try to preload audio files
-      this.preloadAudio();
-
-    } catch (e) {
-      console.warn('[XochiMusic] Failed to initialize Web Audio API:', e);
-      this.useFallback = true;
-    }
-  }
-
-  // Preload audio files for current and adjacent worlds
-  async preloadAudio() {
-    const basePath = 'assets/audio/music/';
-
-    // Check if any audio files exist
-    const testPath = `${basePath}world1/peace.ogg`;
-    try {
-      const response = await fetch(testPath, { method: 'HEAD' });
-      if (!response.ok) {
-        console.log('[XochiMusic] Audio files not found, using fallback');
-        this.useFallback = true;
-        return;
-      }
-      this.useFallback = false;
-    } catch (e) {
-      console.log('[XochiMusic] Cannot load audio files, using fallback');
-      this.useFallback = true;
-      return;
-    }
-
-    // Preload stingers (small files, load all)
-    for (const stinger of this.STINGER_TYPES) {
-      await this.loadStinger(stinger);
-    }
-
-    // Preload current world tracks
-    await this.loadWorldTracks(this.currentWorld);
-
-    console.log('[XochiMusic] Audio preload complete');
-  }
-
-  // Load a single audio file
-  async loadAudioFile(path) {
-    try {
-      const response = await fetch(path);
-      if (!response.ok) {
-        console.warn(`[XochiMusic] Track not found: ${path}`);
-        return null;
-      }
-      const arrayBuffer = await response.arrayBuffer();
-      const audioBuffer = await this.audioCtx.decodeAudioData(arrayBuffer);
-      return audioBuffer;
-    } catch (e) {
-      console.warn(`[XochiMusic] Failed to load: ${path}`, e);
-      return null;
-    }
-  }
-
-  // Load all tracks for a world
-  async loadWorldTracks(worldNum) {
-    const worldName = this.WORLD_NAMES[worldNum];
-    if (!worldName) return;
-
-    const basePath = `assets/audio/music/${worldName}/`;
-
-    for (const trackType of this.TRACK_TYPES) {
-      const trackKey = `${worldName}_${trackType}`;
-      if (this.loadedTracks[trackKey]) continue;
-
-      // Load 4 stems for each track
-      const stems = {};
-      for (const stem of ['base', 'percussion', 'harmony', 'melody']) {
-        const path = `${basePath}${trackType}_${stem}.ogg`;
-        stems[stem] = await this.loadAudioFile(path);
-      }
-
-      // If no stems loaded, try single file
-      if (!stems.base && !stems.percussion && !stems.harmony && !stems.melody) {
-        const singlePath = `${basePath}${trackType}.ogg`;
-        const singleBuffer = await this.loadAudioFile(singlePath);
-        if (singleBuffer) {
-          stems.base = singleBuffer; // Use as base stem
-        }
-      }
-
-      this.loadedTracks[trackKey] = stems;
-    }
-
-    // Load boss tracks for worlds 5 and 6
-    if (worldNum === 5 || worldNum === 6) {
-      await this.loadBossTracks(worldNum);
-    }
-  }
-
-  // Load boss phase tracks
-  async loadBossTracks(worldNum) {
-    const bossNum = worldNum === 5 ? 'boss1' : 'boss2';
-    const basePath = `assets/audio/music/boss/`;
-
-    for (const phase of this.BOSS_PHASES) {
-      const trackKey = `${bossNum}_${phase}`;
-      if (this.loadedTracks[trackKey]) continue;
-
-      const stems = {};
-      for (const stem of ['base', 'percussion', 'harmony', 'melody']) {
-        const path = `${basePath}${bossNum}_${phase}_${stem}.ogg`;
-        stems[stem] = await this.loadAudioFile(path);
-      }
-
-      // Try single file fallback
-      if (!stems.base) {
-        const singlePath = `${basePath}${bossNum}_${phase}.ogg`;
-        stems.base = await this.loadAudioFile(singlePath);
-      }
-
-      this.loadedTracks[trackKey] = stems;
-    }
-  }
-
-  // Load a stinger
-  async loadStinger(stingerName) {
-    if (this.loadedStingers[stingerName]) return;
-
-    const path = `assets/audio/music/stingers/${stingerName}.ogg`;
-    const buffer = await this.loadAudioFile(path);
-    if (buffer) {
-      this.loadedStingers[stingerName] = buffer;
-    }
-  }
-
-  // Get track type based on level configuration
-  getTrackTypeForLevel(levelNum, levelData) {
-    // Boss levels
-    if (levelNum === 5 || levelNum === 10) {
-      return 'boss';
-    }
-
-    // Upscroller levels
-    if (levelNum === 3 || levelNum === 8) {
-      return 'upscroller';
-    }
-
-    // Escape levels (chase music)
-    if (levelNum === 7 || levelNum === 9) {
-      return 'chase';
-    }
-
-    // Default exploration
-    return 'peace';
-  }
-
-  // Start playing music for a level
-  start(levelNum, levelData) {
-    if (!this.isInitialized) {
-      this.init();
-    }
-
-    // Resume audio context if suspended (browser autoplay policy)
-    if (this.audioCtx && this.audioCtx.state === 'suspended') {
-      this.audioCtx.resume();
-    }
-
-    const worldNum = getWorldForLevel(levelNum);
-    const trackType = this.getTrackTypeForLevel(levelNum, levelData);
-
-    // Check if we need fallback
-    if (this.useFallback) {
-      console.log('[XochiMusic] Using MariachiMusic fallback');
-      if (!mariachiMusic.isPlaying) {
-        mariachiMusic.start();
-      }
-      this.isPlaying = true;
-      return;
-    }
-
-    // Stop current music with crossfade
-    if (this.isPlaying && this.currentWorld !== worldNum) {
-      this.crossfadeToWorld(worldNum, trackType);
-    } else if (this.isPlaying && this.currentTrackType !== trackType) {
-      this.crossfadeToTrack(trackType);
-    } else if (!this.isPlaying) {
-      this.playTrack(worldNum, trackType);
-    }
-
-    this.currentWorld = worldNum;
-    this.currentTrackType = trackType;
-    this.isPlaying = true;
-  }
-
-  // Play a specific track
-  // FIX Bug #1: AudioBufferSourceNode can only be started once
-  // We always create FRESH source nodes from the stored buffers in loadedTracks
-  // FIX Bug #4: All stems start simultaneously to prevent timing drift
-  playTrack(worldNum, trackType, fromStart = true) {
-    const worldName = this.WORLD_NAMES[worldNum];
-    const trackKey = `${worldName}_${trackType}`;
-    const trackData = this.loadedTracks[trackKey];
-
-    if (!trackData || (!trackData.base && !trackData.melody)) {
-      console.warn(`[XochiMusic] Track not loaded: ${trackKey}, using fallback`);
-      if (!mariachiMusic.isPlaying) {
-        mariachiMusic.start();
-      }
-      return;
-    }
-
-    // Stop existing stems (releases old source nodes which cannot be restarted)
-    this.stopStems();
-
-    // Get preset volumes for this track type
-    const preset = this.STEM_PRESETS[trackType] || this.STEM_PRESETS.peace;
-
-    // FIX Bug #4: Pre-create all source nodes FIRST, then start ALL simultaneously
-    // This prevents microsecond timing drift between stems
-    const sources = {};
-
-    // Phase 1: Create all source nodes and connect them
-    for (const [stemName, buffer] of Object.entries(trackData)) {
-      if (!buffer) continue;
-
-      // FIX Bug #1: Create a FRESH AudioBufferSourceNode for each playback
-      // AudioBufferSourceNode can only be started once, so we must create new instances
-      const source = this.audioCtx.createBufferSource();
-      source.buffer = buffer; // buffer is reusable, source node is not
-      source.loop = true;
-      source.connect(this.stemGains[stemName]);
-
-      // Set initial volume from preset
-      this.stemGains[stemName].gain.value = preset[stemName] || 0;
-
-      sources[stemName] = source;
-    }
-
-    // Phase 2: Start ALL stems at the exact same time using scheduled start
-    // Using a small offset (10ms) ensures all sources begin precisely together
-    const startTime = this.audioCtx.currentTime + 0.01;
-    for (const [stemName, source] of Object.entries(sources)) {
-      source.start(startTime);
-      this.stems[stemName] = source;
-    }
-
-    console.log(`[XochiMusic] Playing: ${trackKey}`);
-  }
-
-  // Stop all stem sources
-  stopStems() {
-    for (const [stemName, source] of Object.entries(this.stems)) {
-      if (source) {
-        try {
-          source.stop();
-        } catch (e) {
-          // Already stopped
-        }
-        this.stems[stemName] = null;
-      }
-    }
-  }
-
-  // Stop all music
-  stop() {
     this.isPlaying = false;
-
-    // Stop stems
-    this.stopStems();
-
-    // Stop fallback
-    if (mariachiMusic.isPlaying) {
-      mariachiMusic.stop();
-    }
-
-    // Cancel any scheduled gain changes (Web Audio API scheduling)
-    if (this.masterGain && this.audioCtx) {
-      this.masterGain.gain.cancelScheduledValues(this.audioCtx.currentTime);
-    }
-
-    console.log('[XochiMusic] Music stopped');
+    this.scene = null;
   }
 
-  // Crossfade to a new world
-  crossfadeToWorld(newWorld, trackType) {
-    const duration = this.CROSSFADE_DURATIONS.world_transition;
-
-    // Play world transition stinger
-    this.playStinger('world_transition');
-
-    // Fade out current
-    this.fadeVolume(0, duration / 2, () => {
-      this.stopStems();
-      this.currentWorld = newWorld;
-
-      // Load new world tracks if needed
-      this.loadWorldTracks(newWorld).then(() => {
-        // Fade in new track
-        this.playTrack(newWorld, trackType);
-        this.fadeVolume(0.7, duration / 2);
-      });
-    });
+  init(scene) {
+    this.scene = scene;
   }
 
-  // Crossfade to a new track type in the same world
-  crossfadeToTrack(newTrackType) {
-    const transitionKey = `${this.currentTrackType}_to_${newTrackType}`;
-    let duration = this.CROSSFADE_DURATIONS[transitionKey] || this.CROSSFADE_DURATIONS.default;
+  start(trackKey = 'music-menu') {
+    if (!this.scene || !gameState.musicEnabled) return;
 
-    // Special handling for upscroller
-    if (newTrackType === 'upscroller') {
-      duration = this.CROSSFADE_DURATIONS.any_to_upscroller;
-    } else if (this.currentTrackType === 'upscroller') {
-      duration = this.CROSSFADE_DURATIONS.upscroller_to_any;
-    }
+    // Don't restart same track
+    if (this.isPlaying && this.currentTrack === trackKey) return;
 
-    // Crossfade
-    this.fadeVolume(0, duration / 2, () => {
-      this.stopStems();
-      this.playTrack(this.currentWorld, newTrackType);
-      this.fadeVolume(0.7, duration / 2);
-    });
+    this.stop();
 
-    this.currentTrackType = newTrackType;
-  }
-
-  // Fade master volume
-  // FIX Bug #2: Using Web Audio API scheduling instead of setInterval
-  // linearRampToValueAtTime provides smooth, conflict-free fades without race conditions
-  fadeVolume(targetVolume, duration, onComplete) {
-    if (!this.masterGain) return;
-
-    const currentTime = this.audioCtx.currentTime;
-    const durationSecs = duration / 1000;
-
-    // Cancel any scheduled changes to avoid conflicts
-    this.masterGain.gain.cancelScheduledValues(currentTime);
-
-    // Set current value explicitly (required before ramping)
-    this.masterGain.gain.setValueAtTime(this.masterGain.gain.value, currentTime);
-
-    // Schedule the smooth linear ramp to target volume
-    this.masterGain.gain.linearRampToValueAtTime(targetVolume, currentTime + durationSecs);
-
-    // Handle completion callback with setTimeout (for post-fade actions)
-    // This is safe because it only triggers logic AFTER the Web Audio ramp completes
-    if (onComplete) {
-      setTimeout(onComplete, duration);
+    try {
+      this.currentMusic = this.scene.sound.add(trackKey, { loop: true, volume: 0.4 });
+      this.currentMusic.play();
+      this.currentTrack = trackKey;
+      this.isPlaying = true;
+    } catch (e) {
+      console.log('Music not available:', trackKey);
     }
   }
 
-  // Set intensity level (0.0 - 1.0)
-  // Affects stem mixing based on gameplay
-  setIntensity(intensity) {
-    this.intensity = Math.max(0, Math.min(1, intensity));
+  playForWorld(worldNum) {
+    // World 1: Canal Dawn - Main title song (soothing intro)
+    // World 2: Bright Trajineras - Gardens music
+    // World 3: Crystal Cave Boss - Gardens music
+    // World 4: Floating Gardens - Night music
+    // World 5: Night Canals - Night music
+    // World 6: Grand Fiesta - Fiesta music!
+    let track = 'music-menu';
+    if (worldNum === 1) track = 'music-menu';      // Main title for first level
+    else if (worldNum <= 3) track = 'music-gardens';
+    else if (worldNum <= 5) track = 'music-night';
+    else track = 'music-fiesta';  // World 6 - Grand Fiesta finale!
 
-    if (this.useFallback || !this.isPlaying) return;
-
-    // Get base preset for current track type
-    const preset = this.STEM_PRESETS[this.currentTrackType] || this.STEM_PRESETS.peace;
-
-    // Modulate stems based on intensity
-    // Higher intensity = more percussion and melody
-    const intensityMod = {
-      base: preset.base,
-      percussion: preset.percussion + (1 - preset.percussion) * this.intensity * 0.5,
-      harmony: preset.harmony,
-      melody: preset.melody + (1 - preset.melody) * this.intensity * 0.3
-    };
-
-    // Apply with smoothing
-    for (const [stemName, gain] of Object.entries(this.stemGains)) {
-      if (gain && intensityMod[stemName] !== undefined) {
-        // Smooth transition
-        gain.gain.setTargetAtTime(intensityMod[stemName], this.audioCtx.currentTime, 0.1);
-      }
-    }
+    this.start(track);
   }
 
-  // Switch to underwater music mode
-  setUnderwater(isUnderwater) {
-    if (this.useFallback) return;
-
-    if (isUnderwater && this.currentTrackType !== 'underwater') {
-      this.crossfadeToTrack('underwater');
-    } else if (!isUnderwater && this.currentTrackType === 'underwater') {
-      this.crossfadeToTrack('peace');
+  stop() {
+    if (this.currentMusic) {
+      this.currentMusic.stop();
+      this.currentMusic.destroy();
+      this.currentMusic = null;
     }
+    this.isPlaying = false;
+    this.currentTrack = null;
   }
 
-  // ============== BOSS MUSIC SYSTEM ==============
-
-  // Start boss music
-  startBossMusic(bossNum) {
-    if (this.useFallback) return;
-
-    this.bossPhase = 'APPROACH';
-    this.playBossPhase(bossNum, 'approach');
-  }
-
-  // Set boss music phase
-  setBossPhase(bossNum, phase) {
-    if (this.useFallback) return;
-
-    const phaseLower = phase.toLowerCase();
-    if (this.bossPhase.toLowerCase() === phaseLower) return;
-
-    this.bossPhase = phase;
-
-    // Crossfade duration based on phase
-    const durations = {
-      'approach': 300,
-      'telegraph': 200,
-      'attack': 100,
-      'recover': 300
-    };
-
-    const duration = durations[phaseLower] || 200;
-
-    this.fadeVolume(0, duration / 2, () => {
-      this.stopStems();
-      this.playBossPhase(bossNum, phaseLower);
-      this.fadeVolume(0.7, duration / 2);
-    });
-
-    console.log(`[XochiMusic] Boss phase: ${phase}`);
-  }
-
-  // Play a specific boss phase
-  // FIX Bug #1 & #4: Uses same synchronized playback pattern as playTrack()
-  playBossPhase(bossNum, phase) {
-    const bossKey = bossNum === 1 ? 'boss1' : 'boss2';
-    const trackKey = `${bossKey}_${phase}`;
-    const trackData = this.loadedTracks[trackKey];
-
-    if (!trackData || !trackData.base) {
-      console.warn(`[XochiMusic] Boss track not loaded: ${trackKey}`);
-      return;
-    }
-
-    // Get preset for this phase
-    const presetKey = `boss_${phase}`;
-    const preset = this.STEM_PRESETS[presetKey] || this.STEM_PRESETS.boss_attack;
-
-    // FIX Bug #4: Pre-create all source nodes FIRST
-    const sources = {};
-
-    for (const [stemName, buffer] of Object.entries(trackData)) {
-      if (!buffer) continue;
-
-      // FIX Bug #1: Create FRESH AudioBufferSourceNode for each playback
-      const source = this.audioCtx.createBufferSource();
-      source.buffer = buffer;
-      source.loop = true;
-      source.connect(this.stemGains[stemName]);
-      this.stemGains[stemName].gain.value = preset[stemName] || 0;
-      sources[stemName] = source;
-    }
-
-    // FIX Bug #4: Start ALL stems at the exact same time
-    const startTime = this.audioCtx.currentTime + 0.01;
-    for (const [stemName, source] of Object.entries(sources)) {
-      source.start(startTime);
-      this.stems[stemName] = source;
-    }
-  }
-
-  // ============== STINGER SYSTEM ==============
-
-  // Play a stinger with proper ducking/interruption behavior
-  // FIX Bug #3: Death stinger now properly saves volume for restoration on respawn
-  playStinger(stingerType, options = {}) {
-    // Check cooldowns
-    if (stingerType === 'danger') {
-      const now = Date.now();
-      if (now - this.lastDangerAlertTime < this.DANGER_ALERT_COOLDOWN) {
-        return; // On cooldown
-      }
-      this.lastDangerAlertTime = now;
-    }
-
-    // If using fallback, just log
-    if (this.useFallback) {
-      console.log(`[XochiMusic] Stinger: ${stingerType} (fallback mode)`);
-      return;
-    }
-
-    const stingerBuffer = this.loadedStingers[stingerType];
-    if (!stingerBuffer) {
-      console.warn(`[XochiMusic] Stinger not loaded: ${stingerType}`);
-      return;
-    }
-
-    // Stinger behavior per spec VIa
-    const stingerBehavior = {
-      victory: {
-        interrupt: true,
-        duckLevel: 0.2,
-        duckDuration: 100,
-        postBehavior: 'crossfade_next'
-      },
-      baby_rescue: {
-        interrupt: false,
-        duckLevel: 0.4,
-        duckDuration: 150,
-        postBehavior: 'restore'
-      },
-      checkpoint: {
-        interrupt: false,
-        duckLevel: 0.5,
-        duckDuration: 100,
-        postBehavior: 'restore'
-      },
-      danger: {
-        interrupt: true,
-        duckLevel: 0.6,
-        duckDuration: 50,
-        postBehavior: 'immediate_restore'
-      },
-      world_transition: {
-        interrupt: true,
-        duckLevel: 0,
-        duckDuration: 1000,
-        postBehavior: 'fade_in_new'
-      },
-      death: {
-        interrupt: true,
-        duckLevel: 0,
-        duckDuration: 0,
-        postBehavior: 'restart_on_respawn'
-      },
-      level_complete: {
-        interrupt: true,
-        duckLevel: 0.2,
-        duckDuration: 100,
-        postBehavior: 'crossfade_next'
-      }
-    };
-
-    const behavior = stingerBehavior[stingerType] || stingerBehavior.checkpoint;
-
-    // FIX Bug #3: Save volume before death stinger so we can restore on respawn
-    if (stingerType === 'death' && this.masterGain) {
-      this.savedMasterVolume = this.masterGain.gain.value;
-      this.volumeNeedsRestore = true;
-    }
-
-    // Duck the current music
-    if (behavior.duckLevel < 1 && this.masterGain) {
-      this.masterGain.gain.setTargetAtTime(
-        behavior.duckLevel,
-        this.audioCtx.currentTime,
-        behavior.duckDuration / 1000
-      );
-    }
-
-    // Play the stinger (create fresh source node - AudioBufferSourceNode is single-use)
-    const stingerSource = this.audioCtx.createBufferSource();
-    const stingerGain = this.audioCtx.createGain();
-    stingerSource.buffer = stingerBuffer;
-    stingerSource.connect(stingerGain);
-    stingerGain.connect(this.audioCtx.destination);
-    stingerGain.gain.value = 0.8;
-
-    stingerSource.start(0);
-    this.stingerPlaying = true;
-
-    // Handle post-stinger behavior
-    stingerSource.onended = () => {
-      this.stingerPlaying = false;
-
-      switch (behavior.postBehavior) {
-        case 'restore':
-          if (this.masterGain) {
-            this.masterGain.gain.setTargetAtTime(0.7, this.audioCtx.currentTime, 0.3);
-          }
-          break;
-
-        case 'immediate_restore':
-          if (this.masterGain) {
-            this.masterGain.gain.value = 0.7;
-          }
-          break;
-
-        case 'crossfade_next':
-          // Will be handled by level transition
-          if (this.masterGain) {
-            this.masterGain.gain.setTargetAtTime(0.7, this.audioCtx.currentTime, 0.5);
-          }
-          break;
-
-        case 'restart_on_respawn':
-          // FIX Bug #3: Volume restoration is now handled by restoreVolume() method
-          // Called explicitly from respawn logic
-          break;
-
-        case 'fade_in_new':
-          // Handled by world transition
-          break;
-      }
-    };
-
-    console.log(`[XochiMusic] Stinger: ${stingerType}`);
-  }
-
-  // FIX Bug #3: Restore music volume after death/respawn
-  // Call this method when the player respawns to restore normal music volume
-  restoreVolume(fadeDuration = 500) {
-    if (!this.masterGain || !this.audioCtx) return;
-
-    if (this.volumeNeedsRestore) {
-      const currentTime = this.audioCtx.currentTime;
-      const targetVolume = this.savedMasterVolume || 0.7;
-
-      // Cancel any scheduled changes
-      this.masterGain.gain.cancelScheduledValues(currentTime);
-      this.masterGain.gain.setValueAtTime(this.masterGain.gain.value, currentTime);
-
-      // Fade in to restored volume
-      this.masterGain.gain.linearRampToValueAtTime(
-        targetVolume,
-        currentTime + (fadeDuration / 1000)
-      );
-
-      this.volumeNeedsRestore = false;
-      console.log(`[XochiMusic] Volume restored to ${targetVolume}`);
-    }
-  }
-
-  // ============== INTEGRATION HELPERS ==============
-
-  // Called every frame to update intensity based on game state
-  updateFromGameState(scene) {
-    if (!scene || !scene.player) return;
-
-    let intensity = 0.3; // Base calm intensity
-    let dangerClose = false;
-
-    // Check for nearby enemies
-    if (scene.enemies) {
-      scene.enemies.children.iterate(enemy => {
-        if (enemy && enemy.active && enemy.getData && enemy.getData('alive')) {
-          const dist = Phaser.Math.Distance.Between(
-            scene.player.x, scene.player.y,
-            enemy.x, enemy.y
-          );
-          if (dist < 100) {
-            // Very close enemy - trigger danger alert
-            dangerClose = true;
-            intensity = Math.max(intensity, 1.0);
-          } else if (dist < 200) {
-            intensity = Math.max(intensity, 0.8);
-          } else if (dist < 400) {
-            intensity = Math.max(intensity, 0.5);
-          }
-        }
-      });
-    }
-
-    // Boss proximity
-    if (scene.darkXochi && scene.darkXochi.getData('alive')) {
-      const dist = Phaser.Math.Distance.Between(
-        scene.player.x, scene.player.y,
-        scene.darkXochi.x, scene.darkXochi.y
-      );
-      intensity = Math.max(intensity, 1.0 - dist / 500);
-
-      // Very close to boss - danger alert
-      if (dist < 150) {
-        dangerClose = true;
-      }
-    }
-
-    // Upscroller/escape urgency
-    if (scene.isUpscroller || scene.isEscapeLevel) {
-      intensity = Math.max(intensity, 0.7);
-    }
-
-    // Swimming calms things down slightly
-    if (scene.player.getData('swimming')) {
-      intensity *= 0.7;
-    }
-
-    this.setIntensity(intensity);
-
-    // Play danger stinger if enemy very close (respects cooldown)
-    if (dangerClose && !scene.player.getData('invincible')) {
-      this.playStinger('danger');
-    }
-  }
-
-  // Handle boss state changes
-  // FIX Bug #5: This method is kept for backward compatibility but the preferred
-  // approach is to call onBossPhaseChange() directly when boss state changes (event-driven)
-  updateBossPhase(scene) {
-    if (!scene.darkXochi || !scene.darkXochi.getData('alive')) return;
-
-    const bossNum = scene.levelNum === 5 ? 1 : 2;
-    const phase = scene.bossState;
-
-    if (phase && this.bossPhase !== phase) {
-      this.setBossPhase(bossNum, phase);
-    }
-  }
-
-  // FIX Bug #5: Event-driven boss phase change - call this directly from boss AI
-  // This provides immediate response without waiting for next frame update
-  // Usage: xochiMusic.onBossPhaseChange(bossNum, 'ATTACK');
-  onBossPhaseChange(bossNum, newPhase) {
-    if (this.useFallback) return;
-
-    const phaseLower = newPhase.toLowerCase();
-
-    // Skip if same phase
-    if (this.bossPhase.toLowerCase() === phaseLower) return;
-
-    // Immediate phase change with appropriate crossfade
-    this.setBossPhase(bossNum, newPhase);
-
-    console.log(`[XochiMusic] Boss phase changed (event-driven): ${newPhase}`);
-  }
-
-  // Set master volume
   setVolume(vol) {
-    if (this.masterGain) {
-      this.masterGain.gain.value = vol;
+    if (this.currentMusic) {
+      this.currentMusic.setVolume(vol);
     }
-    // Also set fallback volume
-    mariachiMusic.setVolume(vol);
-  }
-
-  // Check if using fallback
-  isFallbackMode() {
-    return this.useFallback;
   }
 }
 
-// Create global music system instance
-const xochiMusic = new XochiMusicSystem();
+const mariachiMusic = new XochiMusicManager();
 
 // ============== GAME STATE ==============
 const gameState = {
@@ -3709,22 +2696,34 @@ class BootScene extends Phaser.Scene {
   constructor() { super('BootScene'); }
 
   preload() {
-    // Load audio
-    this.load.audio('music', 'public/assets/audio/main_theme.ogg');
-    this.load.audio('sfx-jump', 'public/assets/audio/small_jump.ogg');
-    this.load.audio('sfx-coin', 'public/assets/audio/coin.ogg');
-    this.load.audio('sfx-stomp', 'public/assets/audio/stomp.ogg');
-    this.load.audio('sfx-powerup', 'public/assets/audio/powerup.ogg');
-    this.load.audio('sfx-hurt', 'public/assets/audio/bump.ogg');
-    this.load.audio('sfx-superjump', 'public/assets/audio/powerup_appears.ogg');
+    // Load music - Suno-generated Xochimilco tracks
+    this.load.audio('music-menu', 'assets/audio/music_menu.ogg');       // Traviesa Axolotla (Menu)
+    this.load.audio('music-gardens', 'assets/audio/music_gardens.ogg'); // Flowers of the Last Dawn (World 1-2)
+    this.load.audio('music-night', 'assets/audio/music_night.ogg');     // Xochimilco Moonwake (World 5-6)
+    this.load.audio('music-fiesta', 'assets/audio/music_fiesta.ogg');   // Last Bloom of Oaxolotl (World 7+)
+
+    // Load SFX - Xochi-themed Mesoamerican sounds
+    // Movement sounds
+    this.load.audio('sfx-jump', 'assets/audio/sfx/movement/jump_small.ogg');
+    this.load.audio('sfx-superjump', 'assets/audio/sfx/movement/jump_super.ogg');
+    this.load.audio('sfx-land', 'assets/audio/sfx/movement/land_soft.ogg');
+    // Combat sounds
+    this.load.audio('sfx-stomp', 'assets/audio/sfx/combat/stomp.ogg');
+    this.load.audio('sfx-hurt', 'assets/audio/sfx/combat/hurt.ogg');
+    // Collectible sounds
+    this.load.audio('sfx-coin', 'assets/audio/sfx/collectibles/flower.ogg');
+    // UI sounds
+    this.load.audio('sfx-select', 'assets/audio/sfx/ui/menu_select.ogg');
+    // Legacy sounds (keep for compatibility)
+    this.load.audio('sfx-powerup', 'assets/audio/powerup.ogg');
 
     // Load Xochi (Aztec axolotl warrior) animation frames from pack
-    this.load.image('xochi_walk', 'public/assets/xochi_main_asset/xochi_walk.png');     // Walk pose
-    this.load.image('xochi_run', 'public/assets/xochi_main_asset/xochi_run.png');       // Run pose
-    this.load.image('xochi_jump', 'public/assets/xochi_main_asset/xochi_jump.png');     // Jump pose
-    this.load.image('xochi_attack', 'public/assets/xochi_main_asset/xochi_attack.png'); // Attack pose
+    this.load.image('xochi_walk', 'assets/xochi_main_asset/xochi_walk.png');     // Walk pose
+    this.load.image('xochi_run', 'assets/xochi_main_asset/xochi_run.png');       // Run pose
+    this.load.image('xochi_jump', 'assets/xochi_main_asset/xochi_jump.png');     // Jump pose
+    this.load.image('xochi_attack', 'assets/xochi_main_asset/xochi_attack.png'); // Attack pose
     // Default/legacy keys
-    this.load.image('xochi', 'public/assets/xochi_main_asset/xochi_walk.png');
+    this.load.image('xochi', 'assets/xochi_main_asset/xochi_walk.png');
   }
 
   create() {
@@ -4364,6 +3363,12 @@ class MenuScene extends Phaser.Scene {
   create() {
     const { width, height } = this.cameras.main;
 
+    // Initialize and play menu music
+    mariachiMusic.init(this);
+    if (gameState.musicEnabled) {
+      mariachiMusic.start('music-menu');
+    }
+
     // ============ SNES-STYLE GRADIENT BACKGROUND ============
     const bg = this.add.graphics();
     const bgColors = [0x1a0a2e, 0x1a1a3e, 0x2a2a4e, 0x1a2a4e, 0x1a1a3e, 0x1a0a2e];
@@ -4495,6 +3500,9 @@ class MenuScene extends Phaser.Scene {
       this.difficultyTexts[diff] = { bg: btnBg, txt };
 
       btnBg.on('pointerdown', () => {
+        if (gameState.sfxEnabled) {
+          this.sound.play('sfx-select', { volume: 0.7 });
+        }
         gameState.difficulty = diff;
         gameState.lives = DIFFICULTY_SETTINGS[diff].lives;
         saveGame();
@@ -4528,7 +3536,6 @@ class MenuScene extends Phaser.Scene {
     // CONTINUE/PLAY button
     this.createSNESButton(width/2, 415, 200, 50, 0x33bb99, 0x22aa88, 0x44ccaa,
       gameState.currentLevel > 1 ? 'CONTINUE' : 'PLAY', () => {
-        // Music will be started by GameScene.create() using xochiMusic
         this.scene.start('GameScene', { level: gameState.currentLevel });
       });
 
@@ -4536,7 +3543,6 @@ class MenuScene extends Phaser.Scene {
     this.createSNESButton(width/2, 475, 200, 50, 0xdd5588, 0xcc4477, 0xee6699,
       'NEW GAME', () => {
         resetGame();
-        // Music will be started by GameScene.create() using xochiMusic
         this.scene.start('GameScene', { level: 1 });
       });
 
@@ -4606,10 +3612,12 @@ class MenuScene extends Phaser.Scene {
         });
 
         btnBg.on('pointerdown', () => {
+          if (gameState.sfxEnabled) {
+            this.sound.play('sfx-select', { volume: 0.7 });
+          }
           const startLevel = getFirstLevelOfWorld(world.num);
           gameState.currentLevel = startLevel;
           saveGame();
-          // Music will be started by GameScene.create() using xochiMusic
           this.scene.start('GameScene', { level: startLevel });
         });
       }
@@ -4625,7 +3633,9 @@ class MenuScene extends Phaser.Scene {
 
     // Keyboard shortcut to start
     this.input.keyboard.on('keydown-X', () => {
-      // Music will be started by GameScene.create() using xochiMusic
+      if (gameState.sfxEnabled) {
+        this.sound.play('sfx-select', { volume: 0.7 });
+      }
       this.scene.start('GameScene', { level: gameState.currentLevel });
     });
   }
@@ -4647,7 +3657,12 @@ class MenuScene extends Phaser.Scene {
 
     btn.on('pointerover', () => { btn.setScale(1.05); btn.setFillStyle(lightColor); });
     btn.on('pointerout', () => { btn.setScale(1); btn.setFillStyle(baseColor); });
-    btn.on('pointerdown', callback);
+    btn.on('pointerdown', () => {
+      if (gameState.sfxEnabled) {
+        this.sound.play('sfx-select', { volume: 0.7 });
+      }
+      callback();
+    });
     return btn;
   }
 }
@@ -4700,6 +3715,13 @@ class GameScene extends Phaser.Scene {
 
   create() {
     const ld = this.levelData;
+
+    // Initialize music for this world
+    mariachiMusic.init(this);
+    const worldNum = getWorldForLevel(this.levelNum);
+    if (gameState.musicEnabled) {
+      mariachiMusic.playForWorld(worldNum);
+    }
 
     // World bounds
     this.physics.world.setBounds(0, 0, ld.width, ld.height);
@@ -5547,27 +4569,22 @@ class GameScene extends Phaser.Scene {
       this.scene.launch('PauseScene');
       this.scene.pause();
     });
-
-    // Start XOCHI DYNAMIC MUSIC SYSTEM!
-    // Falls back to MariachiMusic if audio files are not loaded
-    if (gameState.musicEnabled) {
-      // Restore volume if coming back from death (Bug #3 fix integration)
-      xochiMusic.restoreVolume(300);
-      xochiMusic.start(this.levelNum, this.levelData);
-
-      // If this is a boss level, start boss music
-      const isBossLevel = this.levelNum === 5 || this.levelNum === 10;
-      if (isBossLevel) {
-        const bossNum = this.levelNum === 5 ? 1 : 2;
-        xochiMusic.startBossMusic(bossNum);
-      }
-    }
   }
 
-  playSound(key) {
-    if (gameState.sfxEnabled) {
-      this.sound.play(key, { volume: 0.5 });
+  playSound(key, options = {}) {
+    if (!gameState.sfxEnabled) return;
+
+    // Build sound config with optional pitch variation
+    const config = {
+      volume: options.volume !== undefined ? options.volume : 0.6,
+    };
+
+    // Apply pitch variation for natural feel (randomizes playback rate by +/- 5%)
+    if (options.pitchVariation) {
+      config.rate = 1 + (Math.random() * 0.1 - 0.05);
     }
+
+    this.sound.play(key, config);
   }
 
   // ============ LEDGE GRAB - DKC style! ============
@@ -5682,7 +4699,7 @@ class GameScene extends Phaser.Scene {
             this.player.setData('climbing', false);
             this.player.setData('climbPlatform', null);
             this.player.body.setVelocityY(50);  // Gentle landing
-            this.playSound('sfx-jump');
+            this.playSound('sfx-land', { pitchVariation: true });
           }
         });
       }
@@ -5754,7 +4771,7 @@ class GameScene extends Phaser.Scene {
       if (gameState.superJumps > 0) {
         gameState.superJumps--;
         this.player.body.setVelocityY(-650);
-        this.playSound('sfx-superjump');
+        this.playSound('sfx-superjump', { pitchVariation: true });
         this.showText(this.player.x, this.player.y - 30, 'SUPER!', '#00ffff');
         this.events.emit('updateUI');
         // Visual burst
@@ -5787,7 +4804,7 @@ class GameScene extends Phaser.Scene {
           if (gameState.superJumps > 0 && !this.player.getData('dead')) {
             gameState.superJumps--;
             this.player.body.setVelocityY(-650);
-            this.playSound('sfx-superjump');
+            this.playSound('sfx-superjump', { pitchVariation: true });
             this.showText(this.player.x, this.player.y - 30, 'SUPER!', '#00ffff');
             this.events.emit('updateUI');
           }
@@ -6400,15 +5417,6 @@ class GameScene extends Phaser.Scene {
     if (this.bossHealthBarBg) this.bossHealthBarBg.destroy();
     if (this.bossNameText) this.bossNameText.destroy();
 
-    // Play baby rescue stinger, then victory stinger for level complete
-    if (gameState.musicEnabled) {
-      xochiMusic.playStinger('baby_rescue');
-      // Chain victory stinger after brief pause
-      this.time.delayedCall(500, () => {
-        xochiMusic.playStinger('victory');
-      });
-    }
-
     this.playSound('sfx-powerup');
     saveGame();
     this.time.delayedCall(1500, () => this.nextLevel());
@@ -6416,17 +5424,10 @@ class GameScene extends Phaser.Scene {
 
   nextLevel() {
     if (this.levelNum >= 10) { // Now 10 levels!
-      xochiMusic.stop(); // Victory! (stops both xochiMusic and fallback mariachiMusic)
+      mariachiMusic.stop(); // Victory!
       this.scene.stop('UIScene');
       this.scene.start('EndScene');
     } else {
-      // Check if transitioning to new world
-      const currentWorld = getWorldForLevel(this.levelNum);
-      const nextWorld = getWorldForLevel(this.levelNum + 1);
-      if (currentWorld !== nextWorld && gameState.musicEnabled) {
-        xochiMusic.playStinger('world_transition');
-      }
-
       gameState.currentLevel = this.levelNum + 1;
       saveGame();
       this.scene.restart({ level: this.levelNum + 1 });
@@ -6440,11 +5441,6 @@ class GameScene extends Phaser.Scene {
     this.player.setTint(0xff0000);
     gameState.lives--;
     this.playSound('sfx-hurt');
-
-    // Play death stinger (cuts music, plays sad stinger)
-    if (gameState.musicEnabled) {
-      xochiMusic.playStinger('death');
-    }
 
     // Show instant restart prompt - ALWAYS restart, never go to menu!
     const { width, height } = this.cameras.main;
@@ -6659,7 +5655,7 @@ class GameScene extends Phaser.Scene {
           }
         });
 
-        this.playSound('sfx-jump');
+        this.playSound('sfx-jump', { pitchVariation: true });
       }
 
       // DROP DOWN - press DOWN to let go
@@ -6840,14 +5836,14 @@ class GameScene extends Phaser.Scene {
       if (canNormalJump) {
         // Normal jump from ground
         this.player.body.setVelocityY(-450);
-        this.playSound('sfx-jump');
+        this.playSound('sfx-jump', { pitchVariation: true });
         this.jumpBufferTime = 0;
         this.coyoteTime = 0;
       } else if (gameState.superJumps > 0) {
         // SUPER JUMP in mid-air! (auto-activates when powered up)
         gameState.superJumps--;
         this.player.body.setVelocityY(-650);
-        this.playSound('sfx-superjump');
+        this.playSound('sfx-superjump', { pitchVariation: true });
         this.showText(this.player.x, this.player.y - 30, 'SUPER!', '#00ffff');
         this.events.emit('updateUI');
         this.jumpBufferTime = 0;
@@ -6874,6 +5870,12 @@ class GameScene extends Phaser.Scene {
     }
 
     this.lastTouchJump = tc.jump;
+
+    // Landing sound - play when just touched ground after being airborne
+    if (onGround && !this.wasOnGround && !this.player.getData('climbing')) {
+      this.playSound('sfx-land', { pitchVariation: true, volume: 0.4 });
+    }
+
     this.wasOnGround = onGround;
 
     // ============ LUCHADOR MODE UPDATE ============
@@ -7269,7 +6271,6 @@ class GameScene extends Phaser.Scene {
           // After approach time OR close enough, go to TELEGRAPH
           if (this.bossStateTimer <= 0 || distToPlayer < 120) {
             this.bossState = 'TELEGRAPH';
-            xochiMusic.onBossPhaseChange(this.levelNum === 10 ? 2 : 1, 'TELEGRAPH');
             this.bossStateTimer = this.bossTelegraphTime;
             this.darkXochi.body.setVelocityX(0);
             this.darkXochi.setFlipX(dx < 0); // Face player
@@ -7305,7 +6306,6 @@ class GameScene extends Phaser.Scene {
             }
 
             this.bossState = 'ATTACK';
-            xochiMusic.onBossPhaseChange(this.levelNum === 10 ? 2 : 1, 'ATTACK');
             this.darkXochi.setTint(0xff0000); // Red during attack
 
             // Execute attack immediately (alternating type)
@@ -7386,7 +6386,6 @@ class GameScene extends Phaser.Scene {
           // When attack finishes, go to RECOVER (vulnerable phase!)
           if (this.bossStateTimer <= 0 && onGround) {
             this.bossState = 'RECOVER';
-            xochiMusic.onBossPhaseChange(this.levelNum === 10 ? 2 : 1, 'RECOVER');
             this.bossStateTimer = this.bossRecoverTime / speedMult; // Shorter at low HP
             this.darkXochi.body.setVelocity(0);
             this.darkXochi.setTint(0x666688); // Tired/gray tint - VULNERABLE!
@@ -7413,7 +6412,6 @@ class GameScene extends Phaser.Scene {
             this.darkXochi.angle = 0;
             this.darkXochi.setTint(0x220022); // Back to normal
             this.bossState = 'APPROACH';
-            xochiMusic.onBossPhaseChange(this.levelNum === 10 ? 2 : 1, 'APPROACH');
             this.bossStateTimer = this.bossApproachTime / speedMult;
           }
           break;
@@ -7792,30 +6790,6 @@ class GameScene extends Phaser.Scene {
     if (this.player.y > this.levelData.height + 50) {
       this.playerDie();
     }
-
-    // ============ XOCHI DYNAMIC MUSIC UPDATE ============
-    // Update music intensity based on gameplay state
-    if (gameState.musicEnabled) {
-      xochiMusic.updateFromGameState(this);
-
-      // Update boss music phase if in boss fight
-      const isBossLevel = this.levelNum === 5 || this.levelNum === 10;
-      if (isBossLevel && this.darkXochi && this.darkXochi.getData('alive')) {
-        xochiMusic.updateBossPhase(this);
-      }
-
-      // Handle underwater music transitions
-      const isSwimming = this.player.getData('swimming') || false;
-      if (this.isUpscroller || this.isEscapeLevel) {
-        // For upscroller/escape, swimming state affects underwater track
-        if (isSwimming && !this._wasSwimming) {
-          xochiMusic.setUnderwater(true);
-        } else if (!isSwimming && this._wasSwimming) {
-          xochiMusic.setUnderwater(false);
-        }
-        this._wasSwimming = isSwimming;
-      }
-    }
   }
 }
 
@@ -7886,7 +6860,7 @@ class PauseScene extends Phaser.Scene {
 
     this.makeButton(width/2, 200, 'RESUME', 0x4ecdc4, () => { this.scene.resume('GameScene'); this.scene.stop(); });
     this.makeButton(width/2, 260, 'RESTART', 0xffaa00, () => { this.scene.stop('GameScene'); this.scene.stop('UIScene'); this.scene.stop(); this.scene.start('GameScene', {level: gameState.currentLevel}); });
-    this.makeButton(width/2, 320, 'MENU', 0xff6666, () => { xochiMusic.stop(); this.scene.stop('GameScene'); this.scene.stop('UIScene'); this.scene.stop(); this.scene.start('MenuScene'); });
+    this.makeButton(width/2, 320, 'MENU', 0xff6666, () => { mariachiMusic.stop(); this.scene.stop('GameScene'); this.scene.stop('UIScene'); this.scene.stop(); this.scene.start('MenuScene'); });
 
     // ============ WORLD SELECTION ============
     this.add.text(width/2, 380, 'JUMP TO WORLD', {
@@ -8017,10 +6991,9 @@ class EndScene extends Phaser.Scene {
 
     this.makeButton(width/2 - 90, 500, 'PLAY AGAIN', 0x4ecdc4, () => {
       resetGame();
-      // Music will be started by GameScene.create() using xochiMusic
       this.scene.start('GameScene', { level: 1 });
     });
-    this.makeButton(width/2 + 90, 500, 'MENU', 0xff6b9d, () => { xochiMusic.stop(); this.scene.start('MenuScene'); });
+    this.makeButton(width/2 + 90, 500, 'MENU', 0xff6b9d, () => { mariachiMusic.stop(); this.scene.start('MenuScene'); });
   }
 
   makeButton(x, y, text, color, fn) {
