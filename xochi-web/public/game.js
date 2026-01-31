@@ -4713,7 +4713,7 @@ class GameScene extends Phaser.Scene {
     this.currentAnim = 'idle';   // Current animation state
 
     // ============ TOUCH CONTROLS FOR MOBILE ============
-    this.touchControls = { left: false, right: false, jump: false, superJump: false, attack: false, run: false };
+    this.touchControls = { left: false, right: false, jump: false, superJump: false, attack: false, run: false, swipeVelocityX: 0 };
     this.setupTouchControls();
 
     // UI
@@ -4928,7 +4928,8 @@ class GameScene extends Phaser.Scene {
   }
 
   // ============ TOUCH CONTROLS - ONE HAND SCHEME ============
-  // SWIPE UP = Jump (+ direction if diagonal)
+  // SWIPE = Movement that MIMICS the gesture shape (direction + velocity)
+  // SWIPE UP = Jump (with directional component based on swipe angle)
   // TAP = Super jump (when available)
   // HOLD = Attack
   setupTouchControls() {
@@ -4940,9 +4941,11 @@ class GameScene extends Phaser.Scene {
     // ============ CONFIGURATION ============
     const TAP_MAX_DURATION = 200;      // ms - quick tap
     const TAP_MAX_MOVEMENT = 30;       // px - tap threshold
-    const SWIPE_MIN_DISTANCE = 50;     // px - minimum swipe distance
+    const SWIPE_MIN_DISTANCE = 40;     // px - minimum swipe distance (reduced for responsiveness)
     const HOLD_DURATION = 400;         // ms - hold for attack
-    const SWIPE_UP_THRESHOLD = -30;    // px - negative Y = upward swipe
+    const SWIPE_UP_THRESHOLD = -25;    // px - negative Y = upward swipe (more sensitive)
+    const VELOCITY_SCALE = 3.5;        // How much swipe speed translates to player velocity
+    const MAX_SWIPE_VELOCITY = 350;    // Cap on horizontal velocity from swipes
 
     // ============ TOUCH STATE ============
     this.primaryTouch = {
@@ -4950,12 +4953,18 @@ class GameScene extends Phaser.Scene {
       pointerId: null,
       originX: 0,
       originY: 0,
+      currentX: 0,
+      currentY: 0,
       startTime: 0,
+      lastMoveTime: 0,
       holdTimer: null,
-      isUsed: false  // Prevent multiple triggers
+      isUsed: false,  // Prevent multiple triggers
+      hasJumped: false,  // Track if this swipe triggered a jump
+      swipeVelocityX: 0,  // Calculated swipe velocity
+      swipeVelocityY: 0
     };
 
-    // ============ POINTER DOWN ============
+    // ============ POINTER DOWN - WORKS ANYWHERE ON SCREEN ============
     this.input.on('pointerdown', (pointer) => {
       if (this.primaryTouch.active) return;
 
@@ -4963,8 +4972,14 @@ class GameScene extends Phaser.Scene {
       this.primaryTouch.pointerId = pointer.id;
       this.primaryTouch.originX = pointer.x;
       this.primaryTouch.originY = pointer.y;
+      this.primaryTouch.currentX = pointer.x;
+      this.primaryTouch.currentY = pointer.y;
       this.primaryTouch.startTime = this.time.now;
+      this.primaryTouch.lastMoveTime = this.time.now;
       this.primaryTouch.isUsed = false;
+      this.primaryTouch.hasJumped = false;
+      this.primaryTouch.swipeVelocityX = 0;
+      this.primaryTouch.swipeVelocityY = 0;
 
       // Start hold timer for attack
       this.primaryTouch.holdTimer = this.time.delayedCall(HOLD_DURATION, () => {
@@ -4988,16 +5003,32 @@ class GameScene extends Phaser.Scene {
       });
     });
 
-    // ============ POINTER MOVE ============
+    // ============ POINTER MOVE - CONTINUOUS GESTURE TRACKING ============
     this.input.on('pointermove', (pointer) => {
       if (!this.primaryTouch.active || pointer.id !== this.primaryTouch.pointerId) return;
-      if (this.primaryTouch.isUsed) return;
 
+      const now = this.time.now;
+      const dt = Math.max(now - this.primaryTouch.lastMoveTime, 1);  // Prevent division by zero
+
+      // Calculate instantaneous velocity from gesture movement
+      const instantVelX = (pointer.x - this.primaryTouch.currentX) / dt * 16;  // Normalize to ~60fps
+      const instantVelY = (pointer.y - this.primaryTouch.currentY) / dt * 16;
+
+      // Smooth velocity with exponential moving average
+      this.primaryTouch.swipeVelocityX = this.primaryTouch.swipeVelocityX * 0.7 + instantVelX * 0.3;
+      this.primaryTouch.swipeVelocityY = this.primaryTouch.swipeVelocityY * 0.7 + instantVelY * 0.3;
+
+      // Update current position
+      this.primaryTouch.currentX = pointer.x;
+      this.primaryTouch.currentY = pointer.y;
+      this.primaryTouch.lastMoveTime = now;
+
+      // Total displacement from start
       const dx = pointer.x - this.primaryTouch.originX;
       const dy = pointer.y - this.primaryTouch.originY;
       const distance = Math.sqrt(dx * dx + dy * dy);
 
-      // Check for swipe
+      // Once we've moved enough, this is a swipe (not a hold/tap)
       if (distance > SWIPE_MIN_DISTANCE) {
         // Clear hold timer - this is a swipe
         if (this.primaryTouch.holdTimer) {
@@ -5005,17 +5036,24 @@ class GameScene extends Phaser.Scene {
           this.primaryTouch.holdTimer = null;
         }
 
-        // SWIPE UP = Jump (check if Y went upward)
-        if (dy < SWIPE_UP_THRESHOLD) {
+        // ============ SWIPE UP = JUMP with directional trajectory ============
+        if (dy < SWIPE_UP_THRESHOLD && !this.primaryTouch.hasJumped) {
+          this.primaryTouch.hasJumped = true;
           this.primaryTouch.isUsed = true;
 
-          // Jump!
+          // Jump with velocity that MIMICS the swipe trajectory!
           this.touchControls.jump = true;
-          this.time.delayedCall(50, () => {
-            this.touchControls.jump = false;
-          });
 
-          // Also set direction based on horizontal component
+          // Calculate horizontal velocity from swipe angle
+          // The swipe vector determines jump direction
+          const swipeAngle = Math.atan2(-dy, dx);  // -dy because up is negative
+          const swipeMagnitude = Math.min(distance, 150);  // Cap at 150px
+
+          // Horizontal component: swipe left = move left, swipe right = move right
+          const horizontalPower = Math.cos(swipeAngle) * swipeMagnitude * 2;
+          this.touchControls.swipeVelocityX = Math.max(-MAX_SWIPE_VELOCITY, Math.min(MAX_SWIPE_VELOCITY, horizontalPower));
+
+          // Set direction flags for ledge grab detection
           if (dx < -20) {
             this.touchControls.left = true;
             this.touchControls.right = false;
@@ -5024,23 +5062,33 @@ class GameScene extends Phaser.Scene {
             this.touchControls.right = true;
           }
 
-          // Brief movement then stop
-          this.time.delayedCall(150, () => {
-            this.touchControls.left = false;
-            this.touchControls.right = false;
+          // Clear jump flag after a frame (let game loop process it)
+          this.time.delayedCall(50, () => {
+            this.touchControls.jump = false;
           });
         }
-        // SWIPE LEFT/RIGHT = Move (no jump)
-        else if (Math.abs(dx) > Math.abs(dy)) {
-          if (dx < 0) {
+        // ============ HORIZONTAL SWIPE = CONTINUOUS MOVEMENT ============
+        else if (!this.primaryTouch.hasJumped) {
+          // Movement mimics the swipe: direction and speed follow finger
+          const scaledVelX = this.primaryTouch.swipeVelocityX * VELOCITY_SCALE;
+          const clampedVelX = Math.max(-MAX_SWIPE_VELOCITY, Math.min(MAX_SWIPE_VELOCITY, scaledVelX));
+
+          this.touchControls.swipeVelocityX = clampedVelX;
+
+          if (clampedVelX < -30) {
             this.touchControls.left = true;
             this.touchControls.right = false;
-          } else {
+          } else if (clampedVelX > 30) {
             this.touchControls.left = false;
             this.touchControls.right = true;
+          } else {
+            // Finger moving slowly or stopped - slow down
+            this.touchControls.left = false;
+            this.touchControls.right = false;
           }
-          // Run if swiped far
-          this.touchControls.run = Math.abs(dx) > 80;
+
+          // Run if swiping fast
+          this.touchControls.run = Math.abs(clampedVelX) > 150;
         }
       }
     });
@@ -5094,11 +5142,13 @@ class GameScene extends Phaser.Scene {
       this.touchControls.left = false;
       this.touchControls.right = false;
       this.touchControls.run = false;
+      this.touchControls.swipeVelocityX = 0;
 
       // Reset touch state
       this.primaryTouch.active = false;
       this.primaryTouch.pointerId = null;
       this.primaryTouch.isUsed = false;
+      this.primaryTouch.hasJumped = false;
     });
 
     // ============ POINTER CANCEL ============
@@ -5113,10 +5163,12 @@ class GameScene extends Phaser.Scene {
       this.touchControls.left = false;
       this.touchControls.right = false;
       this.touchControls.run = false;
+      this.touchControls.swipeVelocityX = 0;
 
       this.primaryTouch.active = false;
       this.primaryTouch.pointerId = null;
       this.primaryTouch.isUsed = false;
+      this.primaryTouch.hasJumped = false;
     });
 
     // ============ PAUSE BUTTON (top right corner) ============
@@ -5132,8 +5184,8 @@ class GameScene extends Phaser.Scene {
     });
 
     // ============ CONTROL HINT (shown briefly) ============
-    const hint = this.add.text(width / 2, height - 40, 'SWIPE UP = JUMP  •  TAP = SUPER JUMP  •  HOLD = ATTACK', {
-      fontFamily: 'Arial', fontSize: '11px', color: '#ffffff', stroke: '#000000', strokeThickness: 2
+    const hint = this.add.text(width / 2, height - 40, 'SWIPE = MOVE  •  SWIPE UP = JUMP  •  TAP = SUPER  •  HOLD = ATTACK', {
+      fontFamily: 'Arial', fontSize: '10px', color: '#ffffff', stroke: '#000000', strokeThickness: 2
     }).setOrigin(0.5).setScrollFactor(0).setDepth(1002).setAlpha(0.8);
 
     // Fade out hint after 4 seconds
@@ -6034,7 +6086,7 @@ class GameScene extends Phaser.Scene {
     // Default delta to 16ms (~60fps) if not provided
     if (!delta) delta = 16;
 
-    const tc = this.touchControls || { left: false, right: false, jump: false, superJump: false, attack: false, run: false };
+    const tc = this.touchControls || { left: false, right: false, jump: false, superJump: false, attack: false, run: false, swipeVelocityX: 0 };
 
     // ============ LEDGE GRAB MECHANIC - Improved for Upscroller! ============
     const isHanging = this.player.getData('hanging') || false;
@@ -6195,8 +6247,9 @@ class GameScene extends Phaser.Scene {
     const canGrab = grabCooldown <= 0;
 
     // Only try to grab if pressing left or right (intentional grab)
-    const pressingLeft = this.cursors && this.cursors.left && this.cursors.left.isDown;
-    const pressingRight = this.cursors && this.cursors.right && this.cursors.right.isDown;
+    // FIX: Include touch controls for mobile ledge grab support!
+    const pressingLeft = (this.cursors && this.cursors.left && this.cursors.left.isDown) || tc.left;
+    const pressingRight = (this.cursors && this.cursors.right && this.cursors.right.isDown) || tc.right;
     const pressingDirection = pressingLeft || pressingRight;
 
     if (isFalling && notOnGround && canGrab && pressingDirection &&
@@ -6282,13 +6335,29 @@ class GameScene extends Phaser.Scene {
 
     // Movement (keyboard + touch) - ONLY when not hanging/climbing
     if (playerCanMove) {
-      if (this.cursors.left.isDown || this.keys.A.isDown || tc.left) {
+      // Keyboard movement (discrete)
+      if (this.cursors.left.isDown || this.keys.A.isDown) {
         this.player.body.setVelocityX(-speed);
         this.player.setFlipX(true);
-      } else if (this.cursors.right.isDown || this.keys.D.isDown || tc.right) {
+      } else if (this.cursors.right.isDown || this.keys.D.isDown) {
+        this.player.body.setVelocityX(speed);
+        this.player.setFlipX(false);
+      }
+      // Touch gesture movement - velocity MIMICS the swipe shape
+      else if (tc.swipeVelocityX && Math.abs(tc.swipeVelocityX) > 20) {
+        // Use swipe velocity directly for natural gesture feel
+        this.player.body.setVelocityX(tc.swipeVelocityX);
+        this.player.setFlipX(tc.swipeVelocityX < 0);
+      }
+      // Touch direction flags (fallback for simple left/right)
+      else if (tc.left) {
+        this.player.body.setVelocityX(-speed);
+        this.player.setFlipX(true);
+      } else if (tc.right) {
         this.player.body.setVelocityX(speed);
         this.player.setFlipX(false);
       } else {
+        // Friction/deceleration when no input
         this.player.body.setVelocityX(this.player.body.velocity.x * 0.8);
       }
     }
@@ -6328,6 +6397,14 @@ class GameScene extends Phaser.Scene {
       if (canNormalJump) {
         // Normal jump from ground
         this.player.body.setVelocityY(-450);
+
+        // SWIPE TRAJECTORY: Apply horizontal velocity from swipe gesture
+        // This makes jumps follow the arc of the user's swipe!
+        if (tc.swipeVelocityX && Math.abs(tc.swipeVelocityX) > 30) {
+          this.player.body.setVelocityX(tc.swipeVelocityX);
+          this.player.setFlipX(tc.swipeVelocityX < 0);
+        }
+
         this.playSound('sfx-jump', { pitchVariation: true });
         this.jumpBufferTime = 0;
         this.coyoteTime = 0;
@@ -7498,6 +7575,14 @@ const config = {
   width: 800,
   height: 600,
   backgroundColor: '#1a1a2e',
+  // TOUCH INPUT CONFIG: Ensure touch events work ANYWHERE on screen
+  input: {
+    activePointers: 3,  // Support multi-touch
+    touch: {
+      capture: true,     // Capture all touch events on canvas
+      target: null       // null = use game canvas (entire screen)
+    }
+  },
   physics: {
     default: 'arcade',
     arcade: { gravity: { y: 900 }, debug: false }
