@@ -36,6 +36,20 @@ jobs:
         working-directory: xochi-web
         run: npm run build
 
+      - name: Debug - List dist contents
+        working-directory: xochi-web
+        run: |
+          echo "=== dist folder contents ==="
+          ls -la dist/
+          echo "=== dist/assets contents ==="
+          ls -la dist/assets/ || echo "No assets folder"
+          echo "=== checking game.js ==="
+          head -3 dist/game.js || echo "No game.js"
+
+      - name: Add .nojekyll
+        working-directory: xochi-web
+        run: touch dist/.nojekyll
+
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
