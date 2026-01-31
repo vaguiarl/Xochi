@@ -1,0 +1,63 @@
+{
+  "name": "axolotl_warrior",
+  "background": "white",
+  "order": [
+    "walk",
+    "run",
+    "jump",
+    "attack"
+  ],
+  "frames": {
+    "walk": {
+      "file": "walk.png",
+      "duration_ms": 120
+    },
+    "run": {
+      "file": "run.png",
+      "duration_ms": 120
+    },
+    "jump": {
+      "file": "jump.png",
+      "duration_ms": 180
+    },
+    "attack": {
+      "file": "attack.png",
+      "duration_ms": 180
+    }
+  },
+  "spritesheet": {
+    "file": "axolotl_warrior_actions_sheet.png",
+    "frames": {
+      "walk": {
+        "x": 0,
+        "y": 2,
+        "w": 427,
+        "h": 475
+      },
+      "run": {
+        "x": 427,
+        "y": 50,
+        "w": 408,
+        "h": 427
+      },
+      "jump": {
+        "x": 835,
+        "y": 0,
+        "w": 511,
+        "h": 477
+      },
+      "attack": {
+        "x": 1346,
+        "y": 69,
+        "w": 395,
+        "h": 408
+      }
+    }
+  },
+  "notes": {
+    "walk": "Single key pose (you will likely want 4-8 frames for a full walk cycle).",
+    "run": "Single key pose (you will likely want 4-8 frames for a full run cycle).",
+    "jump": "Single airborne pose (consider jump_start, jump_loop, jump_land).",
+    "attack": "Single strike pose (consider windup, hit, recovery)."
+  }
+}

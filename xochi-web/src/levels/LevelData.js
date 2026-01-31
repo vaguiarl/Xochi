@@ -1,399 +1,565 @@
-// Level data for all 5 levels
-// Each level is a 2D array of tile indices
-// 0 = empty, 1 = ground, 2 = brick, 3 = platform, etc.
+// Level data for all levels
+// Enhanced with world themes, trajineras, and procedural generation support
 
 const TILE_SIZE = 32;
 
-// Helper to create ground row
-const ground = (width) => Array(width).fill(1);
-const empty = (width) => Array(width).fill(0);
-const platform = (start, length, row, height = 1) => {
-  const result = [];
-  for (let y = 0; y < height; y++) {
-    for (let x = start; x < start + length; x++) {
-      result.push({ x: x * TILE_SIZE, y: row * TILE_SIZE, tile: 1 });
-    }
+// World themes with visual settings
+export const WORLDS = {
+  1: {
+    worldNum: 1,
+    name: 'Canal Dawn',
+    subtitle: 'El Amanecer',
+    sky: [0xffccaa, 0xffaa88, 0xff8866, 0xcc6655, 0x884444, 0x442233],
+    platformColor: 0x44aa55,
+    grassColor: 0x66cc77,
+    groundColor: 0x8B5522,
+    groundTopColor: 0x55aa44,
+    waterColor: 0x2299aa
+  },
+  2: {
+    worldNum: 2,
+    name: 'Bright Trajineras',
+    subtitle: 'Trajineras Brillantes',
+    sky: [0x87ceeb, 0x77bedb, 0x67aecb, 0x579ebb, 0x478eab, 0x377e9b],
+    platformColor: 0x55bb66,
+    grassColor: 0x77dd88,
+    groundColor: 0x9B6533,
+    groundTopColor: 0x66bb55,
+    waterColor: 0x22aacc
+  },
+  3: {
+    worldNum: 3,
+    name: 'Crystal Cave',
+    subtitle: 'Cueva de Cristal',
+    sky: [0x1a1a3e, 0x2a2a4e, 0x3a3a5e, 0x4a4a6e, 0x3a3a5e, 0x2a2a4e],
+    platformColor: 0x5555aa,
+    grassColor: 0x7777cc,
+    groundColor: 0x444488,
+    groundTopColor: 0x6666aa,
+    waterColor: 0x334488
+  },
+  4: {
+    worldNum: 4,
+    name: 'Floating Gardens',
+    subtitle: 'Jardines Flotantes',
+    sky: [0xffdd88, 0xffcc66, 0xffbb44, 0xee9933, 0xcc7722, 0x995511],
+    platformColor: 0x66aa44,
+    grassColor: 0x88cc66,
+    groundColor: 0x885522,
+    groundTopColor: 0x77bb44,
+    waterColor: 0x44aaaa
+  },
+  5: {
+    worldNum: 5,
+    name: 'Night Canals',
+    subtitle: 'Canales de Noche',
+    sky: [0x0a0a1e, 0x1a1a2e, 0x2a2a3e, 0x1a1a2e, 0x0a0a1e, 0x050510],
+    platformColor: 0x4455aa,
+    grassColor: 0x6677cc,
+    groundColor: 0x333366,
+    groundTopColor: 0x5566aa,
+    waterColor: 0x223355
+  },
+  6: {
+    worldNum: 6,
+    name: 'The Grand Festival',
+    subtitle: 'La Gran Fiesta',
+    sky: [0x2a4a4a, 0x3a5a5a, 0x4a6a6a, 0x5a7a7a, 0x4a6a6a, 0x3a5a5a],
+    platformColor: 0x44aaaa,
+    grassColor: 0x66cccc,
+    groundColor: 0x447788,
+    groundTopColor: 0x55bbbb,
+    waterColor: 0x33aacc
   }
-  return result;
 };
 
-// Level 1-1: Floating Gardens Tutorial
-// Easy intro level - simple jumps, few enemies
+// Trajinera boat names for flavor
+const TRAJINERA_NAMES = [
+  'Lupita', 'Rosa', 'Esperanza', 'Guadalupe', 'Maria',
+  'Xochitl', 'Citlali', 'Itzel', 'Marisol', 'Elena'
+];
+
+// Level 1: Floating Gardens Tutorial
 const level1 = {
   width: 2400,
   height: 600,
   playerSpawn: { x: 100, y: 400 },
   babyPosition: { x: 2200, y: 200 },
 
-  // Tile map (simplified - just ground and platforms)
-  tiles: (() => {
-    const rows = 19; // 600 / 32
-    const cols = 75; // 2400 / 32
-    const map = [];
+  platforms: [
+    // Ground
+    { x: 0, y: 550, w: 800, h: 50 },
+    { x: 900, y: 550, w: 600, h: 50 },
+    { x: 1600, y: 550, w: 800, h: 50 },
+    // Platforms
+    { x: 250, y: 450, w: 150, h: 20 },
+    { x: 500, y: 380, w: 100, h: 20 },
+    { x: 750, y: 320, w: 120, h: 20 },
+    { x: 1100, y: 400, w: 150, h: 20 },
+    { x: 1400, y: 320, w: 100, h: 20 },
+    { x: 1700, y: 380, w: 150, h: 20 },
+    { x: 1950, y: 280, w: 120, h: 20 },
+    { x: 2150, y: 220, w: 150, h: 20 }
+  ],
 
-    for (let y = 0; y < rows; y++) {
-      const row = [];
-      for (let x = 0; x < cols; x++) {
-        if (y >= 17) {
-          // Ground (bottom 2 rows)
-          row.push(1);
-        } else if (y === 14 && x >= 8 && x <= 11) {
-          // First platform
-          row.push(3);
-        } else if (y === 12 && x >= 16 && x <= 18) {
-          // Second platform (higher)
-          row.push(3);
-        } else if (y === 14 && x >= 24 && x <= 28) {
-          // Long platform
-          row.push(3);
-        } else if (y === 10 && x >= 35 && x <= 38) {
-          // High platform
-          row.push(3);
-        } else if (y === 14 && x >= 45 && x <= 52) {
-          // Near end platform
-          row.push(3);
-        } else if (y === 11 && x >= 58 && x <= 62) {
-          // Final approach
-          row.push(3);
-        } else if (y === 8 && x >= 65 && x <= 70) {
-          // Baby platform
-          row.push(3);
-        } else {
-          row.push(0);
-        }
-      }
-      map.push(row);
-    }
-    return map;
-  })(),
+  trajineras: [
+    { x: 850, y: 520, w: 100, h: 25, endX: 900, speed: 30, dir: 1 }
+  ],
 
   coins: [
     { x: 200, y: 480 }, { x: 232, y: 480 }, { x: 264, y: 480 },
     { x: 320, y: 420 }, { x: 352, y: 420 },
-    { x: 560, y: 380 }, { x: 592, y: 380 },
-    { x: 800, y: 320 },
-    { x: 1200, y: 420 }, { x: 1232, y: 420 }, { x: 1264, y: 420 },
-    { x: 1500, y: 280 },
-    { x: 1800, y: 420 }, { x: 1832, y: 420 },
-    { x: 2000, y: 320 }, { x: 2032, y: 320 }
+    { x: 560, y: 340 }, { x: 592, y: 340 },
+    { x: 800, y: 280 },
+    { x: 1150, y: 360 }, { x: 1182, y: 360 },
+    { x: 1450, y: 280 },
+    { x: 1750, y: 340 }, { x: 1782, y: 340 },
+    { x: 2000, y: 240 }, { x: 2032, y: 240 },
+    { x: 2200, y: 180 }
   ],
 
   stars: [
-    { x: 350, y: 350 },  // Hidden above first platform
-    { x: 1150, y: 250 }, // High jump required
-    { x: 2100, y: 200 }  // Near baby
+    { x: 350, y: 350 },
+    { x: 1150, y: 250 },
+    { x: 2100, y: 160 }
   ],
 
-  mushrooms: [
-    { x: 600, y: 480 }
+  powerups: [
+    { x: 600, y: 340 }
   ],
 
   enemies: [
-    { type: 'gull', x: 500, y: 500 },
-    { type: 'gull', x: 900, y: 500 },
-    { type: 'gull', x: 1400, y: 500 },
-    { type: 'heron', x: 1700, y: 480 }
+    { type: 'ground', x: 500, y: 530 },
+    { type: 'ground', x: 1200, y: 530 },
+    { type: 'flying', x: 900, y: 400, amplitude: 50, speed: 60 },
+    { type: 'ground', x: 1800, y: 530 }
   ]
 };
 
-// Level 1-2: Floating Gardens Challenge
-// More platforms, more enemies
+// Level 2: Floating Gardens Advanced
 const level2 = {
   width: 3000,
   height: 600,
   playerSpawn: { x: 100, y: 400 },
   babyPosition: { x: 2800, y: 150 },
 
-  tiles: (() => {
-    const rows = 19;
-    const cols = 94;
-    const map = [];
+  platforms: [
+    // Ground with gaps
+    { x: 0, y: 550, w: 700, h: 50 },
+    { x: 800, y: 550, w: 500, h: 50 },
+    { x: 1400, y: 550, w: 600, h: 50 },
+    { x: 2100, y: 550, w: 900, h: 50 },
+    // Platforms
+    { x: 350, y: 450, w: 120, h: 20 },
+    { x: 650, y: 380, w: 100, h: 20 },
+    { x: 950, y: 320, w: 150, h: 20 },
+    { x: 1250, y: 400, w: 100, h: 20 },
+    { x: 1550, y: 320, w: 120, h: 20 },
+    { x: 1850, y: 380, w: 100, h: 20 },
+    { x: 2150, y: 300, w: 150, h: 20 },
+    { x: 2500, y: 250, w: 120, h: 20 },
+    { x: 2750, y: 180, w: 150, h: 20 }
+  ],
 
-    for (let y = 0; y < rows; y++) {
-      const row = [];
-      for (let x = 0; x < cols; x++) {
-        if (y >= 17) {
-          // Ground with gaps
-          if ((x >= 25 && x <= 28) || (x >= 50 && x <= 53) || (x >= 75 && x <= 78)) {
-            row.push(0); // Gaps
-          } else {
-            row.push(1);
-          }
-        } else if (y === 14 && ((x >= 10 && x <= 14) || (x >= 30 && x <= 35) || (x >= 55 && x <= 60))) {
-          row.push(3);
-        } else if (y === 11 && ((x >= 20 && x <= 23) || (x >= 42 && x <= 46) || (x >= 65 && x <= 70))) {
-          row.push(3);
-        } else if (y === 8 && x >= 80 && x <= 90) {
-          row.push(3);
-        } else {
-          row.push(0);
-        }
-      }
-      map.push(row);
-    }
-    return map;
-  })(),
+  trajineras: [
+    { x: 750, y: 520, w: 80, h: 25, endX: 800, speed: 40, dir: 1 },
+    { x: 1350, y: 520, w: 80, h: 25, endX: 1400, speed: 35, dir: -1 }
+  ],
 
   coins: [
     { x: 200, y: 480 }, { x: 232, y: 480 },
-    { x: 400, y: 420 }, { x: 432, y: 420 }, { x: 464, y: 420 },
-    { x: 700, y: 320 }, { x: 732, y: 320 },
-    { x: 1000, y: 420 }, { x: 1032, y: 420 },
-    { x: 1400, y: 350 }, { x: 1432, y: 350 },
-    { x: 1800, y: 420 },
-    { x: 2100, y: 320 }, { x: 2132, y: 320 }, { x: 2164, y: 320 },
-    { x: 2500, y: 250 }, { x: 2532, y: 250 }
+    { x: 400, y: 410 }, { x: 432, y: 410 },
+    { x: 700, y: 340 }, { x: 732, y: 340 },
+    { x: 1000, y: 280 }, { x: 1032, y: 280 },
+    { x: 1300, y: 360 },
+    { x: 1600, y: 280 }, { x: 1632, y: 280 },
+    { x: 1900, y: 340 },
+    { x: 2200, y: 260 }, { x: 2232, y: 260 },
+    { x: 2550, y: 210 },
+    { x: 2800, y: 140 }
   ],
 
   stars: [
     { x: 850, y: 200 },
     { x: 1650, y: 180 },
-    { x: 2700, y: 180 }
+    { x: 2700, y: 120 }
   ],
 
-  mushrooms: [
-    { x: 500, y: 420 },
-    { x: 1500, y: 320 }
+  powerups: [
+    { x: 500, y: 410 },
+    { x: 1500, y: 280 }
   ],
 
   enemies: [
-    { type: 'gull', x: 350, y: 500 },
-    { type: 'gull', x: 700, y: 500 },
-    { type: 'heron', x: 1000, y: 480 },
-    { type: 'gull', x: 1300, y: 500 },
-    { type: 'gull', x: 1600, y: 500 },
-    { type: 'heron', x: 2000, y: 480 },
-    { type: 'gull', x: 2300, y: 500 },
-    { type: 'heron', x: 2600, y: 250 }
+    { type: 'ground', x: 350, y: 530 },
+    { type: 'ground', x: 900, y: 530 },
+    { type: 'flying', x: 650, y: 350, amplitude: 60, speed: 70 },
+    { type: 'ground', x: 1500, y: 530 },
+    { type: 'flying', x: 1800, y: 400, amplitude: 50, speed: 65 },
+    { type: 'ground', x: 2300, y: 530 },
+    { type: 'flying', x: 2600, y: 300, amplitude: 40, speed: 75 }
   ]
 };
 
-// Level 2-1: Ancient Ruins Entry
-// Vertical platforming, moving platforms concept
+// Level 3: Upscroller - Ruins Entry
 const level3 = {
-  width: 2800,
-  height: 700,
-  playerSpawn: { x: 100, y: 500 },
-  babyPosition: { x: 2600, y: 100 },
+  width: 800,
+  height: 2000,
+  playerSpawn: { x: 400, y: 1900 },
+  babyPosition: { x: 400, y: 100 },
+  isUpscroller: true,
 
-  tiles: (() => {
-    const rows = 22;
-    const cols = 88;
-    const map = [];
+  platforms: [
+    // Bottom ground
+    { x: 0, y: 1950, w: 800, h: 50 },
+    // Ascending platforms
+    { x: 100, y: 1800, w: 150, h: 20 },
+    { x: 500, y: 1700, w: 150, h: 20 },
+    { x: 200, y: 1600, w: 150, h: 20 },
+    { x: 550, y: 1500, w: 150, h: 20 },
+    { x: 100, y: 1400, w: 200, h: 20 },
+    { x: 450, y: 1300, w: 150, h: 20 },
+    { x: 200, y: 1200, w: 150, h: 20 },
+    { x: 550, y: 1100, w: 150, h: 20 },
+    { x: 100, y: 1000, w: 150, h: 20 },
+    { x: 400, y: 900, w: 200, h: 20 },
+    { x: 150, y: 800, w: 150, h: 20 },
+    { x: 500, y: 700, w: 150, h: 20 },
+    { x: 200, y: 600, w: 150, h: 20 },
+    { x: 450, y: 500, w: 150, h: 20 },
+    { x: 100, y: 400, w: 200, h: 20 },
+    { x: 450, y: 300, w: 150, h: 20 },
+    { x: 250, y: 200, w: 300, h: 20 },
+    { x: 300, y: 100, w: 200, h: 20 }
+  ],
 
-    for (let y = 0; y < rows; y++) {
-      const row = [];
-      for (let x = 0; x < cols; x++) {
-        if (y >= 20) {
-          // Ground with more gaps
-          if ((x >= 15 && x <= 20) || (x >= 35 && x <= 42) || (x >= 60 && x <= 65)) {
-            row.push(0);
-          } else {
-            row.push(2); // Different tile for ruins
-          }
-        } else if (y === 16 && ((x >= 8 && x <= 12) || (x >= 45 && x <= 50))) {
-          row.push(2);
-        } else if (y === 12 && ((x >= 22 && x <= 28) || (x >= 55 && x <= 60))) {
-          row.push(2);
-        } else if (y === 8 && ((x >= 30 && x <= 35) || (x >= 70 && x <= 78))) {
-          row.push(2);
-        } else if (y === 4 && x >= 80 && x <= 85) {
-          row.push(2);
-        } else {
-          row.push(0);
-        }
-      }
-      map.push(row);
-    }
-    return map;
-  })(),
+  trajineras: [],
 
   coins: [
-    { x: 300, y: 580 }, { x: 332, y: 580 },
-    { x: 500, y: 500 }, { x: 532, y: 500 },
-    { x: 800, y: 380 }, { x: 832, y: 380 }, { x: 864, y: 380 },
-    { x: 1100, y: 320 },
-    { x: 1500, y: 580 }, { x: 1532, y: 580 },
-    { x: 1800, y: 250 }, { x: 1832, y: 250 },
-    { x: 2200, y: 200 }, { x: 2232, y: 200 }, { x: 2264, y: 200 }
+    { x: 175, y: 1760 }, { x: 575, y: 1660 },
+    { x: 275, y: 1560 }, { x: 625, y: 1460 },
+    { x: 200, y: 1360 }, { x: 525, y: 1260 },
+    { x: 275, y: 1160 }, { x: 625, y: 1060 },
+    { x: 175, y: 960 }, { x: 500, y: 860 },
+    { x: 225, y: 760 }, { x: 575, y: 660 },
+    { x: 275, y: 560 }, { x: 525, y: 460 },
+    { x: 200, y: 360 }, { x: 525, y: 260 },
+    { x: 400, y: 160 }
   ],
 
   stars: [
-    { x: 450, y: 350 },
-    { x: 1400, y: 200 },
-    { x: 2500, y: 120 }
+    { x: 700, y: 1400 },
+    { x: 100, y: 800 },
+    { x: 400, y: 150 }
   ],
 
-  mushrooms: [
-    { x: 700, y: 480 },
-    { x: 1900, y: 250 }
+  powerups: [
+    { x: 200, y: 1560 },
+    { x: 500, y: 860 }
   ],
 
   enemies: [
-    { type: 'gull', x: 400, y: 600 },
-    { type: 'heron', x: 800, y: 580 },
-    { type: 'gull', x: 1200, y: 380 },
-    { type: 'heron', x: 1600, y: 580 },
-    { type: 'gull', x: 2000, y: 260 },
-    { type: 'heron', x: 2400, y: 200 }
+    { type: 'platform', x: 575, y: 1680 },
+    { type: 'platform', x: 175, y: 1380 },
+    { type: 'flying', x: 400, y: 1200, amplitude: 100, speed: 50 },
+    { type: 'platform', x: 525, y: 880 },
+    { type: 'flying', x: 350, y: 600, amplitude: 80, speed: 60 },
+    { type: 'platform', x: 175, y: 380 }
   ]
 };
 
-// Level 2-2: Ancient Ruins Depths
-// More complex, multiple paths
+// Level 4: Ancient Ruins
 const level4 = {
   width: 3200,
   height: 700,
   playerSpawn: { x: 100, y: 500 },
   babyPosition: { x: 3000, y: 150 },
 
-  tiles: (() => {
-    const rows = 22;
-    const cols = 100;
-    const map = [];
+  platforms: [
+    // Ground with gaps
+    { x: 0, y: 650, w: 600, h: 50 },
+    { x: 700, y: 650, w: 500, h: 50 },
+    { x: 1300, y: 650, w: 500, h: 50 },
+    { x: 1900, y: 650, w: 500, h: 50 },
+    { x: 2500, y: 650, w: 700, h: 50 },
+    // Platforms
+    { x: 350, y: 550, w: 100, h: 20 },
+    { x: 550, y: 480, w: 100, h: 20 },
+    { x: 850, y: 550, w: 150, h: 20 },
+    { x: 1100, y: 480, w: 100, h: 20 },
+    { x: 1350, y: 400, w: 120, h: 20 },
+    { x: 1600, y: 550, w: 100, h: 20 },
+    { x: 1850, y: 480, w: 120, h: 20 },
+    { x: 2100, y: 400, w: 100, h: 20 },
+    { x: 2350, y: 550, w: 150, h: 20 },
+    { x: 2600, y: 480, w: 100, h: 20 },
+    { x: 2850, y: 400, w: 120, h: 20 },
+    { x: 2950, y: 180, w: 150, h: 20 }
+  ],
 
-    for (let y = 0; y < rows; y++) {
-      const row = [];
-      for (let x = 0; x < cols; x++) {
-        if (y >= 20) {
-          if ((x >= 20 && x <= 28) || (x >= 45 && x <= 52) || (x >= 70 && x <= 76)) {
-            row.push(0);
-          } else {
-            row.push(2);
-          }
-        } else if (y === 17 && ((x >= 10 && x <= 15) || (x >= 55 && x <= 62))) {
-          row.push(2);
-        } else if (y === 14 && ((x >= 25 && x <= 32) || (x >= 78 && x <= 85))) {
-          row.push(2);
-        } else if (y === 10 && ((x >= 35 && x <= 42) || (x >= 65 && x <= 72))) {
-          row.push(2);
-        } else if (y === 6 && x >= 88 && x <= 96) {
-          row.push(2);
-        } else {
-          row.push(0);
-        }
-      }
-      map.push(row);
-    }
-    return map;
-  })(),
+  trajineras: [
+    { x: 650, y: 620, w: 80, h: 25, endX: 700, speed: 45, dir: 1 },
+    { x: 1250, y: 620, w: 80, h: 25, endX: 1300, speed: 40, dir: -1 },
+    { x: 1850, y: 620, w: 80, h: 25, endX: 1900, speed: 50, dir: 1 }
+  ],
 
   coins: [
-    { x: 250, y: 580 }, { x: 282, y: 580 }, { x: 314, y: 580 },
-    { x: 600, y: 520 }, { x: 632, y: 520 },
-    { x: 950, y: 420 }, { x: 982, y: 420 }, { x: 1014, y: 420 },
-    { x: 1300, y: 320 }, { x: 1332, y: 320 },
-    { x: 1700, y: 580 }, { x: 1732, y: 580 },
-    { x: 2100, y: 420 }, { x: 2132, y: 420 },
-    { x: 2500, y: 300 }, { x: 2532, y: 300 },
-    { x: 2900, y: 200 }, { x: 2932, y: 200 }
+    { x: 250, y: 580 }, { x: 282, y: 580 },
+    { x: 400, y: 510 }, { x: 600, y: 440 },
+    { x: 925, y: 510 }, { x: 1150, y: 440 },
+    { x: 1400, y: 360 }, { x: 1650, y: 510 },
+    { x: 1900, y: 440 }, { x: 2150, y: 360 },
+    { x: 2425, y: 510 }, { x: 2650, y: 440 },
+    { x: 2900, y: 360 }, { x: 3000, y: 140 }
   ],
 
   stars: [
-    { x: 550, y: 300 },
-    { x: 1850, y: 180 },
-    { x: 2800, y: 100 }
+    { x: 550, y: 350 },
+    { x: 1850, y: 280 },
+    { x: 2900, y: 140 }
   ],
 
-  mushrooms: [
-    { x: 450, y: 520 },
-    { x: 1500, y: 420 },
-    { x: 2600, y: 320 }
+  powerups: [
+    { x: 450, y: 580 },
+    { x: 1500, y: 360 },
+    { x: 2600, y: 440 }
   ],
 
   enemies: [
-    { type: 'gull', x: 350, y: 600 },
-    { type: 'heron', x: 700, y: 580 },
-    { type: 'gull', x: 1000, y: 600 },
-    { type: 'gull', x: 1200, y: 440 },
-    { type: 'heron', x: 1500, y: 580 },
-    { type: 'gull', x: 1800, y: 340 },
-    { type: 'heron', x: 2200, y: 440 },
-    { type: 'gull', x: 2500, y: 320 },
-    { type: 'heron', x: 2850, y: 180 }
+    { type: 'ground', x: 350, y: 630 },
+    { type: 'flying', x: 700, y: 450, amplitude: 70, speed: 65 },
+    { type: 'ground', x: 1000, y: 630 },
+    { type: 'platform', x: 1400, y: 380 },
+    { type: 'flying', x: 1650, y: 380, amplitude: 60, speed: 70 },
+    { type: 'ground', x: 2200, y: 630 },
+    { type: 'flying', x: 2500, y: 350, amplitude: 50, speed: 75 },
+    { type: 'platform', x: 2900, y: 380 }
   ]
 };
 
-// Level 3-1: Crystal Caves (Final/Boss)
-// Challenging finale
+// Level 5: Crystal Cave Boss
 const level5 = {
-  width: 3500,
+  width: 1200,
   height: 800,
   playerSpawn: { x: 100, y: 600 },
-  babyPosition: { x: 3300, y: 150 },
+  babyPosition: { x: 1000, y: 200 },
+  isBossLevel: true,
 
-  tiles: (() => {
-    const rows = 25;
-    const cols = 110;
-    const map = [];
+  platforms: [
+    // Arena floor
+    { x: 0, y: 750, w: 1200, h: 50 },
+    // Side platforms
+    { x: 100, y: 600, w: 150, h: 20 },
+    { x: 500, y: 550, w: 200, h: 20 },
+    { x: 950, y: 600, w: 150, h: 20 },
+    // Higher platforms
+    { x: 200, y: 450, w: 150, h: 20 },
+    { x: 500, y: 400, w: 200, h: 20 },
+    { x: 850, y: 450, w: 150, h: 20 },
+    // Top platforms
+    { x: 350, y: 300, w: 150, h: 20 },
+    { x: 700, y: 300, w: 150, h: 20 },
+    { x: 500, y: 200, w: 200, h: 20 },
+    // Baby platform
+    { x: 950, y: 220, w: 150, h: 20 }
+  ],
 
-    for (let y = 0; y < rows; y++) {
-      const row = [];
-      for (let x = 0; x < cols; x++) {
-        if (y >= 23) {
-          // Ground with many gaps - final challenge
-          if ((x >= 15 && x <= 22) || (x >= 35 && x <= 40) ||
-              (x >= 55 && x <= 62) || (x >= 80 && x <= 85)) {
-            row.push(0);
-          } else {
-            row.push(1);
-          }
-        } else if (y === 19 && ((x >= 8 && x <= 13) || (x >= 45 && x <= 52) || (x >= 90 && x <= 100))) {
-          row.push(1);
-        } else if (y === 15 && ((x >= 25 && x <= 32) || (x >= 65 && x <= 75))) {
-          row.push(1);
-        } else if (y === 11 && ((x >= 40 && x <= 48) || (x >= 85 && x <= 92))) {
-          row.push(1);
-        } else if (y === 7 && ((x >= 55 && x <= 62) || (x >= 95 && x <= 105))) {
-          row.push(1);
-        } else {
-          row.push(0);
-        }
-      }
-      map.push(row);
-    }
-    return map;
-  })(),
+  trajineras: [],
 
   coins: [
-    { x: 200, y: 680 }, { x: 232, y: 680 }, { x: 264, y: 680 },
-    { x: 500, y: 600 }, { x: 532, y: 600 },
-    { x: 800, y: 500 }, { x: 832, y: 500 }, { x: 864, y: 500 },
-    { x: 1100, y: 420 }, { x: 1132, y: 420 },
-    { x: 1500, y: 680 }, { x: 1532, y: 680 },
-    { x: 1800, y: 500 }, { x: 1832, y: 500 },
-    { x: 2100, y: 350 }, { x: 2132, y: 350 }, { x: 2164, y: 350 },
-    { x: 2500, y: 600 },
-    { x: 2800, y: 350 }, { x: 2832, y: 350 },
-    { x: 3100, y: 220 }, { x: 3132, y: 220 }, { x: 3164, y: 220 }
+    { x: 175, y: 560 }, { x: 600, y: 510 },
+    { x: 1025, y: 560 }, { x: 275, y: 410 },
+    { x: 600, y: 360 }, { x: 925, y: 410 },
+    { x: 425, y: 260 }, { x: 775, y: 260 },
+    { x: 600, y: 160 }
   ],
 
   stars: [
-    { x: 750, y: 280 },
-    { x: 2000, y: 200 },
-    { x: 3200, y: 100 }
+    { x: 100, y: 400 },
+    { x: 600, y: 150 },
+    { x: 1100, y: 400 }
   ],
 
-  mushrooms: [
-    { x: 400, y: 600 },
-    { x: 1300, y: 500 },
-    { x: 2400, y: 600 },
-    { x: 3000, y: 350 }
+  powerups: [
+    { x: 600, y: 510 },
+    { x: 600, y: 160 }
   ],
 
   enemies: [
-    { type: 'gull', x: 350, y: 700 },
-    { type: 'heron', x: 600, y: 680 },
-    { type: 'gull', x: 900, y: 600 },
-    { type: 'gull', x: 1100, y: 700 },
-    { type: 'heron', x: 1400, y: 680 },
-    { type: 'gull', x: 1700, y: 520 },
-    { type: 'heron', x: 2000, y: 480 },
-    { type: 'gull', x: 2300, y: 700 },
-    { type: 'heron', x: 2600, y: 680 },
-    { type: 'gull', x: 2900, y: 370 },
-    { type: 'heron', x: 3100, y: 240 }
+    { type: 'flying', x: 300, y: 500, amplitude: 80, speed: 60 },
+    { type: 'flying', x: 900, y: 500, amplitude: 80, speed: 60 },
+    { type: 'flying', x: 600, y: 300, amplitude: 100, speed: 70 }
   ]
 };
 
-export const LEVELS = [level1, level2, level3, level4, level5];
+// Additional levels (6-10) use procedural generation
+const level6 = {
+  width: 3000,
+  height: 700,
+  playerSpawn: { x: 100, y: 500 },
+  babyPosition: { x: 2800, y: 200 },
+
+  platforms: [
+    { x: 0, y: 650, w: 500, h: 50 },
+    { x: 600, y: 650, w: 400, h: 50 },
+    { x: 1100, y: 650, w: 400, h: 50 },
+    { x: 1600, y: 650, w: 400, h: 50 },
+    { x: 2100, y: 650, w: 900, h: 50 },
+    { x: 250, y: 550, w: 120, h: 20 },
+    { x: 500, y: 480, w: 100, h: 20 },
+    { x: 800, y: 550, w: 150, h: 20 },
+    { x: 1050, y: 480, w: 100, h: 20 },
+    { x: 1300, y: 400, w: 120, h: 20 },
+    { x: 1550, y: 550, w: 100, h: 20 },
+    { x: 1800, y: 480, w: 120, h: 20 },
+    { x: 2050, y: 400, w: 100, h: 20 },
+    { x: 2300, y: 320, w: 120, h: 20 },
+    { x: 2550, y: 400, w: 100, h: 20 },
+    { x: 2750, y: 250, w: 150, h: 20 }
+  ],
+
+  trajineras: [
+    { x: 550, y: 620, w: 80, h: 25, endX: 600, speed: 40, dir: 1 },
+    { x: 1050, y: 620, w: 80, h: 25, endX: 1100, speed: 45, dir: -1 },
+    { x: 1550, y: 620, w: 80, h: 25, endX: 1600, speed: 50, dir: 1 }
+  ],
+
+  coins: [
+    { x: 200, y: 580 }, { x: 350, y: 510 }, { x: 550, y: 440 },
+    { x: 875, y: 510 }, { x: 1100, y: 440 }, { x: 1350, y: 360 },
+    { x: 1600, y: 510 }, { x: 1850, y: 440 }, { x: 2100, y: 360 },
+    { x: 2350, y: 280 }, { x: 2600, y: 360 }, { x: 2800, y: 210 }
+  ],
+
+  stars: [
+    { x: 500, y: 350 },
+    { x: 1300, y: 280 },
+    { x: 2700, y: 180 }
+  ],
+
+  powerups: [
+    { x: 400, y: 510 },
+    { x: 1200, y: 440 },
+    { x: 2200, y: 360 }
+  ],
+
+  enemies: [
+    { type: 'ground', x: 300, y: 630 },
+    { type: 'flying', x: 650, y: 450, amplitude: 60, speed: 70 },
+    { type: 'ground', x: 950, y: 630 },
+    { type: 'flying', x: 1200, y: 380, amplitude: 70, speed: 65 },
+    { type: 'ground', x: 1450, y: 630 },
+    { type: 'flying', x: 1700, y: 400, amplitude: 50, speed: 75 },
+    { type: 'ground', x: 2000, y: 630 },
+    { type: 'flying', x: 2400, y: 300, amplitude: 60, speed: 80 }
+  ]
+};
+
+// Procedural level generation for levels 7-10
+export function generateProceduralLevel(levelNum, options = {}) {
+  const worldNum = window.getWorldForLevel ? window.getWorldForLevel(levelNum) : Math.ceil(levelNum / 2);
+  const theme = WORLDS[worldNum] || WORLDS[1];
+
+  const baseWidth = 2800 + (levelNum - 6) * 400;
+  const baseHeight = 700 + (levelNum > 8 ? 100 : 0);
+
+  const platforms = [];
+  const coins = [];
+  const stars = [];
+  const powerups = [];
+  const enemies = [];
+  const trajineras = [];
+
+  // Ground segments with gaps
+  let groundX = 0;
+  const groundY = baseHeight - 50;
+  const groundH = 50;
+  const numGroundSegments = 5 + Math.floor(levelNum / 2);
+
+  for (let i = 0; i < numGroundSegments; i++) {
+    const segmentWidth = 300 + Math.random() * 300;
+    platforms.push({ x: groundX, y: groundY, w: segmentWidth, h: groundH });
+    groundX += segmentWidth + 100 + Math.random() * 100; // Gap
+  }
+  // Final segment to end
+  platforms.push({ x: groundX, y: groundY, w: baseWidth - groundX, h: groundH });
+
+  // Floating platforms
+  const numPlatforms = 12 + levelNum;
+  for (let i = 0; i < numPlatforms; i++) {
+    const px = 200 + (i / numPlatforms) * (baseWidth - 400);
+    const py = 250 + Math.random() * 350;
+    const pw = 80 + Math.random() * 80;
+    platforms.push({ x: px, y: py, w: pw, h: 20 });
+  }
+
+  // Trajineras for water levels
+  const numTrajineras = Math.min(5, Math.floor(levelNum / 2));
+  for (let i = 0; i < numTrajineras; i++) {
+    const tx = 500 + i * 500;
+    trajineras.push({
+      x: tx,
+      y: groundY - 30,
+      w: 80 + Math.random() * 40,
+      h: 25,
+      endX: tx + 100 + Math.random() * 100,
+      speed: 30 + Math.random() * 30,
+      dir: Math.random() > 0.5 ? 1 : -1
+    });
+  }
+
+  // Coins scattered along the level
+  for (let i = 0; i < 15 + levelNum; i++) {
+    coins.push({
+      x: 150 + (i / (15 + levelNum)) * (baseWidth - 300),
+      y: 200 + Math.random() * 400
+    });
+  }
+
+  // Stars (3 per level)
+  stars.push({ x: baseWidth * 0.25, y: 180 + Math.random() * 150 });
+  stars.push({ x: baseWidth * 0.5, y: 180 + Math.random() * 150 });
+  stars.push({ x: baseWidth * 0.8, y: 180 + Math.random() * 150 });
+
+  // Power-ups
+  const numPowerups = 2 + Math.floor(levelNum / 3);
+  for (let i = 0; i < numPowerups; i++) {
+    powerups.push({
+      x: 300 + i * (baseWidth / numPowerups),
+      y: 250 + Math.random() * 300
+    });
+  }
+
+  // Enemies
+  const numEnemies = 6 + levelNum;
+  for (let i = 0; i < numEnemies; i++) {
+    const ex = 250 + (i / numEnemies) * (baseWidth - 500);
+    const isFlying = Math.random() > 0.6;
+    enemies.push({
+      type: isFlying ? 'flying' : 'ground',
+      x: ex,
+      y: isFlying ? 300 + Math.random() * 200 : groundY - 20,
+      amplitude: isFlying ? 50 + Math.random() * 50 : undefined,
+      speed: isFlying ? 60 + Math.random() * 30 : undefined
+    });
+  }
+
+  return {
+    width: baseWidth,
+    height: baseHeight,
+    playerSpawn: { x: 100, y: groundY - 100 },
+    babyPosition: { x: baseWidth - 200, y: 200 },
+    platforms,
+    trajineras,
+    coins,
+    stars,
+    powerups,
+    enemies,
+    theme,
+    isUpscroller: options.isUpscroller,
+    isEscape: options.isEscape,
+    isBossLevel: options.isBoss
+  };
+}
+
+export const LEVELS = [level1, level2, level3, level4, level5, level6];

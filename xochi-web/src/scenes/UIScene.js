@@ -9,61 +9,111 @@ export default class UIScene extends Phaser.Scene {
     const { width } = this.cameras.main;
 
     // HUD Background
-    this.add.rectangle(0, 0, width, 50, 0x000000, 0.5).setOrigin(0);
+    this.add.rectangle(0, 0, width, 55, 0x000000, 0.6).setOrigin(0);
 
-    // Lives
-    this.add.text(20, 15, 'XOCHI', {
-      fontFamily: 'Arial',
-      fontSize: '14px',
+    // Lives (top row)
+    this.add.text(20, 8, 'XOCHI', {
+      fontFamily: 'Arial Black',
+      fontSize: '12px',
       color: '#ff6b9d'
     });
 
-    this.livesText = this.add.text(80, 15, `x ${window.gameState.lives}`, {
+    this.livesText = this.add.text(70, 8, `x ${window.gameState.lives}`, {
       fontFamily: 'Arial',
-      fontSize: '14px',
+      fontSize: '12px',
       color: '#fff'
     });
 
-    // Coins
-    this.add.text(150, 15, 'COINS', {
-      fontFamily: 'Arial',
-      fontSize: '14px',
-      color: '#ffe66d'
+    // Score
+    this.add.text(120, 8, 'SCORE', {
+      fontFamily: 'Arial Black',
+      fontSize: '12px',
+      color: '#ffee44'
     });
 
-    this.coinsText = this.add.text(210, 15, `${window.gameState.coins}`, {
+    this.scoreText = this.add.text(180, 8, `${window.gameState.score || 0}`, {
       fontFamily: 'Arial',
-      fontSize: '14px',
+      fontSize: '12px',
       color: '#fff'
     });
 
-    // Level
-    const levelNames = [
-      'Floating Gardens 1',
-      'Floating Gardens 2',
-      'Ancient Ruins 1',
-      'Ancient Ruins 2',
-      'Crystal Caves'
-    ];
+    // Flowers (Cempasuchil - replaces coins)
+    this.add.circle(280, 14, 6, 0xff8c00);
+    this.add.circle(280, 14, 2, 0xffcc00);
 
+    this.flowersText = this.add.text(292, 8, `${window.gameState.flowers || 0}`, {
+      fontFamily: 'Arial',
+      fontSize: '12px',
+      color: '#ff8c00'
+    });
+
+    // Level info (center top)
     const gameScene = this.scene.get('GameScene');
     const levelNum = gameScene.levelNum || 1;
+    const worldNum = window.getWorldForLevel ? window.getWorldForLevel(levelNum) : 1;
+    const world = window.WORLDS ? window.WORLDS[worldNum] : { name: 'World ' + worldNum };
 
-    this.add.text(width / 2, 15, levelNames[levelNum - 1] || `Level ${levelNum}`, {
-      fontFamily: 'Arial',
-      fontSize: '14px',
+    this.add.text(width / 2, 8, world.name.toUpperCase(), {
+      fontFamily: 'Arial Black',
+      fontSize: '12px',
       color: '#4ecdc4'
     }).setOrigin(0.5, 0);
 
-    // Stars collected this session
-    this.starsText = this.add.text(width - 100, 15, `STARS: ${window.gameState.stars.length}/15`, {
+    this.add.text(width / 2, 22, `Level ${levelNum}`, {
       fontFamily: 'Arial',
-      fontSize: '14px',
-      color: '#ffe66d'
+      fontSize: '10px',
+      color: '#88aacc'
+    }).setOrigin(0.5, 0);
+
+    // Stars collected (right side top)
+    this.add.text(width - 160, 8, 'STARS', {
+      fontFamily: 'Arial Black',
+      fontSize: '12px',
+      color: '#ffee44'
     });
 
-    // Rescued babies
-    this.babiesDisplay = this.add.container(width - 200, 35);
+    this.starsText = this.add.text(width - 100, 8, `${window.gameState.stars.length}/30`, {
+      fontFamily: 'Arial',
+      fontSize: '12px',
+      color: '#fff'
+    });
+
+    // Bottom row: Super Jumps, Attacks, Rescued Babies
+
+    // Super Jumps
+    this.add.text(20, 35, 'JUMPS', {
+      fontFamily: 'Arial Black',
+      fontSize: '10px',
+      color: '#00dddd'
+    });
+
+    this.superJumpsText = this.add.text(70, 35, `${window.gameState.superJumps || 0}`, {
+      fontFamily: 'Arial',
+      fontSize: '10px',
+      color: '#00ffff'
+    });
+
+    // Attacks
+    this.add.text(100, 35, 'ATTACKS', {
+      fontFamily: 'Arial Black',
+      fontSize: '10px',
+      color: '#ffdd00'
+    });
+
+    this.attacksText = this.add.text(160, 35, `${window.gameState.maceAttacks || 0}`, {
+      fontFamily: 'Arial',
+      fontSize: '10px',
+      color: '#ffff44'
+    });
+
+    // Rescued babies (bottom right)
+    this.add.text(width - 160, 35, 'RESCUED', {
+      fontFamily: 'Arial Black',
+      fontSize: '10px',
+      color: '#ff6b9d'
+    });
+
+    this.babiesDisplay = this.add.container(width - 90, 40);
     this.updateBabiesDisplay();
 
     // Listen for updates from GameScene
@@ -72,18 +122,21 @@ export default class UIScene extends Phaser.Scene {
 
   updateUI() {
     this.livesText.setText(`x ${window.gameState.lives}`);
-    this.coinsText.setText(`${window.gameState.coins}`);
-    this.starsText.setText(`STARS: ${window.gameState.stars.length}/15`);
+    this.scoreText.setText(`${window.gameState.score || 0}`);
+    this.flowersText.setText(`${window.gameState.flowers || 0}`);
+    this.starsText.setText(`${window.gameState.stars.length}/30`);
+    this.superJumpsText.setText(`${window.gameState.superJumps || 0}`);
+    this.attacksText.setText(`${window.gameState.maceAttacks || 0}`);
     this.updateBabiesDisplay();
   }
 
   updateBabiesDisplay() {
     this.babiesDisplay.removeAll(true);
 
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 10; i++) {
       const rescued = window.gameState.rescuedBabies.includes(`baby-${i + 1}`);
       const color = rescued ? 0xff6b9d : 0x333333;
-      const circle = this.add.circle(i * 20, 0, 6, color);
+      const circle = this.add.circle((i % 5) * 14, Math.floor(i / 5) * 12, 5, color);
       this.babiesDisplay.add(circle);
     }
   }

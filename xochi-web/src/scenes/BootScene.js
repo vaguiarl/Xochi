@@ -120,22 +120,37 @@ export default class BootScene extends Phaser.Scene {
   }
 
   loadAudio() {
-    // Music - use main theme for all levels for now
-    this.load.audio('music-menu', 'assets/audio/main_theme.ogg');
-    this.load.audio('music-gardens', 'assets/audio/main_theme.ogg');
-    this.load.audio('music-ruins', 'assets/audio/main_theme.ogg');
-    this.load.audio('music-caves', 'assets/audio/main_theme.ogg');
+    // Music - Suno-generated tracks
+    this.load.audio('music-menu', 'assets/audio/music_menu.ogg');           // Traviesa Axolotla en Xochimilco
+    this.load.audio('music-gardens', 'assets/audio/music_gardens.ogg');     // Flowers of the Last Dawn (World 1)
+    this.load.audio('music-ruins', 'assets/audio/music_menu.ogg');          // Reuse menu music for middle levels
+    this.load.audio('music-caves', 'assets/audio/music_night.ogg');         // Xochimilco Moonwake (Night world)
+    this.load.audio('music-night-calm', 'assets/audio/music_night_calm.ogg'); // Midnight Currents (Night exploration)
+    this.load.audio('music-fiesta', 'assets/audio/music_fiesta.ogg');       // Last Bloom of Oaxolotl (Final world)
+    this.load.audio('music-upscroller', 'assets/audio/music_upscroller.ogg'); // Upscroller levels (3 and 8)
+    this.load.audio('music-boss', 'assets/audio/music_menu.ogg');           // Reuse menu for boss fights
     this.load.audio('music-victory', 'assets/audio/powerup.ogg');
 
-    // SFX - map to existing files
-    this.load.audio('sfx-jump', 'assets/audio/small_jump.ogg');
-    this.load.audio('sfx-coin', 'assets/audio/coin.ogg');
-    this.load.audio('sfx-stomp', 'assets/audio/stomp.ogg');
-    this.load.audio('sfx-powerup', 'assets/audio/powerup.ogg');
-    this.load.audio('sfx-hurt', 'assets/audio/bump.ogg');
-    this.load.audio('sfx-star', 'assets/audio/powerup_appears.ogg');
-    this.load.audio('sfx-rescue', 'assets/audio/powerup.ogg');
-    this.load.audio('sfx-select', 'assets/audio/coin.ogg');
+    // SFX - New procedurally generated sounds
+    // Movement sounds
+    this.load.audio('sfx-jump', 'assets/audio/sfx/movement/jump_small.ogg');
+    this.load.audio('sfx-super-jump', 'assets/audio/sfx/movement/jump_super.ogg');
+    this.load.audio('sfx-land', 'assets/audio/sfx/movement/land_soft.ogg');
+
+    // Combat sounds
+    this.load.audio('sfx-stomp', 'assets/audio/sfx/combat/stomp.ogg');
+    this.load.audio('sfx-hurt', 'assets/audio/sfx/combat/hurt.ogg');
+
+    // Collectible sounds
+    this.load.audio('sfx-coin', 'assets/audio/sfx/collectibles/flower.ogg');
+    this.load.audio('sfx-star', 'assets/audio/sfx/collectibles/flower.ogg');
+    this.load.audio('sfx-rescue', 'assets/audio/sfx/collectibles/flower.ogg');
+
+    // UI sounds
+    this.load.audio('sfx-select', 'assets/audio/sfx/ui/menu_select.ogg');
+
+    // Fallback for powerup (not in new SFX set yet)
+    this.load.audio('sfx-powerup', 'assets/audio/sfx/collectibles/flower.ogg');
   }
 
   loadUI() {
