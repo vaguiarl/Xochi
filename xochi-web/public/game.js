@@ -4900,10 +4900,9 @@ class GameScene extends Phaser.Scene {
     });
   }
 
-  // ============ TOUCH CONTROLS - SIMPLE UNIVERSAL SCHEME ============
-  // TAP = Jump
-  // DOUBLE TAP = Super jump (when available)
-  // SWIPE left/right = Move in that direction
+  // ============ TOUCH CONTROLS - ONE HAND SCHEME ============
+  // SWIPE UP = Jump (+ direction if diagonal)
+  // TAP = Super jump (when available)
   // HOLD = Attack
   setupTouchControls() {
     // Only show on touch devices
@@ -4912,15 +4911,13 @@ class GameScene extends Phaser.Scene {
     const { width, height } = this.cameras.main;
 
     // ============ CONFIGURATION ============
-    const TAP_MAX_DURATION = 200;      // ms - under this is a tap
-    const TAP_MAX_MOVEMENT = 30;       // px - under this is a tap
-    const DOUBLE_TAP_WINDOW = 300;     // ms - window for double tap detection
-    const SWIPE_MIN_DISTANCE = 40;     // px - over this is a swipe (move)
-    const HOLD_DURATION = 500;         // ms - hold this long for super jump
-    const RUN_THRESHOLD = 80;          // px - swipe further = run
+    const TAP_MAX_DURATION = 200;      // ms - quick tap
+    const TAP_MAX_MOVEMENT = 30;       // px - tap threshold
+    const SWIPE_MIN_DISTANCE = 50;     // px - minimum swipe distance
+    const HOLD_DURATION = 400;         // ms - hold for attack
+    const SWIPE_UP_THRESHOLD = -30;    // px - negative Y = upward swipe
 
     // ============ TOUCH STATE ============
-    this.lastTapTime = 0;              // Track last tap for double-tap detection
     this.primaryTouch = {
       active: false,
       pointerId: null,
@@ -4928,49 +4925,32 @@ class GameScene extends Phaser.Scene {
       originY: 0,
       startTime: 0,
       holdTimer: null,
-      isCharging: false,
-      chargeIndicator: null
-    };
-
-    // ============ CHARGE INDICATOR ============
-    const createChargeIndicator = (x, y) => {
-      const container = this.add.container(x, y).setScrollFactor(0).setDepth(1001);
-      const ring = this.add.circle(0, 0, 20, 0x00ffff, 0);
-      ring.setStrokeStyle(3, 0x00ffff, 0.8);
-      ring.name = 'ring';
-      container.add(ring);
-      const fill = this.add.circle(0, 0, 5, 0x00ffff, 0.3);
-      fill.name = 'fill';
-      container.add(fill);
-      return container;
+      isUsed: false  // Prevent multiple triggers
     };
 
     // ============ POINTER DOWN ============
     this.input.on('pointerdown', (pointer) => {
-      if (this.primaryTouch.active) return; // Only track one touch
+      if (this.primaryTouch.active) return;
 
       this.primaryTouch.active = true;
       this.primaryTouch.pointerId = pointer.id;
       this.primaryTouch.originX = pointer.x;
       this.primaryTouch.originY = pointer.y;
       this.primaryTouch.startTime = this.time.now;
-      this.primaryTouch.isCharging = false;
+      this.primaryTouch.isUsed = false;
 
       // Start hold timer for attack
       this.primaryTouch.holdTimer = this.time.delayedCall(HOLD_DURATION, () => {
-        if (this.primaryTouch.active) {
-          // Check if finger is still down and hasn't moved much
+        if (this.primaryTouch.active && !this.primaryTouch.isUsed) {
           const activePointer = this.input.activePointer;
           if (activePointer && activePointer.isDown) {
             const dx = activePointer.x - this.primaryTouch.originX;
             const dy = activePointer.y - this.primaryTouch.originY;
             const distance = Math.sqrt(dx * dx + dy * dy);
 
-            // Only attack if finger hasn't moved much (not a swipe)
+            // Only attack if finger hasn't moved much
             if (distance < SWIPE_MIN_DISTANCE) {
-              this.primaryTouch.isCharging = true; // Mark as "used" so tap doesn't also trigger
-
-              // Trigger attack!
+              this.primaryTouch.isUsed = true;
               this.touchControls.attack = true;
               this.time.delayedCall(50, () => {
                 this.touchControls.attack = false;
@@ -4984,29 +4964,57 @@ class GameScene extends Phaser.Scene {
     // ============ POINTER MOVE ============
     this.input.on('pointermove', (pointer) => {
       if (!this.primaryTouch.active || pointer.id !== this.primaryTouch.pointerId) return;
+      if (this.primaryTouch.isUsed) return;
 
       const dx = pointer.x - this.primaryTouch.originX;
-      const distance = Math.abs(dx);
+      const dy = pointer.y - this.primaryTouch.originY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
 
-      // Swipe detection for movement
-      if (distance > SWIPE_MIN_DISTANCE && !this.primaryTouch.isCharging) {
-        // Clear hold timer - this is a swipe, not a hold
+      // Check for swipe
+      if (distance > SWIPE_MIN_DISTANCE) {
+        // Clear hold timer - this is a swipe
         if (this.primaryTouch.holdTimer) {
           this.primaryTouch.holdTimer.remove();
           this.primaryTouch.holdTimer = null;
         }
 
-        // Set movement direction
-        if (dx < 0) {
-          this.touchControls.left = true;
-          this.touchControls.right = false;
-        } else {
-          this.touchControls.left = false;
-          this.touchControls.right = true;
-        }
+        // SWIPE UP = Jump (check if Y went upward)
+        if (dy < SWIPE_UP_THRESHOLD) {
+          this.primaryTouch.isUsed = true;
 
-        // Run if swiped far
-        this.touchControls.run = distance > RUN_THRESHOLD;
+          // Jump!
+          this.touchControls.jump = true;
+          this.time.delayedCall(50, () => {
+            this.touchControls.jump = false;
+          });
+
+          // Also set direction based on horizontal component
+          if (dx < -20) {
+            this.touchControls.left = true;
+            this.touchControls.right = false;
+          } else if (dx > 20) {
+            this.touchControls.left = false;
+            this.touchControls.right = true;
+          }
+
+          // Brief movement then stop
+          this.time.delayedCall(150, () => {
+            this.touchControls.left = false;
+            this.touchControls.right = false;
+          });
+        }
+        // SWIPE LEFT/RIGHT = Move (no jump)
+        else if (Math.abs(dx) > Math.abs(dy)) {
+          if (dx < 0) {
+            this.touchControls.left = true;
+            this.touchControls.right = false;
+          } else {
+            this.touchControls.left = false;
+            this.touchControls.right = true;
+          }
+          // Run if swiped far
+          this.touchControls.run = Math.abs(dx) > 80;
+        }
       }
     });
 
@@ -5025,54 +5033,33 @@ class GameScene extends Phaser.Scene {
         this.primaryTouch.holdTimer = null;
       }
 
-      // Destroy charge indicator
-      if (this.primaryTouch.chargeIndicator) {
-        this.primaryTouch.chargeIndicator.destroy();
-        this.primaryTouch.chargeIndicator = null;
-      }
+      // TAP = Super jump (if not already used for something else)
+      if (!this.primaryTouch.isUsed && elapsed < TAP_MAX_DURATION && distance < TAP_MAX_MOVEMENT) {
+        if (gameState.superJumps > 0 && this.player && !this.player.getData('dead')) {
+          gameState.superJumps--;
+          this.player.body.setVelocityY(-650);
+          this.playSound('sfx-superjump', { pitchVariation: true });
+          this.showText(this.player.x, this.player.y - 30, 'SUPER!', '#00ffff');
+          this.events.emit('updateUI');
 
-      // Determine action
-      if (elapsed < TAP_MAX_DURATION && distance < TAP_MAX_MOVEMENT && elapsed > 0) {
-        // This is a TAP - check for double tap
-        const now = this.time.now;
-        const timeSinceLastTap = now - this.lastTapTime;
-
-        if (timeSinceLastTap < DOUBLE_TAP_WINDOW && gameState.superJumps > 0) {
-          // DOUBLE TAP = Super jump!
-          if (this.player && !this.player.getData('dead')) {
-            gameState.superJumps--;
-            this.player.body.setVelocityY(-650);
-            this.playSound('sfx-superjump', { pitchVariation: true });
-            this.showText(this.player.x, this.player.y - 30, 'SUPER!', '#00ffff');
-            this.events.emit('updateUI');
-
-            // Visual burst
-            for (let i = 0; i < 12; i++) {
-              const angle = (i / 12) * Math.PI * 2;
-              const trail = this.add.circle(
-                this.player.x + Math.cos(angle) * 10,
-                this.player.y + Math.sin(angle) * 10,
-                6, 0x00ffff, 0.8
-              );
-              this.tweens.add({
-                targets: trail,
-                x: this.player.x + Math.cos(angle) * 40,
-                y: this.player.y + Math.sin(angle) * 40,
-                alpha: 0,
-                scale: 0.5,
-                duration: 300,
-                onComplete: () => trail.destroy()
-              });
-            }
+          // Visual burst
+          for (let i = 0; i < 12; i++) {
+            const angle = (i / 12) * Math.PI * 2;
+            const trail = this.add.circle(
+              this.player.x + Math.cos(angle) * 10,
+              this.player.y + Math.sin(angle) * 10,
+              6, 0x00ffff, 0.8
+            );
+            this.tweens.add({
+              targets: trail,
+              x: this.player.x + Math.cos(angle) * 40,
+              y: this.player.y + Math.sin(angle) * 40,
+              alpha: 0,
+              scale: 0.5,
+              duration: 300,
+              onComplete: () => trail.destroy()
+            });
           }
-          this.lastTapTime = 0; // Reset to prevent triple-tap
-        } else {
-          // SINGLE TAP = Normal jump
-          this.touchControls.jump = true;
-          this.time.delayedCall(50, () => {
-            this.touchControls.jump = false;
-          });
-          this.lastTapTime = now; // Record tap time for double-tap detection
         }
       }
 
@@ -5084,7 +5071,7 @@ class GameScene extends Phaser.Scene {
       // Reset touch state
       this.primaryTouch.active = false;
       this.primaryTouch.pointerId = null;
-      this.primaryTouch.isCharging = false;
+      this.primaryTouch.isUsed = false;
     });
 
     // ============ POINTER CANCEL ============
@@ -5094,10 +5081,6 @@ class GameScene extends Phaser.Scene {
       if (this.primaryTouch.holdTimer) {
         this.primaryTouch.holdTimer.remove();
         this.primaryTouch.holdTimer = null;
-      }
-      if (this.primaryTouch.chargeIndicator) {
-        this.primaryTouch.chargeIndicator.destroy();
-        this.primaryTouch.chargeIndicator = null;
       }
 
       this.touchControls.left = false;
@@ -5122,7 +5105,7 @@ class GameScene extends Phaser.Scene {
     });
 
     // ============ CONTROL HINT (shown briefly) ============
-    const hint = this.add.text(width / 2, height - 40, 'TAP = JUMP  •  DOUBLE TAP = SUPER  •  SWIPE = MOVE  •  HOLD = ATTACK', {
+    const hint = this.add.text(width / 2, height - 40, 'SWIPE UP = JUMP  •  TAP = SUPER JUMP  •  HOLD = ATTACK', {
       fontFamily: 'Arial', fontSize: '11px', color: '#ffffff', stroke: '#000000', strokeThickness: 2
     }).setOrigin(0.5).setScrollFactor(0).setDepth(1002).setAlpha(0.8);
 
