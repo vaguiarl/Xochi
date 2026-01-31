@@ -267,6 +267,20 @@ const WORLDS = {
     vegetation: [0xADFF2F, 0xFF00FF, 0xFFA500],  // Green-yellow, magenta, orange
     accent: 0xFFD700,       // Gold
     fog: 0xFFFFE0           // Light yellow mist
+  },
+  // World 7: La Fiesta Final (Level 11) - Ultimate celebration!
+  7: {
+    name: 'La Fiesta',
+    subtitle: 'The Final Celebration',
+    sky: [0xFFD700, 0xFFA500, 0xFF69B4, 0xFF1493, 0x9400D3, 0x4B0082],
+    mountain: 0xFF6347, hill: 0xFF69B4, waterColor: 0x40E0D0,
+    // Enhanced palette for parallax layers
+    background: 0xFF69B4,   // Hot pink sunset
+    foreground: 0xFFD700,   // Gold
+    midground: 0xFFA500,    // Orange
+    vegetation: [0xFF1493, 0x00FF00, 0xFFFF00],  // Pink, green, yellow - festive!
+    accent: 0xFFFFFF,       // White sparkles
+    fog: 0xFFE4E1           // Misty rose
   }
 };
 
@@ -277,7 +291,8 @@ function getWorldForLevel(levelNum) {
   if (levelNum === 5) return 3; // Crystal Cave (Boss)
   if (levelNum <= 7) return 4;  // Floating Gardens
   if (levelNum <= 9) return 5;  // Night Canals
-  return 6;                     // The Grand Festival (Final Boss)
+  if (levelNum === 10) return 6; // The Grand Festival (Final Boss)
+  return 7;                     // La Fiesta (Celebration)
 }
 
 // Check if this is the first level of a new world
@@ -294,6 +309,7 @@ function getFirstLevelOfWorld(worldNum) {
     case 4: return 6;   // Floating Gardens
     case 5: return 8;   // Night Canals
     case 6: return 10;  // Grand Festival (Final Boss)
+    case 7: return 11;  // La Fiesta (Celebration)
     default: return 1;
   }
 }
@@ -2843,7 +2859,7 @@ class BootScene extends Phaser.Scene {
     this.load.audio('music-menu', 'assets/audio/music_menu.ogg');       // World 1: Traviesa Axolotla
     this.load.audio('music-gardens', 'assets/audio/music_gardens.ogg'); // World 2: Flowers of the Last Dawn
     this.load.audio('music-world3', 'assets/audio/music_world3.ogg');   // World 3: Xochi la Oaxalota
-    this.load.audio('music-night', 'assets/audio/music_night.ogg');     // World 4-5: Xochimilco Moonwake
+    this.load.audio('music-night', 'assets/audio/music_night.ogg');     // World 4-5: Xochi la Oaxalotla Noche
     this.load.audio('music-fiesta', 'assets/audio/music_fiesta.ogg');   // World 6: Last Bloom of Oaxolotl
     this.load.audio('music-upscroller', 'assets/audio/music_upscroller.ogg'); // Upscroller levels: Xochi la Oaxalotla Salta
     this.load.audio('music-boss', 'assets/audio/music_boss.ogg');       // Boss fights: Xochi Guerrera Azteca
@@ -3603,7 +3619,7 @@ class MenuScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     // Progress bar style
-    this.add.text(width/2, 290, `Level ${gameState.currentLevel}/10 | ★ ${gameState.stars.length}/30 | ♥ ${gameState.rescuedBabies.length}/10`, {
+    this.add.text(width/2, 290, `Level ${gameState.currentLevel}/11 | ★ ${gameState.stars.length}/33 | ♥ ${gameState.rescuedBabies.length}/11`, {
       fontFamily: 'Arial', fontSize: '13px', color: '#88aacc'
     }).setOrigin(0.5);
 
@@ -3705,7 +3721,8 @@ class MenuScene extends Phaser.Scene {
       { num: 3, icon: '💎', name: 'Cave', color: 0x4466aa },
       { num: 4, icon: '🌸', name: 'Garden', color: 0xffcc44 },
       { num: 5, icon: '🌙', name: 'Night', color: 0x6644aa },
-      { num: 6, icon: '🎉', name: 'Fiesta', color: 0x44ccaa }
+      { num: 6, icon: '⚔️', name: 'Boss', color: 0x44ccaa },
+      { num: 7, icon: '🎉', name: 'Fiesta', color: 0xff69b4 }
     ];
 
     const btnSize = 42;
@@ -5573,7 +5590,7 @@ class GameScene extends Phaser.Scene {
   }
 
   nextLevel() {
-    if (this.levelNum >= 10) { // Now 10 levels!
+    if (this.levelNum >= 11) { // 11 levels - La Fiesta is the finale!
       mariachiMusic.stop(); // Victory!
       this.scene.stop('UIScene');
       this.scene.start('EndScene');
@@ -6985,7 +7002,7 @@ class UIScene extends Phaser.Scene {
     ];
     this.add.text(width/2, 22, names[this.levelNum-1] || `Level ${this.levelNum}`, { fontFamily: 'Arial', fontSize: '14px', color: '#4ecdc4' }).setOrigin(0.5);
 
-    this.add.text(width - 15, 22, `Rescued: ${gameState.rescuedBabies.length}/10`, { fontFamily: 'Arial', fontSize: '11px', color: '#ff6b9d' }).setOrigin(1, 0.5);
+    this.add.text(width - 15, 22, `Rescued: ${gameState.rescuedBabies.length}/11`, { fontFamily: 'Arial', fontSize: '11px', color: '#ff6b9d' }).setOrigin(1, 0.5);
 
     const game = this.scene.get('GameScene');
     game.events.on('updateUI', () => {
