@@ -5115,7 +5115,7 @@ class GameScene extends Phaser.Scene {
 
       this.primaryTouch.active = false;
       this.primaryTouch.pointerId = null;
-      this.primaryTouch.isCharging = false;
+      this.primaryTouch.isUsed = false;
     });
 
     // ============ PAUSE BUTTON (top right corner) ============
