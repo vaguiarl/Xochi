@@ -2885,9 +2885,18 @@ class BootScene extends Phaser.Scene {
     this.load.on('loaderror', (file) => {
       console.error('Failed to load:', file.key, file.url);
       // Show error on screen too
-      this.add.text(width/2, barY + barHeight + 50, `Failed: ${file.key}`, {
+      this.add.text(width/2, barY + barHeight + 70, `FAILED: ${file.key}`, {
         fontFamily: 'Arial', fontSize: '12px', color: '#ff6666'
       }).setOrigin(0.5);
+    });
+
+    // Show currently loading file - helps user see activity even when % doesn't change
+    const fileText = this.add.text(width/2, barY + barHeight + 50, '', {
+      fontFamily: 'Arial', fontSize: '11px', color: '#666666'
+    }).setOrigin(0.5);
+
+    this.load.on('filestart', (file) => {
+      fileText.setText(`Loading: ${file.key}`);
     });
 
     // Log each file as it loads
