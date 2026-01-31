@@ -4958,11 +4958,12 @@ class GameScene extends Phaser.Scene {
 
       // Start hold timer for attack
       this.primaryTouch.holdTimer = this.time.delayedCall(HOLD_DURATION, () => {
-        if (this.primaryTouch.active && this.primaryTouch.pointerId === pointer.id) {
-          const currentPointer = this.input.manager.pointers.find(p => p.id === pointer.id);
-          if (currentPointer && currentPointer.isDown) {
-            const dx = currentPointer.x - this.primaryTouch.originX;
-            const dy = currentPointer.y - this.primaryTouch.originY;
+        if (this.primaryTouch.active) {
+          // Check if finger is still down and hasn't moved much
+          const activePointer = this.input.activePointer;
+          if (activePointer && activePointer.isDown) {
+            const dx = activePointer.x - this.primaryTouch.originX;
+            const dy = activePointer.y - this.primaryTouch.originY;
             const distance = Math.sqrt(dx * dx + dy * dy);
 
             // Only attack if finger hasn't moved much (not a swipe)
