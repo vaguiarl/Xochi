@@ -36,14 +36,14 @@ class XochiMusicManager {
   playForWorld(worldNum) {
     // Each world has its own distinct song (2 levels per world)
     // World 1 (1-2): Dawn - Main menu theme
-    // World 2 (3-4): Day - Gardens theme
+    // World 2 (3-4): Day - Xochi la Oaxalotla Salta
     // World 3 (5-6): Cave - Xochi la Oaxalota
     // World 4 (7-8): Garden - Night theme
     // World 5 (9-10): Night - Boss theme
     // World 6 (11-12): Fiesta - Finale theme
     let track = 'music-menu';
     if (worldNum === 1) track = 'music-menu';
-    else if (worldNum === 2) track = 'music-gardens';
+    else if (worldNum === 2) track = 'music-upscroller';
     else if (worldNum === 3) track = 'music-world3';
     else if (worldNum === 4) track = 'music-night';
     else if (worldNum === 5) track = 'music-boss';
@@ -80,7 +80,7 @@ const mariachiMusic = new XochiMusicManager();
 // ============== GAME STATE ==============
 const gameState = {
   currentLevel: 1,
-  totalLevels: 12,  // 6 worlds × 2 levels = 12 levels
+  totalLevels: 11,  // 5 worlds × 2 levels + 1 celebration = 11 levels
   flowers: 0,       // Cempasuchil flowers (replaces coins)
   lives: 3,
   stars: [],
@@ -259,7 +259,7 @@ function getWorldForLevel(levelNum) {
   if (levelNum <= 6) return 3;   // Crystal Cave
   if (levelNum <= 8) return 4;   // Floating Gardens
   if (levelNum <= 10) return 5;  // Night Canals
-  return 6;                      // La Fiesta Final
+  return 6;                      // La Fiesta (celebration only)
 }
 
 // Check if this is the first level of a new world
@@ -288,7 +288,7 @@ function getCheckpointLevel(currentLevel) {
 
 // Get level type description
 function getLevelTypeDescription(levelNum) {
-  if (levelNum === 12) return 'LA FIESTA!';
+  if (levelNum === 11) return 'LA FIESTA!';
   if (levelNum === 5) return 'BOSS BATTLE';
   if (levelNum === 10) return 'FINAL BOSS';
   if (levelNum === 3 || levelNum === 8) return 'CLIMB!';
@@ -3594,7 +3594,7 @@ class MenuScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     // Progress bar style
-    this.add.text(width/2, 290, `Level ${gameState.currentLevel}/12 | ★ ${gameState.stars.length}/36 | ♥ ${gameState.rescuedBabies.length}/12`, {
+    this.add.text(width/2, 290, `Level ${gameState.currentLevel}/11 | ★ ${gameState.stars.length}/33 | ♥ ${gameState.rescuedBabies.length}/11`, {
       fontFamily: 'Arial', fontSize: '13px', color: '#88aacc'
     }).setOrigin(0.5);
 
@@ -3836,7 +3836,7 @@ class GameScene extends Phaser.Scene {
     // WORLD 6 - La Gran Fiesta (The Grand Festival) - Teal celebration
     //   Level 10: FINAL BOSS - Dark Xochi rematch!
 
-    const isFiestaLevel = this.levelNum === 12;
+    const isFiestaLevel = this.levelNum === 11;
     const isBossLevel = this.levelNum === 5 || this.levelNum === 10;
     const isUpscrollerLevel = this.levelNum === 3 || this.levelNum === 8;
     const isEscapeLevel = this.levelNum === 9;
@@ -5538,7 +5538,7 @@ class GameScene extends Phaser.Scene {
 
     // Award points for rescue
     const isBossLevel = (this.levelNum === 5 || this.levelNum === 10);
-    const isFiestaLevel = (this.levelNum === 12);
+    const isFiestaLevel = (this.levelNum === 11);
     let points = 1000;
 
     if (isFiestaLevel) {
@@ -5733,7 +5733,7 @@ class GameScene extends Phaser.Scene {
   }
 
   nextLevel() {
-    if (this.levelNum >= 12) { // 12 levels - La Fiesta is the finale!
+    if (this.levelNum >= 11) { // 11 levels - La Fiesta is the finale!
       mariachiMusic.stop(); // Victory!
       this.scene.stop('UIScene');
       this.scene.start('EndScene');
@@ -7145,7 +7145,7 @@ class UIScene extends Phaser.Scene {
     ];
     this.add.text(width/2, 22, names[this.levelNum-1] || `Level ${this.levelNum}`, { fontFamily: 'Arial', fontSize: '14px', color: '#4ecdc4' }).setOrigin(0.5);
 
-    this.add.text(width - 15, 22, `Rescued: ${gameState.rescuedBabies.length}/12`, { fontFamily: 'Arial', fontSize: '11px', color: '#ff6b9d' }).setOrigin(1, 0.5);
+    this.add.text(width - 15, 22, `Rescued: ${gameState.rescuedBabies.length}/11`, { fontFamily: 'Arial', fontSize: '11px', color: '#ff6b9d' }).setOrigin(1, 0.5);
 
     const game = this.scene.get('GameScene');
     game.events.on('updateUI', () => {
