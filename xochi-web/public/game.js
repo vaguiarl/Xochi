@@ -4686,7 +4686,7 @@ class GameScene extends Phaser.Scene {
     this.currentAnim = 'idle';   // Current animation state
 
     // ============ TOUCH CONTROLS FOR MOBILE ============
-    this.touchControls = { left: false, right: false, jump: false, superJump: false, attack: false };
+    this.touchControls = { left: false, right: false, jump: false, superJump: false, attack: false, run: false };
     this.setupTouchControls();
 
     // UI
@@ -4900,114 +4900,389 @@ class GameScene extends Phaser.Scene {
     });
   }
 
-  // ============ TOUCH CONTROLS SETUP ============
+  // ============ TOUCH CONTROLS SETUP - ZONE-BASED SYSTEM ============
+  // Left 35% = Movement zone (floating D-pad spawns at touch point)
+  // Right 65% = Action zone (tap=jump, swipe=attack, hold=super jump)
   setupTouchControls() {
     // Only show on touch devices
     if (!this.sys.game.device.input.touch) return;
 
     const { width, height } = this.cameras.main;
-    const btnSize = 70;
-    const btnAlpha = 0.5;
-    const margin = 20;
 
-    // Left arrow button
-    const leftBtn = this.add.circle(margin + btnSize/2, height - margin - btnSize/2, btnSize/2, 0x4ecdc4, btnAlpha)
-      .setScrollFactor(0).setDepth(1000).setInteractive();
-    this.add.triangle(margin + btnSize/2, height - margin - btnSize/2, 15, 0, -10, -15, -10, 15, 0xffffff)
-      .setScrollFactor(0).setDepth(1001).setAngle(-90);
+    // ============ ZONE CONFIGURATION ============
+    const MOVEMENT_ZONE_RATIO = 0.35;  // Left 35% of screen
+    const DPAD_DIAMETER = 120;
+    const DPAD_ALPHA = 0.4;
+    const TAP_MAX_DURATION = 200;      // ms - under this is a tap
+    const TAP_MAX_MOVEMENT = 30;       // px - under this is a tap
+    const SWIPE_MIN_DISTANCE = 30;     // px - over this is a swipe
+    const SWIPE_MAX_TIME = 300;        // ms - swipe must happen within this time
+    const HOLD_DURATION = 500;         // ms - hold this long for super jump
+    const RUN_THRESHOLD = 40;          // px - drag further than this to run
 
-    leftBtn.on('pointerdown', () => { this.touchControls.left = true; });
-    leftBtn.on('pointerup', () => { this.touchControls.left = false; });
-    leftBtn.on('pointerout', () => { this.touchControls.left = false; });
+    // ============ TOUCH STATE TRACKING ============
+    // Movement zone (left) - tracks one pointer
+    this.movementTouch = {
+      active: false,
+      pointerId: null,
+      originX: 0,
+      originY: 0,
+      dpadContainer: null
+    };
 
-    // Right arrow button
-    const rightBtn = this.add.circle(margin + btnSize * 1.8, height - margin - btnSize/2, btnSize/2, 0x4ecdc4, btnAlpha)
-      .setScrollFactor(0).setDepth(1000).setInteractive();
-    this.add.triangle(margin + btnSize * 1.8, height - margin - btnSize/2, 15, 0, -10, -15, -10, 15, 0xffffff)
-      .setScrollFactor(0).setDepth(1001).setAngle(90);
+    // Action zone (right) - tracks one pointer
+    this.actionTouch = {
+      active: false,
+      pointerId: null,
+      originX: 0,
+      originY: 0,
+      startTime: 0,
+      holdTimer: null,
+      chargeIndicator: null,
+      isCharging: false
+    };
 
-    rightBtn.on('pointerdown', () => { this.touchControls.right = true; });
-    rightBtn.on('pointerup', () => { this.touchControls.right = false; });
-    rightBtn.on('pointerout', () => { this.touchControls.right = false; });
+    // ============ D-PAD CREATION HELPER ============
+    const createDpad = (x, y) => {
+      const container = this.add.container(x, y).setScrollFactor(0).setDepth(1000);
 
-    // Jump button (right side) - tap to jump
-    const jumpBtn = this.add.circle(width - margin - btnSize/2, height - margin - btnSize/2, btnSize/2, 0xff6b9d, btnAlpha)
-      .setScrollFactor(0).setDepth(1000).setInteractive();
-    this.add.text(width - margin - btnSize/2, height - margin - btnSize/2, 'JUMP', {
-      fontFamily: 'Arial', fontSize: '14px', color: '#fff'
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(1001);
+      // Outer circle (touch area indicator)
+      const outerCircle = this.add.circle(0, 0, DPAD_DIAMETER / 2, 0x4ecdc4, DPAD_ALPHA);
+      container.add(outerCircle);
 
-    jumpBtn.on('pointerdown', () => { this.touchControls.jump = true; });
-    jumpBtn.on('pointerup', () => { this.touchControls.jump = false; });
-    jumpBtn.on('pointerout', () => { this.touchControls.jump = false; });
+      // Center dot (origin indicator)
+      const centerDot = this.add.circle(0, 0, 8, 0xffffff, 0.6);
+      container.add(centerDot);
 
-    // Super Jump button (above jump button)
-    const superBtn = this.add.circle(width - margin - btnSize/2, height - margin - btnSize * 1.6, btnSize/2, 0x00dddd, btnAlpha)
-      .setScrollFactor(0).setDepth(1000).setInteractive();
-    this.add.text(width - margin - btnSize/2, height - margin - btnSize * 1.6, 'SUPER', {
-      fontFamily: 'Arial', fontSize: '12px', color: '#fff'
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(1001);
+      // Direction arrows (will show active direction)
+      const arrowSize = 15;
+      const arrowOffset = 35;
 
-    // Attack button (left of jump button) - THUNDERSHOCK!
-    const attackBtn = this.add.circle(width - margin - btnSize * 1.7, height - margin - btnSize/2, btnSize/2, 0xffff00, btnAlpha)
-      .setScrollFactor(0).setDepth(1000).setInteractive();
-    this.add.text(width - margin - btnSize * 1.7, height - margin - btnSize/2, '⚡ATK', {
-      fontFamily: 'Arial', fontSize: '12px', color: '#000'
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(1001);
+      // Left arrow
+      const leftArrow = this.add.triangle(-arrowOffset, 0, arrowSize, 0, -arrowSize/2, -arrowSize, -arrowSize/2, arrowSize, 0xffffff, 0.3);
+      leftArrow.name = 'leftArrow';
+      container.add(leftArrow);
 
-    attackBtn.on('pointerdown', () => { this.touchControls.attack = true; });
-    attackBtn.on('pointerup', () => { this.touchControls.attack = false; });
-    attackBtn.on('pointerout', () => { this.touchControls.attack = false; });
+      // Right arrow
+      const rightArrow = this.add.triangle(arrowOffset, 0, -arrowSize, 0, arrowSize/2, -arrowSize, arrowSize/2, arrowSize, 0xffffff, 0.3);
+      rightArrow.name = 'rightArrow';
+      container.add(rightArrow);
 
-    superBtn.on('pointerdown', () => {
-      this.touchControls.superJump = true;
-      // Trigger super jump immediately
-      if (gameState.superJumps > 0) {
-        gameState.superJumps--;
-        this.player.body.setVelocityY(-650);
-        this.playSound('sfx-superjump', { pitchVariation: true });
-        this.showText(this.player.x, this.player.y - 30, 'SUPER!', '#00ffff');
-        this.events.emit('updateUI');
-        // Visual burst
-        for (let i = 0; i < 8; i++) {
-          const angle = (i / 8) * Math.PI * 2;
-          const trail = this.add.circle(
-            this.player.x + Math.cos(angle) * 10,
-            this.player.y + Math.sin(angle) * 10,
-            6, 0x00ffff, 0.8
-          );
-          this.tweens.add({
-            targets: trail,
-            x: this.player.x + Math.cos(angle) * 40,
-            y: this.player.y + Math.sin(angle) * 40,
-            alpha: 0, scale: 0.5, duration: 300,
-            onComplete: () => trail.destroy()
+      // Finger position indicator (moves with drag)
+      const fingerIndicator = this.add.circle(0, 0, 20, 0xffffff, 0.5);
+      fingerIndicator.name = 'fingerIndicator';
+      container.add(fingerIndicator);
+
+      return container;
+    };
+
+    // ============ CHARGE INDICATOR CREATION ============
+    const createChargeIndicator = (x, y) => {
+      const container = this.add.container(x, y).setScrollFactor(0).setDepth(1001);
+
+      // Expanding ring for charge visualization
+      const ring = this.add.circle(0, 0, 20, 0x00ffff, 0);
+      ring.setStrokeStyle(3, 0x00ffff, 0.8);
+      ring.name = 'ring';
+      container.add(ring);
+
+      // Inner fill that grows
+      const fill = this.add.circle(0, 0, 5, 0x00ffff, 0.3);
+      fill.name = 'fill';
+      container.add(fill);
+
+      return container;
+    };
+
+    // ============ POINTER DOWN HANDLER ============
+    this.input.on('pointerdown', (pointer) => {
+      const zoneThreshold = width * MOVEMENT_ZONE_RATIO;
+
+      // LEFT ZONE - Movement (spawn D-pad)
+      if (pointer.x < zoneThreshold && !this.movementTouch.active) {
+        this.movementTouch.active = true;
+        this.movementTouch.pointerId = pointer.id;
+        this.movementTouch.originX = pointer.x;
+        this.movementTouch.originY = pointer.y;
+
+        // Create floating D-pad at touch origin
+        this.movementTouch.dpadContainer = createDpad(pointer.x, pointer.y);
+      }
+
+      // RIGHT ZONE - Actions (jump/attack/super jump)
+      else if (pointer.x >= zoneThreshold && !this.actionTouch.active) {
+        this.actionTouch.active = true;
+        this.actionTouch.pointerId = pointer.id;
+        this.actionTouch.originX = pointer.x;
+        this.actionTouch.originY = pointer.y;
+        this.actionTouch.startTime = this.time.now;
+        this.actionTouch.isCharging = false;
+
+        // Start hold timer for super jump charge
+        this.actionTouch.holdTimer = this.time.delayedCall(HOLD_DURATION, () => {
+          // Only trigger if still holding and hasn't swiped
+          if (this.actionTouch.active && this.actionTouch.pointerId === pointer.id) {
+            const currentPointer = this.input.manager.pointers.find(p => p.id === pointer.id);
+            if (currentPointer && currentPointer.isDown) {
+              const dx = currentPointer.x - this.actionTouch.originX;
+              const dy = currentPointer.y - this.actionTouch.originY;
+              const distance = Math.sqrt(dx * dx + dy * dy);
+
+              // Only if finger hasn't moved much (not a swipe)
+              if (distance < SWIPE_MIN_DISTANCE) {
+                this.actionTouch.isCharging = true;
+
+                // Create charge indicator
+                this.actionTouch.chargeIndicator = createChargeIndicator(
+                  this.actionTouch.originX,
+                  this.actionTouch.originY
+                );
+
+                // Animate the charge
+                const ring = this.actionTouch.chargeIndicator.getByName('ring');
+                const fill = this.actionTouch.chargeIndicator.getByName('fill');
+
+                this.tweens.add({
+                  targets: ring,
+                  scaleX: 2.5,
+                  scaleY: 2.5,
+                  duration: 300,
+                  ease: 'Power2'
+                });
+
+                this.tweens.add({
+                  targets: fill,
+                  scaleX: 4,
+                  scaleY: 4,
+                  alpha: 0.6,
+                  duration: 300,
+                  ease: 'Power2'
+                });
+              }
+            }
+          }
+        });
+      }
+    });
+
+    // ============ POINTER MOVE HANDLER ============
+    this.input.on('pointermove', (pointer) => {
+      // Handle movement zone drag
+      if (this.movementTouch.active && pointer.id === this.movementTouch.pointerId) {
+        const dx = pointer.x - this.movementTouch.originX;
+        const dy = pointer.y - this.movementTouch.originY;
+        const distance = Math.abs(dx);
+
+        // Update movement controls based on horizontal drag
+        const deadzone = 10; // px - ignore tiny movements
+
+        if (dx < -deadzone) {
+          this.touchControls.left = true;
+          this.touchControls.right = false;
+        } else if (dx > deadzone) {
+          this.touchControls.left = false;
+          this.touchControls.right = true;
+        } else {
+          this.touchControls.left = false;
+          this.touchControls.right = false;
+        }
+
+        // Run if dragged far enough from center
+        this.touchControls.run = distance > RUN_THRESHOLD;
+
+        // Update D-pad visuals
+        if (this.movementTouch.dpadContainer) {
+          const fingerIndicator = this.movementTouch.dpadContainer.getByName('fingerIndicator');
+          const leftArrow = this.movementTouch.dpadContainer.getByName('leftArrow');
+          const rightArrow = this.movementTouch.dpadContainer.getByName('rightArrow');
+
+          // Clamp finger indicator to D-pad bounds
+          const maxDrag = DPAD_DIAMETER / 2 - 20;
+          const clampedDx = Math.max(-maxDrag, Math.min(maxDrag, dx));
+          const clampedDy = Math.max(-maxDrag, Math.min(maxDrag, dy));
+
+          if (fingerIndicator) {
+            fingerIndicator.x = clampedDx;
+            fingerIndicator.y = clampedDy;
+            // Orange when running, white when walking
+            fingerIndicator.setFillStyle(this.touchControls.run ? 0xff9900 : 0xffffff, 0.7);
+          }
+
+          // Highlight active direction arrow (orange when running, cyan when walking)
+          const runColor = 0xff9900;
+          const walkColor = 0x00ffff;
+          const activeColor = this.touchControls.run ? runColor : walkColor;
+          if (leftArrow) leftArrow.setFillStyle(this.touchControls.left ? activeColor : 0xffffff, this.touchControls.left ? 0.9 : 0.3);
+          if (rightArrow) rightArrow.setFillStyle(this.touchControls.right ? activeColor : 0xffffff, this.touchControls.right ? 0.9 : 0.3);
+        }
+      }
+
+      // Handle action zone movement (for swipe detection)
+      if (this.actionTouch.active && pointer.id === this.actionTouch.pointerId) {
+        const dx = pointer.x - this.actionTouch.originX;
+        const dy = pointer.y - this.actionTouch.originY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const elapsed = this.time.now - this.actionTouch.startTime;
+
+        // Check for swipe (attack)
+        if (distance > SWIPE_MIN_DISTANCE && elapsed < SWIPE_MAX_TIME && !this.actionTouch.isCharging) {
+          // Swipe detected - trigger attack!
+          this.touchControls.attack = true;
+
+          // Clear the hold timer since we swiped
+          if (this.actionTouch.holdTimer) {
+            this.actionTouch.holdTimer.remove();
+            this.actionTouch.holdTimer = null;
+          }
+
+          // Reset attack flag after one frame (so it triggers once)
+          this.time.delayedCall(50, () => {
+            this.touchControls.attack = false;
           });
+
+          // Mark as handled so we don't trigger again
+          this.actionTouch.startTime = 0; // Prevent re-triggering
         }
       }
     });
-    superBtn.on('pointerup', () => { this.touchControls.superJump = false; });
 
-    // Double-tap anywhere on right side of screen for quick super jump
-    this.lastTapTime = 0;
-    this.input.on('pointerdown', (pointer) => {
-      if (pointer.x > width / 2) {
-        const now = this.time.now;
-        if (now - this.lastTapTime < 300) {
-          // Double tap detected - super jump!
-          if (gameState.superJumps > 0 && !this.player.getData('dead')) {
+    // ============ POINTER UP HANDLER ============
+    this.input.on('pointerup', (pointer) => {
+      // Handle movement zone release
+      if (this.movementTouch.active && pointer.id === this.movementTouch.pointerId) {
+        this.movementTouch.active = false;
+        this.movementTouch.pointerId = null;
+        this.touchControls.left = false;
+        this.touchControls.right = false;
+        this.touchControls.run = false;
+
+        // Destroy the D-pad
+        if (this.movementTouch.dpadContainer) {
+          this.movementTouch.dpadContainer.destroy();
+          this.movementTouch.dpadContainer = null;
+        }
+      }
+
+      // Handle action zone release
+      if (this.actionTouch.active && pointer.id === this.actionTouch.pointerId) {
+        const dx = pointer.x - this.actionTouch.originX;
+        const dy = pointer.y - this.actionTouch.originY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const elapsed = this.time.now - this.actionTouch.startTime;
+
+        // Clear hold timer
+        if (this.actionTouch.holdTimer) {
+          this.actionTouch.holdTimer.remove();
+          this.actionTouch.holdTimer = null;
+        }
+
+        // Destroy charge indicator
+        if (this.actionTouch.chargeIndicator) {
+          this.actionTouch.chargeIndicator.destroy();
+          this.actionTouch.chargeIndicator = null;
+        }
+
+        // Check what action to perform
+        if (this.actionTouch.isCharging) {
+          // SUPER JUMP - held for 500ms+ and released
+          if (gameState.superJumps > 0 && this.player && !this.player.getData('dead')) {
             gameState.superJumps--;
             this.player.body.setVelocityY(-650);
             this.playSound('sfx-superjump', { pitchVariation: true });
             this.showText(this.player.x, this.player.y - 30, 'SUPER!', '#00ffff');
             this.events.emit('updateUI');
+
+            // Visual burst
+            for (let i = 0; i < 12; i++) {
+              const angle = (i / 12) * Math.PI * 2;
+              const trail = this.add.circle(
+                this.player.x + Math.cos(angle) * 10,
+                this.player.y + Math.sin(angle) * 10,
+                6, 0x00ffff, 0.8
+              );
+              this.tweens.add({
+                targets: trail,
+                x: this.player.x + Math.cos(angle) * 40,
+                y: this.player.y + Math.sin(angle) * 40,
+                alpha: 0,
+                scale: 0.5,
+                duration: 300,
+                onComplete: () => trail.destroy()
+              });
+            }
           }
+        } else if (elapsed < TAP_MAX_DURATION && distance < TAP_MAX_MOVEMENT && elapsed > 0) {
+          // TAP - quick tap for jump
+          this.touchControls.jump = true;
+
+          // Reset jump flag after one frame (so it triggers once like a key press)
+          this.time.delayedCall(50, () => {
+            this.touchControls.jump = false;
+          });
         }
-        this.lastTapTime = now;
+        // Note: Swipe attack is handled in pointermove
+
+        // Reset action touch state
+        this.actionTouch.active = false;
+        this.actionTouch.pointerId = null;
+        this.actionTouch.isCharging = false;
       }
     });
 
-    // Pause button (top right corner)
+    // ============ POINTER CANCEL/OUT HANDLER ============
+    const handlePointerCancel = (pointer) => {
+      // Handle movement zone cancel
+      if (this.movementTouch.active && pointer.id === this.movementTouch.pointerId) {
+        this.movementTouch.active = false;
+        this.movementTouch.pointerId = null;
+        this.touchControls.left = false;
+        this.touchControls.right = false;
+        this.touchControls.run = false;
+
+        if (this.movementTouch.dpadContainer) {
+          this.movementTouch.dpadContainer.destroy();
+          this.movementTouch.dpadContainer = null;
+        }
+      }
+
+      // Handle action zone cancel
+      if (this.actionTouch.active && pointer.id === this.actionTouch.pointerId) {
+        if (this.actionTouch.holdTimer) {
+          this.actionTouch.holdTimer.remove();
+          this.actionTouch.holdTimer = null;
+        }
+        if (this.actionTouch.chargeIndicator) {
+          this.actionTouch.chargeIndicator.destroy();
+          this.actionTouch.chargeIndicator = null;
+        }
+
+        this.actionTouch.active = false;
+        this.actionTouch.pointerId = null;
+        this.actionTouch.isCharging = false;
+      }
+    };
+
+    this.input.on('pointercancel', handlePointerCancel);
+
+    // ============ ZONE INDICATOR (optional visual hint) ============
+    // Semi-transparent divider line showing zone boundary
+    const zoneDivider = this.add.rectangle(
+      width * MOVEMENT_ZONE_RATIO, height / 2,
+      2, height,
+      0xffffff, 0.1
+    ).setScrollFactor(0).setDepth(999);
+
+    // Fade out zone divider after 3 seconds
+    this.time.delayedCall(3000, () => {
+      this.tweens.add({
+        targets: zoneDivider,
+        alpha: 0,
+        duration: 1000,
+        onComplete: () => zoneDivider.destroy()
+      });
+    });
+
+    // ============ PAUSE BUTTON (top right corner) ============
     const pauseBtn = this.add.circle(width - 30, 70, 20, 0x666666, 0.6)
       .setScrollFactor(0).setDepth(1000).setInteractive();
     this.add.text(width - 30, 70, '||', {
@@ -5016,6 +5291,28 @@ class GameScene extends Phaser.Scene {
     pauseBtn.on('pointerdown', () => {
       this.scene.launch('PauseScene');
       this.scene.pause();
+    });
+
+    // ============ CONTROL HINTS (shown briefly at start) ============
+    const hintStyle = { fontFamily: 'Arial', fontSize: '12px', color: '#ffffff', stroke: '#000000', strokeThickness: 2 };
+
+    const leftHint = this.add.text(width * MOVEMENT_ZONE_RATIO / 2, height - 50, 'DRAG TO MOVE', hintStyle)
+      .setOrigin(0.5).setScrollFactor(0).setDepth(1002).setAlpha(0.8);
+
+    const rightHint = this.add.text(width * (1 + MOVEMENT_ZONE_RATIO) / 2, height - 50, 'TAP=JUMP  SWIPE=ATTACK  HOLD=SUPER', hintStyle)
+      .setOrigin(0.5).setScrollFactor(0).setDepth(1002).setAlpha(0.8);
+
+    // Fade out hints after 4 seconds
+    this.time.delayedCall(4000, () => {
+      this.tweens.add({
+        targets: [leftHint, rightHint],
+        alpha: 0,
+        duration: 1000,
+        onComplete: () => {
+          leftHint.destroy();
+          rightHint.destroy();
+        }
+      });
     });
   }
 
@@ -5906,7 +6203,7 @@ class GameScene extends Phaser.Scene {
     // Default delta to 16ms (~60fps) if not provided
     if (!delta) delta = 16;
 
-    const tc = this.touchControls || { left: false, right: false, jump: false, superJump: false, attack: false };
+    const tc = this.touchControls || { left: false, right: false, jump: false, superJump: false, attack: false, run: false };
 
     // ============ LEDGE GRAB MECHANIC - Improved for Upscroller! ============
     const isHanging = this.player.getData('hanging') || false;
@@ -6149,7 +6446,8 @@ class GameScene extends Phaser.Scene {
     }
 
     const onGround = this.player.body.blocked.down;
-    const speed = this.keys.SPACE.isDown ? 280 : 180;  // SPACE = run
+    const isRunning = this.keys.SPACE.isDown || tc.run;  // SPACE or drag far = run
+    const speed = isRunning ? 280 : 180;
 
     // Movement (keyboard + touch) - ONLY when not hanging/climbing
     if (playerCanMove) {
