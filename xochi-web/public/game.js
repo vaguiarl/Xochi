@@ -2878,11 +2878,21 @@ class BootScene extends Phaser.Scene {
 
     this.load.on('complete', () => {
       loadingText.setText('Ready!');
+      console.log('All assets loaded successfully!');
     });
 
     // Error handling - log failed assets and continue
     this.load.on('loaderror', (file) => {
       console.error('Failed to load:', file.key, file.url);
+      // Show error on screen too
+      this.add.text(width/2, barY + barHeight + 50, `Failed: ${file.key}`, {
+        fontFamily: 'Arial', fontSize: '12px', color: '#ff6666'
+      }).setOrigin(0.5);
+    });
+
+    // Log each file as it loads
+    this.load.on('filecomplete', (key) => {
+      console.log('Loaded:', key);
     });
 
     // Load music - Suno-generated Xochimilco tracks (one per world)
@@ -2920,8 +2930,10 @@ class BootScene extends Phaser.Scene {
   }
 
   create() {
+    console.log('BootScene.create() called');
     // Generate textures
     this.generateTextures();
+    console.log('Textures generated, starting MenuScene');
     this.scene.start('MenuScene');
   }
 
