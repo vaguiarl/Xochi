@@ -2880,6 +2880,11 @@ class BootScene extends Phaser.Scene {
       loadingText.setText('Ready!');
     });
 
+    // Error handling - log failed assets and continue
+    this.load.on('loaderror', (file) => {
+      console.error('Failed to load:', file.key, file.url);
+    });
+
     // Load music - Suno-generated Xochimilco tracks (one per world)
     this.load.audio('music-menu', 'assets/audio/music_menu.ogg');       // World 1: Traviesa Axolotla
     this.load.audio('music-gardens', 'assets/audio/music_gardens.ogg'); // World 2: Flowers of the Last Dawn
