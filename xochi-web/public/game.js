@@ -5016,10 +5016,11 @@ class GameScene extends Phaser.Scene {
     const SWIPE_UP_THRESHOLD = -25;         // px - negative Y = upward swipe
 
     // ============ MOMENTUM CONFIGURATION ============
-    const WALK_INITIAL_VELOCITY = 200;      // Single swipe base velocity
-    const RUN_INITIAL_VELOCITY = 350;       // Double swipe base velocity
-    const CONTINUOUS_WALK_SPEED = 180;      // Speed when holding finger (walk)
-    const CONTINUOUS_RUN_SPEED = 280;       // Speed when holding finger after double-swipe
+    // MOBILE DEFAULT = RUN SPEED (user requested)
+    const WALK_INITIAL_VELOCITY = 350;      // Single swipe = run speed on mobile
+    const RUN_INITIAL_VELOCITY = 420;       // Double swipe = sprint (even faster)
+    const CONTINUOUS_WALK_SPEED = 280;      // Speed when holding finger = run speed
+    const CONTINUOUS_RUN_SPEED = 350;       // Speed when holding finger after double-swipe = sprint
     const DOUBLE_SWIPE_WINDOW = 400;        // ms to detect double-swipe
     const SWIPE_LENGTH_MULTIPLIER = 1.5;    // Longer swipes = more momentum
     const MAX_SWIPE_LENGTH = 150;           // Cap swipe length influence
