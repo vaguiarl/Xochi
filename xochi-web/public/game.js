@@ -4901,8 +4901,8 @@ class GameScene extends Phaser.Scene {
   }
 
   // ============ TOUCH CONTROLS SETUP - ZONE-BASED SYSTEM ============
-  // Left 35% = Movement zone (floating D-pad spawns at touch point)
-  // Right 65% = Action zone (tap=jump, swipe=attack, hold=super jump)
+  // Left 65% = Action zone (tap=jump, swipe=attack, hold=super jump)
+  // Right 35% = Movement zone (floating D-pad spawns at touch point)
   setupTouchControls() {
     // Only show on touch devices
     if (!this.sys.game.device.input.touch) return;
@@ -4910,7 +4910,7 @@ class GameScene extends Phaser.Scene {
     const { width, height } = this.cameras.main;
 
     // ============ ZONE CONFIGURATION ============
-    const MOVEMENT_ZONE_RATIO = 0.35;  // Left 35% of screen
+    const ACTION_ZONE_RATIO = 0.65;  // Left 65% of screen for jump/attack
     const DPAD_DIAMETER = 120;
     const DPAD_ALPHA = 0.4;
     const TAP_MAX_DURATION = 200;      // ms - under this is a tap
@@ -4921,7 +4921,7 @@ class GameScene extends Phaser.Scene {
     const RUN_THRESHOLD = 40;          // px - drag further than this to run
 
     // ============ TOUCH STATE TRACKING ============
-    // Movement zone (left) - tracks one pointer
+    // Movement zone (right side) - tracks one pointer
     this.movementTouch = {
       active: false,
       pointerId: null,
@@ -4996,21 +4996,10 @@ class GameScene extends Phaser.Scene {
 
     // ============ POINTER DOWN HANDLER ============
     this.input.on('pointerdown', (pointer) => {
-      const zoneThreshold = width * MOVEMENT_ZONE_RATIO;
+      const zoneThreshold = width * ACTION_ZONE_RATIO;
 
-      // LEFT ZONE - Movement (spawn D-pad)
-      if (pointer.x < zoneThreshold && !this.movementTouch.active) {
-        this.movementTouch.active = true;
-        this.movementTouch.pointerId = pointer.id;
-        this.movementTouch.originX = pointer.x;
-        this.movementTouch.originY = pointer.y;
-
-        // Create floating D-pad at touch origin
-        this.movementTouch.dpadContainer = createDpad(pointer.x, pointer.y);
-      }
-
-      // RIGHT ZONE - Actions (jump/attack/super jump)
-      else if (pointer.x >= zoneThreshold && !this.actionTouch.active) {
+      // LEFT ZONE - Actions (tap=jump, swipe=attack, hold=super jump)
+      if (pointer.x < zoneThreshold && !this.actionTouch.active) {
         this.actionTouch.active = true;
         this.actionTouch.pointerId = pointer.id;
         this.actionTouch.originX = pointer.x;
@@ -5062,6 +5051,17 @@ class GameScene extends Phaser.Scene {
             }
           }
         });
+      }
+
+      // RIGHT ZONE - Movement (spawn D-pad)
+      else if (pointer.x >= zoneThreshold && !this.movementTouch.active) {
+        this.movementTouch.active = true;
+        this.movementTouch.pointerId = pointer.id;
+        this.movementTouch.originX = pointer.x;
+        this.movementTouch.originY = pointer.y;
+
+        // Create floating D-pad at touch origin
+        this.movementTouch.dpadContainer = createDpad(pointer.x, pointer.y);
       }
     });
 
@@ -5267,7 +5267,7 @@ class GameScene extends Phaser.Scene {
     // ============ ZONE INDICATOR (optional visual hint) ============
     // Semi-transparent divider line showing zone boundary
     const zoneDivider = this.add.rectangle(
-      width * MOVEMENT_ZONE_RATIO, height / 2,
+      width * ACTION_ZONE_RATIO, height / 2,
       2, height,
       0xffffff, 0.1
     ).setScrollFactor(0).setDepth(999);
@@ -5296,10 +5296,11 @@ class GameScene extends Phaser.Scene {
     // ============ CONTROL HINTS (shown briefly at start) ============
     const hintStyle = { fontFamily: 'Arial', fontSize: '12px', color: '#ffffff', stroke: '#000000', strokeThickness: 2 };
 
-    const leftHint = this.add.text(width * MOVEMENT_ZONE_RATIO / 2, height - 50, 'DRAG TO MOVE', hintStyle)
+    // Left side = actions, Right side = movement
+    const leftHint = this.add.text(width * ACTION_ZONE_RATIO / 2, height - 50, 'TAP=JUMP  SWIPE=ATTACK', hintStyle)
       .setOrigin(0.5).setScrollFactor(0).setDepth(1002).setAlpha(0.8);
 
-    const rightHint = this.add.text(width * (1 + MOVEMENT_ZONE_RATIO) / 2, height - 50, 'TAP=JUMP  SWIPE=ATTACK  HOLD=SUPER', hintStyle)
+    const rightHint = this.add.text(width * (1 + ACTION_ZONE_RATIO) / 2, height - 50, 'DRAG TO MOVE', hintStyle)
       .setOrigin(0.5).setScrollFactor(0).setDepth(1002).setAlpha(0.8);
 
     // Fade out hints after 4 seconds
