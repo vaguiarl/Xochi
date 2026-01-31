@@ -4912,7 +4912,7 @@ class GameScene extends Phaser.Scene {
     // ============ ZONE CONFIGURATION ============
     const ACTION_ZONE_RATIO = 0.65;  // Left 65% of screen for jump/attack
     const DPAD_DIAMETER = 120;
-    const DPAD_ALPHA = 0.4;
+    const DPAD_ALPHA = 0.25;  // Low opacity to not block view
     const TAP_MAX_DURATION = 200;      // ms - under this is a tap
     const TAP_MAX_MOVEMENT = 30;       // px - under this is a tap
     const SWIPE_MIN_DISTANCE = 30;     // px - over this is a swipe
@@ -5060,8 +5060,10 @@ class GameScene extends Phaser.Scene {
         this.movementTouch.originX = pointer.x;
         this.movementTouch.originY = pointer.y;
 
-        // Create floating D-pad at touch origin
-        this.movementTouch.dpadContainer = createDpad(pointer.x, pointer.y);
+        // Create D-pad at fixed bottom-right corner (doesn't block gameplay view)
+        const dpadX = width - DPAD_DIAMETER / 2 - 20;
+        const dpadY = height - DPAD_DIAMETER / 2 - 30;
+        this.movementTouch.dpadContainer = createDpad(dpadX, dpadY);
       }
     });
 
