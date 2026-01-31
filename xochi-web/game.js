@@ -34,25 +34,39 @@ class XochiMusicManager {
   }
 
   playForWorld(worldNum) {
-    // World 1: Canal Dawn - Main title song (soothing intro)
-    // World 2: Bright Trajineras - Gardens music
-    // World 3: Crystal Cave Boss - Gardens music
-    // World 4: Floating Gardens - Night music
-    // World 5: Night Canals - Night music
-    // World 6: Grand Fiesta - Fiesta music!
+    // Each world has its own distinct song
+    // World 1: Main menu theme
+    // World 2: Gardens theme
+    // World 3: Xochi la Oaxalota theme
+    // World 4: Night theme
+    // World 5: Night theme
+    // World 6: Fiesta finale!
     let track = 'music-menu';
-    if (worldNum === 1) track = 'music-menu';      // Main title for first level
-    else if (worldNum <= 3) track = 'music-gardens';
+    if (worldNum === 1) track = 'music-menu';
+    else if (worldNum === 2) track = 'music-gardens';
+    else if (worldNum === 3) track = 'music-world3';
     else if (worldNum <= 5) track = 'music-night';
-    else track = 'music-fiesta';  // World 6 - Grand Fiesta finale!
+    else track = 'music-fiesta';
 
     this.start(track);
   }
 
   playForLevel(levelNum, worldNum) {
-    // Upscroller levels (3 and 8) get special "Xochi la Oaxalota" track
-    const isUpscroller = (levelNum === 3 || levelNum === 8);
+    // Final celebration level (11) - Fiesta de Xochi
+    if (levelNum === 11) {
+      this.start('music-finale');
+      return;
+    }
 
+    // Boss fight levels (5 and 10) - Dark Xochi battles
+    const isBoss = (levelNum === 5 || levelNum === 10);
+    if (isBoss) {
+      this.start('music-boss');
+      return;
+    }
+
+    // Upscroller levels (3 and 8) - vertical climbing
+    const isUpscroller = (levelNum === 3 || levelNum === 8);
     if (isUpscroller) {
       this.start('music-upscroller');
       return;
@@ -84,7 +98,7 @@ const mariachiMusic = new XochiMusicManager();
 // ============== GAME STATE ==============
 const gameState = {
   currentLevel: 1,
-  totalLevels: 10,  // Now 10 levels!
+  totalLevels: 11,  // 11 levels - includes finale celebration!
   flowers: 0,       // Cempasuchil flowers (replaces coins)
   lives: 3,
   stars: [],
@@ -292,6 +306,7 @@ function getCheckpointLevel(currentLevel) {
 
 // Get level type description
 function getLevelTypeDescription(levelNum) {
+  if (levelNum === 11) return 'LA FIESTA!';
   if (levelNum === 5) return 'BOSS BATTLE';
   if (levelNum === 10) return 'FINAL BOSS';
   if (levelNum === 3 || levelNum === 8) return 'CLIMB!';
@@ -2096,6 +2111,121 @@ function generateEscapeLevel(levelNum) {
   };
 }
 
+// Generate LA FIESTA - Final celebration level! No enemies, all joy!
+function generateFiestaLevel() {
+  const width = 3000;  // Wide celebration area
+  const height = 600;
+  const waterY = height - 40;
+
+  // Festive theme - brightest colors!
+  const theme = {
+    sky: [0x87CEEB, 0xFFD700, 0xFFA500, 0xFF69B4],  // Sunset fiesta colors
+    water: 0x40E0D0,
+    waterHighlight: 0x7FFFD4,
+    platform: 0xFFD700,  // Golden platforms
+    accent: 0xFF1493
+  };
+
+  const platforms = [];
+  const trajineras = [];
+  const coins = [];  // Flowers everywhere!
+  const stars = [];
+  const enemies = [];  // NO ENEMIES - pure celebration!
+  const powerups = [];
+
+  // ============ INTRO - Welcome to La Fiesta! ============
+  // Starting platform - decorated with flowers
+  platforms.push({ x: 50, y: waterY - 60, w: 200, h: 40, isChihampa: true });
+
+  // Flower arch at entrance
+  for (let i = 0; i < 15; i++) {
+    const arcX = 150 + i * 20;
+    const arcY = waterY - 100 - Math.sin((i / 14) * Math.PI) * 100;
+    coins.push({ x: arcX, y: arcY });
+  }
+
+  // ============ TRAJINERA PARADE - Beautiful boats everywhere! ============
+  const lanes = [
+    { y: waterY - 80,  dir: 1,  baseSpeed: 25, boats: 12 },
+    { y: waterY - 140, dir: -1, baseSpeed: 30, boats: 10 },
+    { y: waterY - 200, dir: 1,  baseSpeed: 35, boats: 10 },
+    { y: waterY - 260, dir: -1, baseSpeed: 28, boats: 8 },
+    { y: waterY - 320, dir: 1,  baseSpeed: 32, boats: 8 },
+    { y: waterY - 380, dir: -1, baseSpeed: 22, boats: 6 },
+  ];
+
+  let nameIdx = 0;
+  lanes.forEach((lane, laneIdx) => {
+    const spacing = (width - 600) / Math.max(1, lane.boats);
+
+    for (let i = 0; i < lane.boats; i++) {
+      const startOffset = (i * spacing) + (laneIdx % 2 === 0 ? 0 : spacing / 2);
+      const xPos = 300 + startOffset;
+      const boatW = 120 + Math.random() * 40;  // Bigger boats for easy jumping
+
+      trajineras.push({
+        x: xPos,
+        y: lane.y + (Math.random() - 0.5) * 15,
+        w: boatW,
+        h: 28,
+        speed: lane.baseSpeed + Math.random() * 10,
+        dir: lane.dir,
+        color: TRAJINERA_COLORS[(laneIdx * 3 + i) % TRAJINERA_COLORS.length],
+        name: TRAJINERA_NAMES[nameIdx % TRAJINERA_NAMES.length],
+        startX: xPos,
+        lane: laneIdx + 1
+      });
+      nameIdx++;
+    }
+  });
+
+  // ============ FLOWERS EVERYWHERE! ============
+  // Scattered flowers throughout
+  for (let i = 0; i < 100; i++) {
+    const coinX = 300 + Math.random() * (width - 600);
+    const coinY = waterY - 100 - Math.random() * 300;
+    coins.push({ x: coinX, y: coinY });
+  }
+
+  // ============ STARS - Easy to collect celebration stars ============
+  stars.push({ x: 600, y: waterY - 200 });
+  stars.push({ x: 1500, y: waterY - 250 });
+  stars.push({ x: 2400, y: waterY - 200 });
+
+  // ============ DANCE FLOOR - Final celebration area! ============
+  // Large platform for the dance party
+  platforms.push({ x: width - 400, y: waterY - 60, w: 350, h: 50, isChihampa: true });
+
+  // Flower circle around dance floor
+  for (let i = 0; i < 20; i++) {
+    const angle = (i / 20) * Math.PI * 2;
+    const circleX = width - 225 + Math.cos(angle) * 120;
+    const circleY = waterY - 150 + Math.sin(angle) * 50;
+    coins.push({ x: circleX, y: circleY });
+  }
+
+  // Extra powerups as gifts!
+  powerups.push({ x: 150, y: waterY - 100 });
+  powerups.push({ x: 1000, y: waterY - 200 });
+  powerups.push({ x: 2000, y: waterY - 250 });
+
+  return {
+    width,
+    height,
+    playerSpawn: { x: 150, y: waterY - 100 },
+    babyPosition: { x: width - 225, y: waterY - 100 },  // Baby on dance floor!
+    platforms,
+    trajineras,
+    coins,
+    stars,
+    enemies,  // Empty - no enemies!
+    powerups,
+    theme,
+    isFiestaLevel: true,
+    waterY
+  };
+}
+
 // Generate Xochimilco side-scroller - ALL TRAJINERAS, super lively!
 function generateXochimilcoLevel(levelNum) {
   const levelDifficulty = Math.min(levelNum / 10, 1);
@@ -2709,12 +2839,15 @@ class BootScene extends Phaser.Scene {
   constructor() { super('BootScene'); }
 
   preload() {
-    // Load music - Suno-generated Xochimilco tracks
-    this.load.audio('music-menu', 'assets/audio/music_menu.ogg');       // Traviesa Axolotla (Menu)
-    this.load.audio('music-gardens', 'assets/audio/music_gardens.ogg'); // Flowers of the Last Dawn (World 1-2)
-    this.load.audio('music-night', 'assets/audio/music_night.ogg');     // Xochimilco Moonwake (World 5-6)
-    this.load.audio('music-fiesta', 'assets/audio/music_fiesta.ogg');   // Last Bloom of Oaxolotl (World 7+)
-    this.load.audio('music-upscroller', 'assets/audio/music_upscroller.ogg'); // Xochi la Oaxalota (Upscroller levels)
+    // Load music - Suno-generated Xochimilco tracks (one per world)
+    this.load.audio('music-menu', 'assets/audio/music_menu.ogg');       // World 1: Traviesa Axolotla
+    this.load.audio('music-gardens', 'assets/audio/music_gardens.ogg'); // World 2: Flowers of the Last Dawn
+    this.load.audio('music-world3', 'assets/audio/music_world3.ogg');   // World 3: Xochi la Oaxalota
+    this.load.audio('music-night', 'assets/audio/music_night.ogg');     // World 4-5: Xochimilco Moonwake
+    this.load.audio('music-fiesta', 'assets/audio/music_fiesta.ogg');   // World 6: Last Bloom of Oaxolotl
+    this.load.audio('music-upscroller', 'assets/audio/music_upscroller.ogg'); // Upscroller levels: Xochi la Oaxalotla Salta
+    this.load.audio('music-boss', 'assets/audio/music_boss.ogg');       // Boss fights: Xochi Guerrera Azteca
+    this.load.audio('music-finale', 'assets/audio/music_finale.ogg');   // Final celebration: Fiesta de Xochi
 
     // Load SFX - Xochi-themed Mesoamerican sounds
     // Movement sounds
@@ -3712,11 +3845,14 @@ class GameScene extends Phaser.Scene {
     // WORLD 6 - La Gran Fiesta (The Grand Festival) - Teal celebration
     //   Level 10: FINAL BOSS - Dark Xochi rematch!
 
+    const isFiestaLevel = this.levelNum === 11;
     const isBossLevel = this.levelNum === 5 || this.levelNum === 10;
     const isUpscrollerLevel = this.levelNum === 3 || this.levelNum === 8;
     const isEscapeLevel = this.levelNum === 7 || this.levelNum === 9;
 
-    if (isBossLevel) {
+    if (isFiestaLevel) {
+      this.levelData = generateFiestaLevel();
+    } else if (isBossLevel) {
       this.levelData = generateBossArena(this.levelNum);
     } else if (isUpscrollerLevel) {
       this.levelData = generateUpscrollerLevel(this.levelNum);
