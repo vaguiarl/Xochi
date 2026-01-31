@@ -4901,10 +4901,10 @@ class GameScene extends Phaser.Scene {
   }
 
   // ============ TOUCH CONTROLS - SIMPLE UNIVERSAL SCHEME ============
-  // TAP anywhere = Jump
+  // TAP = Jump
+  // DOUBLE TAP = Super jump (when available)
   // SWIPE left/right = Move in that direction
-  // HOLD = Super jump (when available)
-  // No attack on mobile - stomp enemies by jumping on them!
+  // HOLD = Attack
   setupTouchControls() {
     // Only show on touch devices
     if (!this.sys.game.device.input.touch) return;
@@ -4912,13 +4912,15 @@ class GameScene extends Phaser.Scene {
     const { width, height } = this.cameras.main;
 
     // ============ CONFIGURATION ============
-    const TAP_MAX_DURATION = 200;      // ms - under this is a tap (jump)
+    const TAP_MAX_DURATION = 200;      // ms - under this is a tap
     const TAP_MAX_MOVEMENT = 30;       // px - under this is a tap
+    const DOUBLE_TAP_WINDOW = 300;     // ms - window for double tap detection
     const SWIPE_MIN_DISTANCE = 40;     // px - over this is a swipe (move)
     const HOLD_DURATION = 500;         // ms - hold this long for super jump
     const RUN_THRESHOLD = 80;          // px - swipe further = run
 
     // ============ TOUCH STATE ============
+    this.lastTapTime = 0;              // Track last tap for double-tap detection
     this.primaryTouch = {
       active: false,
       pointerId: null,
@@ -4954,7 +4956,7 @@ class GameScene extends Phaser.Scene {
       this.primaryTouch.startTime = this.time.now;
       this.primaryTouch.isCharging = false;
 
-      // Start hold timer for super jump
+      // Start hold timer for attack
       this.primaryTouch.holdTimer = this.time.delayedCall(HOLD_DURATION, () => {
         if (this.primaryTouch.active && this.primaryTouch.pointerId === pointer.id) {
           const currentPointer = this.input.manager.pointers.find(p => p.id === pointer.id);
@@ -4963,18 +4965,15 @@ class GameScene extends Phaser.Scene {
             const dy = currentPointer.y - this.primaryTouch.originY;
             const distance = Math.sqrt(dx * dx + dy * dy);
 
-            // Only charge if finger hasn't moved much
+            // Only attack if finger hasn't moved much (not a swipe)
             if (distance < SWIPE_MIN_DISTANCE) {
-              this.primaryTouch.isCharging = true;
-              this.primaryTouch.chargeIndicator = createChargeIndicator(
-                this.primaryTouch.originX,
-                this.primaryTouch.originY
-              );
+              this.primaryTouch.isCharging = true; // Mark as "used" so tap doesn't also trigger
 
-              const ring = this.primaryTouch.chargeIndicator.getByName('ring');
-              const fill = this.primaryTouch.chargeIndicator.getByName('fill');
-              this.tweens.add({ targets: ring, scaleX: 2.5, scaleY: 2.5, duration: 300, ease: 'Power2' });
-              this.tweens.add({ targets: fill, scaleX: 4, scaleY: 4, alpha: 0.6, duration: 300, ease: 'Power2' });
+              // Trigger attack!
+              this.touchControls.attack = true;
+              this.time.delayedCall(50, () => {
+                this.touchControls.attack = false;
+              });
             }
           }
         }
@@ -5032,40 +5031,48 @@ class GameScene extends Phaser.Scene {
       }
 
       // Determine action
-      if (this.primaryTouch.isCharging) {
-        // SUPER JUMP - held for 500ms+
-        if (gameState.superJumps > 0 && this.player && !this.player.getData('dead')) {
-          gameState.superJumps--;
-          this.player.body.setVelocityY(-650);
-          this.playSound('sfx-superjump', { pitchVariation: true });
-          this.showText(this.player.x, this.player.y - 30, 'SUPER!', '#00ffff');
-          this.events.emit('updateUI');
+      if (elapsed < TAP_MAX_DURATION && distance < TAP_MAX_MOVEMENT && elapsed > 0) {
+        // This is a TAP - check for double tap
+        const now = this.time.now;
+        const timeSinceLastTap = now - this.lastTapTime;
 
-          // Visual burst
-          for (let i = 0; i < 12; i++) {
-            const angle = (i / 12) * Math.PI * 2;
-            const trail = this.add.circle(
-              this.player.x + Math.cos(angle) * 10,
-              this.player.y + Math.sin(angle) * 10,
-              6, 0x00ffff, 0.8
-            );
-            this.tweens.add({
-              targets: trail,
-              x: this.player.x + Math.cos(angle) * 40,
-              y: this.player.y + Math.sin(angle) * 40,
-              alpha: 0,
-              scale: 0.5,
-              duration: 300,
-              onComplete: () => trail.destroy()
-            });
+        if (timeSinceLastTap < DOUBLE_TAP_WINDOW && gameState.superJumps > 0) {
+          // DOUBLE TAP = Super jump!
+          if (this.player && !this.player.getData('dead')) {
+            gameState.superJumps--;
+            this.player.body.setVelocityY(-650);
+            this.playSound('sfx-superjump', { pitchVariation: true });
+            this.showText(this.player.x, this.player.y - 30, 'SUPER!', '#00ffff');
+            this.events.emit('updateUI');
+
+            // Visual burst
+            for (let i = 0; i < 12; i++) {
+              const angle = (i / 12) * Math.PI * 2;
+              const trail = this.add.circle(
+                this.player.x + Math.cos(angle) * 10,
+                this.player.y + Math.sin(angle) * 10,
+                6, 0x00ffff, 0.8
+              );
+              this.tweens.add({
+                targets: trail,
+                x: this.player.x + Math.cos(angle) * 40,
+                y: this.player.y + Math.sin(angle) * 40,
+                alpha: 0,
+                scale: 0.5,
+                duration: 300,
+                onComplete: () => trail.destroy()
+              });
+            }
           }
+          this.lastTapTime = 0; // Reset to prevent triple-tap
+        } else {
+          // SINGLE TAP = Normal jump
+          this.touchControls.jump = true;
+          this.time.delayedCall(50, () => {
+            this.touchControls.jump = false;
+          });
+          this.lastTapTime = now; // Record tap time for double-tap detection
         }
-      } else if (elapsed < TAP_MAX_DURATION && distance < TAP_MAX_MOVEMENT && elapsed > 0) {
-        // TAP - quick tap for jump
-        this.touchControls.jump = true;
-        this.time.delayedCall(50, () => {
-          this.touchControls.jump = false;
-        });
       }
 
       // Stop movement on release
@@ -5114,7 +5121,7 @@ class GameScene extends Phaser.Scene {
     });
 
     // ============ CONTROL HINT (shown briefly) ============
-    const hint = this.add.text(width / 2, height - 40, 'TAP = JUMP  •  SWIPE = MOVE  •  HOLD = SUPER JUMP', {
+    const hint = this.add.text(width / 2, height - 40, 'TAP = JUMP  •  DOUBLE TAP = SUPER  •  SWIPE = MOVE  •  HOLD = ATTACK', {
       fontFamily: 'Arial', fontSize: '11px', color: '#ffffff', stroke: '#000000', strokeThickness: 2
     }).setOrigin(0.5).setScrollFactor(0).setDepth(1002).setAlpha(0.8);
 
