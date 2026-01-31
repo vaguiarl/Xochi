@@ -3890,6 +3890,41 @@ class MenuScene extends Phaser.Scene {
 class GameScene extends Phaser.Scene {
   constructor() { super('GameScene'); }
 
+  /**
+   * Calculate dynamic zoom based on screen height
+   * Mobile phones get higher zoom, desktop gets minimal zoom
+   * @returns {number} Zoom level between 1.0 and 2.2
+   */
+  calculateMobileZoom() {
+    const designHeight = 600; // Reference height (our game canvas height)
+    const actualHeight = this.cameras.main.height;
+
+    // Desktop screens (height >= 600): zoom = 1.0 (no zoom)
+    // Tablet landscape (height ~400-500): zoom = 1.2-1.5
+    // Phone portrait (height ~300-400): zoom = 1.5-2.0
+    // Small phones (height < 300): zoom = 2.0-2.2 (capped)
+
+    const baseZoom = designHeight / actualHeight;
+    const clampedZoom = Phaser.Math.Clamp(baseZoom, 1.0, 2.2);
+
+    return clampedZoom;
+  }
+
+  /**
+   * Calculate look-ahead offset for camera
+   * More zoom = slightly more look-ahead
+   * @param {number} zoom - Current camera zoom level
+   * @returns {number} Horizontal offset in world units
+   */
+  calculateLookAhead(zoom) {
+    // Base look-ahead: 100 pixels at zoom 1.0
+    // Max look-ahead: 160 pixels at zoom 2.2
+    const baseLookAhead = 100;
+    const zoomMultiplier = 1 + ((zoom - 1.0) * 0.5); // 1.0 to 1.6
+
+    return baseLookAhead * zoomMultiplier;
+  }
+
   init(data) {
     this.levelNum = data.level || 1;
 
@@ -4593,12 +4628,27 @@ class GameScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, ld.width, ld.height);
     this.isUpscroller = ld.isUpscroller || false;
     this.isEscapeLevel = ld.isEscapeLevel || false;
+    this.isBossLevel = ld.isBossLevel || false;
+
+    // Apply dynamic zoom for mobile devices
+    const zoom = this.calculateMobileZoom();
+    this.cameras.main.setZoom(zoom);
+    const lookAhead = this.calculateLookAhead(zoom);
+
+    // Store for debugging
+    this.cameraZoom = zoom;
+    this.cameraLookAhead = lookAhead;
+
+    if (this.sys.game.device.input.touch) {
+      console.log(`Mobile camera: zoom=${zoom.toFixed(2)}, lookAhead=${lookAhead.toFixed(0)}px`);
+    }
 
     if (this.isUpscroller) {
       // Upscroller: tighter vertical follow, camera stays centered horizontally
       this.cameras.main.startFollow(this.player, true, 0.1, 0.15);
       // Offset camera to show more above player (where they're climbing to)
-      this.cameras.main.setFollowOffset(0, 100);
+      // Use reduced horizontal look-ahead for vertical scrolling
+      this.cameras.main.setFollowOffset(-lookAhead * 0.5, 100);
 
       // ============ RISING WATER - FLAPPY BIRD PRESSURE! ============
       // Water starts at bottom and rises - keeps you moving!
@@ -4628,7 +4678,7 @@ class GameScene extends Phaser.Scene {
 
       // Camera follows player but also auto-scrolls forward
       this.cameras.main.startFollow(this.player, true, 0.1, 0.08);
-      this.cameras.main.setFollowOffset(-100, 0);  // Show more ahead
+      this.cameras.main.setFollowOffset(-lookAhead, 0);  // Show more ahead
 
       // Chasing flood starts at the left
       this.chasingFloodX = -100;  // Start just off-screen left
@@ -4666,9 +4716,14 @@ class GameScene extends Phaser.Scene {
         onComplete: () => runText.destroy()
       });
 
-    } else {
-      // Side-scroller: normal horizontal follow
+    } else if (this.isBossLevel) {
+      // Boss level: arena feel with reduced look-ahead
       this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
+      this.cameras.main.setFollowOffset(-lookAhead * 0.7, 0);  // Less offset for arena
+    } else {
+      // Side-scroller: normal horizontal follow with full look-ahead
+      this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
+      this.cameras.main.setFollowOffset(-lookAhead, 0);  // Player left of center
     }
 
     // Collisions
