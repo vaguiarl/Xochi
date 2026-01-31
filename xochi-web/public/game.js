@@ -3796,8 +3796,12 @@ class MenuScene extends Phaser.Scene {
     btn.on('pointerover', () => { btn.setScale(1.05); btn.setFillStyle(lightColor); });
     btn.on('pointerout', () => { btn.setScale(1); btn.setFillStyle(baseColor); });
     btn.on('pointerdown', () => {
-      if (gameState.sfxEnabled) {
-        this.sound.play('sfx-select', { volume: 0.7 });
+      try {
+        if (gameState.sfxEnabled) {
+          this.sound.play('sfx-select', { volume: 0.7 });
+        }
+      } catch (e) {
+        console.log('Sound error:', e);
       }
       callback();
     });
