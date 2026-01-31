@@ -7676,7 +7676,12 @@ const config = {
   },
   scale: {
     mode: Phaser.Scale.FIT,
-    autoCenter: Phaser.Scale.CENTER_BOTH
+    autoCenter: Phaser.Scale.CENTER_BOTH,
+    parent: 'game-container',
+    width: 800,
+    height: 600,
+    min: { width: 320, height: 240 },
+    max: { width: 1600, height: 1200 }
   },
   scene: [BootScene, MenuScene, GameScene, UIScene, PauseScene, EndScene]
 };
