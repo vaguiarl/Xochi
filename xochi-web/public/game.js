@@ -6763,7 +6763,7 @@ class GameScene extends Phaser.Scene {
     // ============ FRAME ANIMATION (DKC-style) ============
     const isMoving = Math.abs(this.player.body.velocity.x) > 10;
     const isInAir = !onGround;
-    const isRunning = this.keys.SPACE.isDown;
+    // isRunning already defined above (SPACE key or touch drag far)
     const now = this.time.now;
 
     // Walk animation timer (cycle every 200ms for walk, 120ms for run)
