@@ -49,6 +49,19 @@ class XochiMusicManager {
     this.start(track);
   }
 
+  playForLevel(levelNum, worldNum) {
+    // Upscroller levels (3 and 8) get special "Xochi la Oaxalota" track
+    const isUpscroller = (levelNum === 3 || levelNum === 8);
+
+    if (isUpscroller) {
+      this.start('music-upscroller');
+      return;
+    }
+
+    // Otherwise use world-based music selection
+    this.playForWorld(worldNum);
+  }
+
   stop() {
     if (this.currentMusic) {
       this.currentMusic.stop();
@@ -2701,6 +2714,7 @@ class BootScene extends Phaser.Scene {
     this.load.audio('music-gardens', 'assets/audio/music_gardens.ogg'); // Flowers of the Last Dawn (World 1-2)
     this.load.audio('music-night', 'assets/audio/music_night.ogg');     // Xochimilco Moonwake (World 5-6)
     this.load.audio('music-fiesta', 'assets/audio/music_fiesta.ogg');   // Last Bloom of Oaxolotl (World 7+)
+    this.load.audio('music-upscroller', 'assets/audio/music_upscroller.ogg'); // Xochi la Oaxalota (Upscroller levels)
 
     // Load SFX - Xochi-themed Mesoamerican sounds
     // Movement sounds
@@ -3716,11 +3730,11 @@ class GameScene extends Phaser.Scene {
   create() {
     const ld = this.levelData;
 
-    // Initialize music for this world
+    // Initialize music for this level
     mariachiMusic.init(this);
     const worldNum = getWorldForLevel(this.levelNum);
     if (gameState.musicEnabled) {
-      mariachiMusic.playForWorld(worldNum);
+      mariachiMusic.playForLevel(this.levelNum, worldNum);
     }
 
     // World bounds
