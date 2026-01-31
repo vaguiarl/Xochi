@@ -1,5 +1,6 @@
 // Xochi - Aztec Warrior Adventure
 // A Phaser 3 platformer game
+// Build: 2026-01-30-v2
 
 // ============== XOCHI MUSIC MANAGER ==============
 // Uses Suno-generated tracks for authentic Xochimilco atmosphere
