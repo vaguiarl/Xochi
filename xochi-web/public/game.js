@@ -2830,6 +2830,56 @@ class BootScene extends Phaser.Scene {
   constructor() { super('BootScene'); }
 
   preload() {
+    // ============ LOADING BAR ============
+    const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
+
+    // Background
+    this.add.rectangle(width/2, height/2, width, height, 0x1a2a3a);
+
+    // Title
+    const title = this.add.text(width/2, height/2 - 80, 'XOCHI', {
+      fontFamily: 'Arial Black',
+      fontSize: '48px',
+      color: '#ff69b4',
+      stroke: '#000000',
+      strokeThickness: 4
+    }).setOrigin(0.5);
+
+    // Subtitle
+    this.add.text(width/2, height/2 - 35, 'La Guerrera Axolotl', {
+      fontFamily: 'Georgia',
+      fontSize: '18px',
+      color: '#88ddff',
+      fontStyle: 'italic'
+    }).setOrigin(0.5);
+
+    // Loading bar background
+    const barWidth = 300;
+    const barHeight = 20;
+    const barX = width/2 - barWidth/2;
+    const barY = height/2 + 30;
+
+    this.add.rectangle(width/2, barY + barHeight/2, barWidth + 4, barHeight + 4, 0x333333);
+    const progressBar = this.add.rectangle(barX + 2, barY + 2, 0, barHeight, 0xff69b4).setOrigin(0, 0);
+
+    // Loading text
+    const loadingText = this.add.text(width/2, barY + barHeight + 25, 'Loading...', {
+      fontFamily: 'Arial',
+      fontSize: '14px',
+      color: '#aaaaaa'
+    }).setOrigin(0.5);
+
+    // Progress events
+    this.load.on('progress', (value) => {
+      progressBar.width = barWidth * value;
+      loadingText.setText(`Loading... ${Math.round(value * 100)}%`);
+    });
+
+    this.load.on('complete', () => {
+      loadingText.setText('Ready!');
+    });
+
     // Load music - Suno-generated Xochimilco tracks (one per world)
     this.load.audio('music-menu', 'assets/audio/music_menu.ogg');       // World 1: Traviesa Axolotla
     this.load.audio('music-gardens', 'assets/audio/music_gardens.ogg'); // World 2: Flowers of the Last Dawn
@@ -4844,7 +4894,6 @@ class GameScene extends Phaser.Scene {
             this.player.setData('climbing', false);
             this.player.setData('climbPlatform', null);
             this.player.body.setVelocityY(50);  // Gentle landing
-            this.playSound('sfx-land', { pitchVariation: true });
           }
         });
       }
@@ -6184,12 +6233,6 @@ class GameScene extends Phaser.Scene {
     }
 
     this.lastTouchJump = tc.jump;
-
-    // Landing sound - play when just touched ground after being airborne
-    if (onGround && !this.wasOnGround && !this.player.getData('climbing')) {
-      this.playSound('sfx-land', { pitchVariation: true, volume: 0.4 });
-    }
-
     this.wasOnGround = onGround;
 
     // ============ LUCHADOR MODE UPDATE ============
