@@ -34,45 +34,27 @@ class XochiMusicManager {
   }
 
   playForWorld(worldNum) {
-    // Each world has its own distinct song
-    // World 1: Main menu theme
-    // World 2: Gardens theme
-    // World 3: Xochi la Oaxalota theme
-    // World 4: Night theme
-    // World 5: Night theme
-    // World 6: Fiesta finale!
+    // Each world has its own distinct song (2 levels per world)
+    // World 1 (1-2): Dawn - Main menu theme
+    // World 2 (3-4): Day - Gardens theme
+    // World 3 (5-6): Cave - Xochi la Oaxalota
+    // World 4 (7-8): Garden - Night theme
+    // World 5 (9-10): Night - Boss theme
+    // World 6 (11-12): Fiesta - Finale theme
     let track = 'music-menu';
     if (worldNum === 1) track = 'music-menu';
     else if (worldNum === 2) track = 'music-gardens';
     else if (worldNum === 3) track = 'music-world3';
-    else if (worldNum <= 5) track = 'music-night';
-    else track = 'music-fiesta';
+    else if (worldNum === 4) track = 'music-night';
+    else if (worldNum === 5) track = 'music-boss';
+    else track = 'music-finale';
 
     this.start(track);
   }
 
   playForLevel(levelNum, worldNum) {
-    // Final celebration level (11) - Fiesta de Xochi
-    if (levelNum === 11) {
-      this.start('music-finale');
-      return;
-    }
-
-    // Boss fight levels (5 and 10) - Dark Xochi battles
-    const isBoss = (levelNum === 5 || levelNum === 10);
-    if (isBoss) {
-      this.start('music-boss');
-      return;
-    }
-
-    // Upscroller levels (3 and 8) - vertical climbing
-    const isUpscroller = (levelNum === 3 || levelNum === 8);
-    if (isUpscroller) {
-      this.start('music-upscroller');
-      return;
-    }
-
-    // Otherwise use world-based music selection
+    // Each world has one consistent song for both levels
+    // No special overrides - music matches the world theme
     this.playForWorld(worldNum);
   }
 
@@ -98,7 +80,7 @@ const mariachiMusic = new XochiMusicManager();
 // ============== GAME STATE ==============
 const gameState = {
   currentLevel: 1,
-  totalLevels: 11,  // 11 levels - includes finale celebration!
+  totalLevels: 12,  // 6 worlds × 2 levels = 12 levels
   flowers: 0,       // Cempasuchil flowers (replaces coins)
   lives: 3,
   stars: [],
@@ -254,22 +236,8 @@ const WORLDS = {
     accent: 0xC0C0C0,       // Silver (moonlight)
     fog: 0xF8F8FF           // Ghost white mist
   },
-  // World 6: La Gran Fiesta (Level 10 Boss) - Colorful celebration!
+  // World 6: La Fiesta Final (Levels 11-12) - Ultimate celebration!
   6: {
-    name: 'The Grand Festival',
-    subtitle: 'La Gran Fiesta',
-    sky: [0x88ddcc, 0x66ccbb, 0x55bbaa, 0x44aa99, 0x339988, 0x228877],
-    mountain: 0x336655, hill: 0x44bb66, waterColor: 0x22aa99,
-    // Enhanced palette for parallax layers
-    background: 0xFF1493,   // Deep pink
-    foreground: 0xFF6347,   // Tomato
-    midground: 0xFF69B4,    // Hot pink
-    vegetation: [0xADFF2F, 0xFF00FF, 0xFFA500],  // Green-yellow, magenta, orange
-    accent: 0xFFD700,       // Gold
-    fog: 0xFFFFE0           // Light yellow mist
-  },
-  // World 7: La Fiesta Final (Level 11) - Ultimate celebration!
-  7: {
     name: 'La Fiesta',
     subtitle: 'The Final Celebration',
     sky: [0xFFD700, 0xFFA500, 0xFF69B4, 0xFF1493, 0x9400D3, 0x4B0082],
@@ -286,13 +254,12 @@ const WORLDS = {
 
 // Get world number from level number
 function getWorldForLevel(levelNum) {
-  if (levelNum <= 2) return 1;  // Canal Dawn
-  if (levelNum <= 4) return 2;  // Bright Trajineras
-  if (levelNum === 5) return 3; // Crystal Cave (Boss)
-  if (levelNum <= 7) return 4;  // Floating Gardens
-  if (levelNum <= 9) return 5;  // Night Canals
-  if (levelNum === 10) return 6; // The Grand Festival (Final Boss)
-  return 7;                     // La Fiesta (Celebration)
+  if (levelNum <= 2) return 1;   // Canal Dawn
+  if (levelNum <= 4) return 2;   // Bright Trajineras
+  if (levelNum <= 6) return 3;   // Crystal Cave
+  if (levelNum <= 8) return 4;   // Floating Gardens
+  if (levelNum <= 10) return 5;  // Night Canals
+  return 6;                      // La Fiesta Final
 }
 
 // Check if this is the first level of a new world
@@ -305,11 +272,10 @@ function getFirstLevelOfWorld(worldNum) {
   switch(worldNum) {
     case 1: return 1;   // Canal Dawn
     case 2: return 3;   // Bright Trajineras
-    case 3: return 5;   // Crystal Cave (Boss)
-    case 4: return 6;   // Floating Gardens
-    case 5: return 8;   // Night Canals
-    case 6: return 10;  // Grand Festival (Final Boss)
-    case 7: return 11;  // La Fiesta (Celebration)
+    case 3: return 5;   // Crystal Cave
+    case 4: return 7;   // Floating Gardens
+    case 5: return 9;   // Night Canals
+    case 6: return 11;  // La Fiesta Final
     default: return 1;
   }
 }
@@ -322,11 +288,11 @@ function getCheckpointLevel(currentLevel) {
 
 // Get level type description
 function getLevelTypeDescription(levelNum) {
-  if (levelNum === 11) return 'LA FIESTA!';
+  if (levelNum === 12) return 'LA FIESTA!';
   if (levelNum === 5) return 'BOSS BATTLE';
   if (levelNum === 10) return 'FINAL BOSS';
   if (levelNum === 3 || levelNum === 8) return 'CLIMB!';
-  if (levelNum === 7 || levelNum === 9) return 'ESCAPE!';
+  if (levelNum === 9) return 'ESCAPE!';
   return 'CROSS THE CANALS';
 }
 
@@ -2220,10 +2186,19 @@ function generateFiestaLevel() {
     coins.push({ x: circleX, y: circleY });
   }
 
-  // Extra powerups as gifts!
+  // ============ POWERUPS EVERYWHERE - Jump to the sky! ============
+  // Starting powerups
   powerups.push({ x: 150, y: waterY - 100 });
-  powerups.push({ x: 1000, y: waterY - 200 });
-  powerups.push({ x: 2000, y: waterY - 250 });
+  powerups.push({ x: 250, y: waterY - 150 });
+  // Powerups along the journey - one every 200px!
+  for (let x = 400; x < width - 400; x += 200) {
+    const pY = waterY - 120 - Math.random() * 200;
+    powerups.push({ x: x, y: pY });
+  }
+  // Extra powerups near the dance floor
+  powerups.push({ x: width - 500, y: waterY - 200 });
+  powerups.push({ x: width - 350, y: waterY - 250 });
+  powerups.push({ x: width - 200, y: waterY - 200 });
 
   return {
     width,
@@ -3619,7 +3594,7 @@ class MenuScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     // Progress bar style
-    this.add.text(width/2, 290, `Level ${gameState.currentLevel}/11 | ★ ${gameState.stars.length}/33 | ♥ ${gameState.rescuedBabies.length}/11`, {
+    this.add.text(width/2, 290, `Level ${gameState.currentLevel}/12 | ★ ${gameState.stars.length}/36 | ♥ ${gameState.rescuedBabies.length}/12`, {
       fontFamily: 'Arial', fontSize: '13px', color: '#88aacc'
     }).setOrigin(0.5);
 
@@ -3714,15 +3689,14 @@ class MenuScene extends Phaser.Scene {
       fontFamily: 'Arial Black', fontSize: '12px', color: '#aaaaaa'
     }).setOrigin(0.5);
 
-    // World selector buttons
+    // World selector buttons (6 worlds × 2 levels each)
     const worldData = [
       { num: 1, icon: '🌅', name: 'Dawn', color: 0xffaa77 },
       { num: 2, icon: '☀️', name: 'Day', color: 0x55ccee },
       { num: 3, icon: '💎', name: 'Cave', color: 0x4466aa },
       { num: 4, icon: '🌸', name: 'Garden', color: 0xffcc44 },
       { num: 5, icon: '🌙', name: 'Night', color: 0x6644aa },
-      { num: 6, icon: '⚔️', name: 'Boss', color: 0x44ccaa },
-      { num: 7, icon: '🎉', name: 'Fiesta', color: 0xff69b4 }
+      { num: 6, icon: '🎉', name: 'Fiesta', color: 0xff69b4 }
     ];
 
     const btnSize = 42;
@@ -3862,10 +3836,10 @@ class GameScene extends Phaser.Scene {
     // WORLD 6 - La Gran Fiesta (The Grand Festival) - Teal celebration
     //   Level 10: FINAL BOSS - Dark Xochi rematch!
 
-    const isFiestaLevel = this.levelNum === 11;
+    const isFiestaLevel = this.levelNum === 12;
     const isBossLevel = this.levelNum === 5 || this.levelNum === 10;
     const isUpscrollerLevel = this.levelNum === 3 || this.levelNum === 8;
-    const isEscapeLevel = this.levelNum === 7 || this.levelNum === 9;
+    const isEscapeLevel = this.levelNum === 9;
 
     if (isFiestaLevel) {
       this.levelData = generateFiestaLevel();
@@ -5564,8 +5538,13 @@ class GameScene extends Phaser.Scene {
 
     // Award points for rescue
     const isBossLevel = (this.levelNum === 5 || this.levelNum === 10);
+    const isFiestaLevel = (this.levelNum === 12);
     let points = 1000;
-    if (isBossLevel) {
+
+    if (isFiestaLevel) {
+      this.showBigText('ALL BABIES RESCUED!', '#FFD700');
+      points = 5000;  // Bonus for final rescue!
+    } else if (isBossLevel) {
       this.showBigText('BABY RESCUED! +1000', '#ff00ff');
     } else {
       this.showBigText('RESCUED! +1000', '#ff6b9d');
@@ -5586,11 +5565,175 @@ class GameScene extends Phaser.Scene {
 
     this.playSound('sfx-powerup');
     saveGame();
-    this.time.delayedCall(1500, () => this.nextLevel());
+
+    // Level 11 - La Fiesta: Trigger celebration with credits!
+    if (isFiestaLevel) {
+      this.startFiestaCelebration();
+    } else {
+      this.time.delayedCall(1500, () => this.nextLevel());
+    }
+  }
+
+  startFiestaCelebration() {
+    // Disable player controls during celebration
+    this.player.body.setVelocity(0, 0);
+    this.player.body.allowGravity = false;
+
+    // Make player dance (bounce animation)
+    this.tweens.add({
+      targets: this.player,
+      y: this.player.y - 20,
+      duration: 400,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
+
+    const camW = this.cameras.main.width;
+    const camH = this.cameras.main.height;
+
+    // Dark overlay for credits
+    const overlay = this.add.rectangle(camW/2, camH/2, camW, camH, 0x000000, 0)
+      .setScrollFactor(0).setDepth(600);
+
+    // Fade in overlay slowly
+    this.tweens.add({
+      targets: overlay,
+      fillAlpha: 0.7,
+      duration: 3000,
+      ease: 'Sine.easeIn'
+    });
+
+    // Celebration particles - fireworks!
+    this.time.addEvent({
+      delay: 500,
+      repeat: 20,
+      callback: () => {
+        const fx = Phaser.Math.Between(50, camW - 50);
+        const fy = Phaser.Math.Between(50, camH - 150);
+        for (let i = 0; i < 8; i++) {
+          const spark = this.add.circle(fx, fy, 4,
+            Phaser.Utils.Array.GetRandom([0xFFD700, 0xFF69B4, 0x00FF00, 0xFF4500, 0x00FFFF]))
+            .setScrollFactor(0).setDepth(650);
+          const angle = (i / 8) * Math.PI * 2;
+          this.tweens.add({
+            targets: spark,
+            x: fx + Math.cos(angle) * 80,
+            y: fy + Math.sin(angle) * 80,
+            alpha: 0,
+            scale: 0.3,
+            duration: 1000,
+            onComplete: () => spark.destroy()
+          });
+        }
+      }
+    });
+
+    // ============ CREDITS SEQUENCE (timed for ~2:30 song) ============
+    const credits = [
+      { text: '¡FELICIDADES!', style: { fontSize: '48px', color: '#FFD700' }, delay: 3000 },
+      { text: 'You saved all the baby axolotls!', style: { fontSize: '24px', color: '#FF69B4' }, delay: 7000 },
+      { text: '~ XOCHI ~', style: { fontSize: '36px', color: '#4ECDC4' }, delay: 15000 },
+      { text: 'Aztec Warrior Adventure', style: { fontSize: '20px', color: '#FFFFFF' }, delay: 18000 },
+      { text: '- CREDITS -', style: { fontSize: '28px', color: '#FFD700' }, delay: 28000 },
+      { text: 'Game Design & Code', style: { fontSize: '18px', color: '#AAAAAA' }, delay: 35000 },
+      { text: 'Victor Aguiar', style: { fontSize: '24px', color: '#FFFFFF' }, delay: 38000 },
+      { text: 'Music', style: { fontSize: '18px', color: '#AAAAAA' }, delay: 48000 },
+      { text: 'Suno AI', style: { fontSize: '24px', color: '#FFFFFF' }, delay: 51000 },
+      { text: 'AI Assistant', style: { fontSize: '18px', color: '#AAAAAA' }, delay: 61000 },
+      { text: 'Claude (Anthropic)', style: { fontSize: '24px', color: '#FFFFFF' }, delay: 64000 },
+      { text: 'Art & Animation', style: { fontSize: '18px', color: '#AAAAAA' }, delay: 74000 },
+      { text: 'Procedural Generation', style: { fontSize: '24px', color: '#FFFFFF' }, delay: 77000 },
+      { text: 'Special Thanks', style: { fontSize: '18px', color: '#AAAAAA' }, delay: 87000 },
+      { text: 'The Axolotls of Xochimilco', style: { fontSize: '22px', color: '#4ECDC4' }, delay: 90000 },
+      { text: 'Inspired by', style: { fontSize: '18px', color: '#AAAAAA' }, delay: 100000 },
+      { text: 'Xochimilco, México 🇲🇽', style: { fontSize: '26px', color: '#00FF00' }, delay: 103000 },
+      { text: '¡Gracias por jugar!', style: { fontSize: '36px', color: '#FF69B4' }, delay: 118000 },
+      { text: 'Thanks for playing!', style: { fontSize: '28px', color: '#FFFFFF' }, delay: 123000 },
+    ];
+
+    credits.forEach(credit => {
+      this.time.delayedCall(credit.delay, () => {
+        const txt = this.add.text(camW/2, camH/2, credit.text, {
+          fontFamily: 'Arial Black',
+          ...credit.style,
+          stroke: '#000000',
+          strokeThickness: 3
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(700).setAlpha(0);
+
+        // Fade in
+        this.tweens.add({
+          targets: txt,
+          alpha: 1,
+          y: camH/2 - 20,
+          duration: 1200,
+          ease: 'Back.easeOut'
+        });
+
+        // Fade out after showing
+        this.tweens.add({
+          targets: txt,
+          alpha: 0,
+          y: camH/2 - 60,
+          duration: 1000,
+          delay: 4000,
+          ease: 'Sine.easeIn',
+          onComplete: () => txt.destroy()
+        });
+      });
+    });
+
+    // After song ends (~2:30 = 150 seconds), show final screen
+    this.time.delayedCall(145000, () => {
+      // Final message
+      const finalText = this.add.text(camW/2, camH/2, 'THE END', {
+        fontFamily: 'Arial Black',
+        fontSize: '64px',
+        color: '#FFD700',
+        stroke: '#000000',
+        strokeThickness: 4
+      }).setOrigin(0.5).setScrollFactor(0).setDepth(800);
+
+      this.tweens.add({
+        targets: finalText,
+        scale: 1.1,
+        duration: 1000,
+        yoyo: true,
+        repeat: -1
+      });
+
+      // Press any key to continue
+      const pressKey = this.add.text(camW/2, camH/2 + 80, 'Press any key to return to menu', {
+        fontFamily: 'Arial',
+        fontSize: '18px',
+        color: '#FFFFFF'
+      }).setOrigin(0.5).setScrollFactor(0).setDepth(800);
+
+      this.tweens.add({
+        targets: pressKey,
+        alpha: 0.5,
+        duration: 800,
+        yoyo: true,
+        repeat: -1
+      });
+
+      // Wait for input to go to menu
+      this.input.keyboard.once('keydown', () => {
+        mariachiMusic.stop();
+        this.scene.stop('UIScene');
+        this.scene.start('MenuScene');
+      });
+
+      this.input.once('pointerdown', () => {
+        mariachiMusic.stop();
+        this.scene.stop('UIScene');
+        this.scene.start('MenuScene');
+      });
+    });
   }
 
   nextLevel() {
-    if (this.levelNum >= 11) { // 11 levels - La Fiesta is the finale!
+    if (this.levelNum >= 12) { // 12 levels - La Fiesta is the finale!
       mariachiMusic.stop(); // Victory!
       this.scene.stop('UIScene');
       this.scene.start('EndScene');
@@ -7002,7 +7145,7 @@ class UIScene extends Phaser.Scene {
     ];
     this.add.text(width/2, 22, names[this.levelNum-1] || `Level ${this.levelNum}`, { fontFamily: 'Arial', fontSize: '14px', color: '#4ecdc4' }).setOrigin(0.5);
 
-    this.add.text(width - 15, 22, `Rescued: ${gameState.rescuedBabies.length}/11`, { fontFamily: 'Arial', fontSize: '11px', color: '#ff6b9d' }).setOrigin(1, 0.5);
+    this.add.text(width - 15, 22, `Rescued: ${gameState.rescuedBabies.length}/12`, { fontFamily: 'Arial', fontSize: '11px', color: '#ff6b9d' }).setOrigin(1, 0.5);
 
     const game = this.scene.get('GameScene');
     game.events.on('updateUI', () => {
