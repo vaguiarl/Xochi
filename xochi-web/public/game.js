@@ -3761,8 +3761,17 @@ class MenuScene extends Phaser.Scene {
         this.scene.start('GameScene', { level: 1 });
       });
 
+    // CONTROLS button
+    this.createSNESButton(width/2, 535, 200, 50, 0x4466aa, 0x335599, 0x5577bb,
+      'CONTROLS', () => {
+        if (gameState.sfxEnabled) {
+          this.sound.play('sfx-select', { volume: 0.7 });
+        }
+        this.showControlsOverlay();
+      });
+
     // ============ WORLD SELECTION ============
-    this.add.text(width/2, 510, 'SELECT WORLD', {
+    this.add.text(width/2, 570, 'SELECT WORLD', {
       fontFamily: 'Arial Black', fontSize: '12px', color: '#aaaaaa'
     }).setOrigin(0.5);
 
@@ -3781,7 +3790,7 @@ class MenuScene extends Phaser.Scene {
 
     worldData.forEach((world, i) => {
       const x = worldStartX + i * btnSize;
-      const y = 540;
+      const y = 600;
       const firstLevel = getFirstLevelOfWorld(world.num);
       const isUnlocked = true;  // All worlds always available for selection!
       const isCurrent = getWorldForLevel(gameState.currentLevel) === world.num;
@@ -3812,7 +3821,7 @@ class MenuScene extends Phaser.Scene {
           btnBg.setScale(1.1);
           // Show world name tooltip
           if (!this.worldTooltip) {
-            this.worldTooltip = this.add.text(width/2, 575, '', {
+            this.worldTooltip = this.add.text(width/2, 635, '', {
               fontFamily: 'Arial', fontSize: '11px', color: '#ffffff',
               backgroundColor: '#000000', padding: { x: 8, y: 4 }
             }).setOrigin(0.5).setDepth(100);
@@ -3837,14 +3846,6 @@ class MenuScene extends Phaser.Scene {
         });
       }
     });
-
-    // Controls - simplified!
-    this.add.text(width/2, height - 25, 'WASD/Arrows = Move | SPACE = Run | X = Jump | Z = Attack', {
-      fontFamily: 'Arial', fontSize: '9px', color: '#555555'
-    }).setOrigin(0.5);
-    this.add.text(width/2, height - 10, 'Grab ledges by pressing toward them while falling!', {
-      fontFamily: 'Arial', fontSize: '9px', color: '#666666'
-    }).setOrigin(0.5);
 
     // Keyboard shortcut to start
     this.input.keyboard.on('keydown-X', () => {
@@ -3883,6 +3884,104 @@ class MenuScene extends Phaser.Scene {
       callback();
     });
     return btn;
+  }
+
+  showControlsOverlay() {
+    const { width, height } = this.cameras.main;
+    const overlay = this.add.container(0, 0).setDepth(200);
+
+    // Dark background
+    const bg = this.add.rectangle(width/2, height/2, width, height, 0x000000, 0.95);
+    bg.setInteractive();
+    overlay.add(bg);
+
+    // Title
+    overlay.add(this.add.text(width/2, 40, 'CONTROLS', {
+      fontFamily: 'Arial Black', fontSize: '36px', color: '#4ecdc4'
+    }).setOrigin(0.5));
+
+    // === KEYBOARD SECTION ===
+    overlay.add(this.add.text(width/2, 90, '⌨️ KEYBOARD', {
+      fontFamily: 'Arial Black', fontSize: '18px', color: '#ffdd00'
+    }).setOrigin(0.5));
+
+    const keyControls = [
+      { key: 'X', action: 'Jump', note: '(tap twice for Super Jump)' },
+      { key: 'Z', action: 'Attack', note: '' },
+      { key: 'ARROWS / WASD', action: 'Move', note: '' },
+      { key: 'SPACE', action: 'Run', note: '(hold while moving)' },
+      { key: 'ESC', action: 'Pause', note: '' }
+    ];
+
+    keyControls.forEach((ctrl, i) => {
+      const y = 120 + i * 28;
+      overlay.add(this.add.text(width/2 - 140, y, ctrl.key, {
+        fontFamily: 'Arial Black', fontSize: '14px', color: '#ffffff'
+      }).setOrigin(0, 0.5));
+      overlay.add(this.add.text(width/2 + 20, y, ctrl.action, {
+        fontFamily: 'Arial', fontSize: '14px', color: '#aaaaaa'
+      }).setOrigin(0, 0.5));
+      if (ctrl.note) {
+        overlay.add(this.add.text(width/2 + 100, y, ctrl.note, {
+          fontFamily: 'Arial', fontSize: '11px', color: '#666666'
+        }).setOrigin(0, 0.5));
+      }
+    });
+
+    // === TOUCH/MOBILE SECTION ===
+    overlay.add(this.add.text(width/2, 280, '📱 TOUCH / MOBILE', {
+      fontFamily: 'Arial Black', fontSize: '18px', color: '#ff6b9d'
+    }).setOrigin(0.5));
+
+    const touchControls = [
+      { gesture: 'TAP RIGHT SIDE', action: 'Jump', note: '(double-tap for Super Jump)' },
+      { gesture: 'TAP LEFT SIDE', action: 'Attack', note: '' },
+      { gesture: 'SWIPE LEFT/RIGHT', action: 'Move', note: '' },
+      { gesture: 'HOLD + SWIPE', action: 'Run', note: '' },
+      { gesture: 'SWIPE DOWN', action: 'Duck / Drop', note: '' }
+    ];
+
+    touchControls.forEach((ctrl, i) => {
+      const y = 310 + i * 28;
+      overlay.add(this.add.text(width/2 - 140, y, ctrl.gesture, {
+        fontFamily: 'Arial Black', fontSize: '13px', color: '#ffffff'
+      }).setOrigin(0, 0.5));
+      overlay.add(this.add.text(width/2 + 50, y, ctrl.action, {
+        fontFamily: 'Arial', fontSize: '13px', color: '#aaaaaa'
+      }).setOrigin(0, 0.5));
+      if (ctrl.note) {
+        overlay.add(this.add.text(width/2 + 130, y, ctrl.note, {
+          fontFamily: 'Arial', fontSize: '10px', color: '#666666'
+        }).setOrigin(0, 0.5));
+      }
+    });
+
+    // Pro tips
+    overlay.add(this.add.text(width/2, 480, '💡 TIP: Grab ledges by pressing toward them while falling!', {
+      fontFamily: 'Arial', fontSize: '12px', color: '#88aacc'
+    }).setOrigin(0.5));
+
+    // Close button
+    const closeBtn = this.add.rectangle(width/2, 540, 180, 50, 0x4ecdc4).setInteractive({ useHandCursor: true });
+    overlay.add(closeBtn);
+    overlay.add(this.add.text(width/2, 540, 'GOT IT!', {
+      fontFamily: 'Arial Black', fontSize: '20px', color: '#ffffff'
+    }).setOrigin(0.5));
+
+    closeBtn.on('pointerover', () => closeBtn.setFillStyle(0x5eddd4));
+    closeBtn.on('pointerout', () => closeBtn.setFillStyle(0x4ecdc4));
+    closeBtn.on('pointerdown', () => {
+      if (gameState.sfxEnabled) {
+        this.sound.play('sfx-select', { volume: 0.7 });
+      }
+      overlay.destroy();
+    });
+
+    // Close on ESC
+    const escHandler = this.input.keyboard.on('keydown-ESC', () => {
+      overlay.destroy();
+      this.input.keyboard.off('keydown-ESC', escHandler);
+    });
   }
 }
 
@@ -7598,12 +7697,17 @@ class PauseScene extends Phaser.Scene {
     this.add.rectangle(width/2, height/2, width, height, 0x000000, 0.8);
     this.add.text(width/2, 100, 'PAUSED', { fontFamily: 'Arial Black', fontSize: '48px', color: '#4ecdc4' }).setOrigin(0.5);
 
-    this.makeButton(width/2, 200, 'RESUME', 0x4ecdc4, () => { this.scene.resume('GameScene'); this.scene.stop(); });
-    this.makeButton(width/2, 260, 'RESTART', 0xffaa00, () => { this.scene.stop('GameScene'); this.scene.stop('UIScene'); this.scene.stop(); this.scene.start('GameScene', {level: gameState.currentLevel}); });
-    this.makeButton(width/2, 320, 'MENU', 0xff6666, () => { mariachiMusic.stop(); this.scene.stop('GameScene'); this.scene.stop('UIScene'); this.scene.stop(); this.scene.start('MenuScene'); });
+    // Controls quick reference
+    this.add.text(width/2, 155, 'CONTROLS', { fontFamily: 'Arial Black', fontSize: '12px', color: '#888888' }).setOrigin(0.5);
+    this.add.text(width/2, 175, 'X = Jump    Z = Attack    XX = Super Jump', { fontFamily: 'Arial Black', fontSize: '13px', color: '#ffffff' }).setOrigin(0.5);
+    this.add.text(width/2, 195, 'Arrows = Move    SPACE = Run    ESC = Pause', { fontFamily: 'Arial', fontSize: '11px', color: '#aaaaaa' }).setOrigin(0.5);
+
+    this.makeButton(width/2, 250, 'RESUME', 0x4ecdc4, () => { this.scene.resume('GameScene'); this.scene.stop(); });
+    this.makeButton(width/2, 310, 'RESTART', 0xffaa00, () => { this.scene.stop('GameScene'); this.scene.stop('UIScene'); this.scene.stop(); this.scene.start('GameScene', {level: gameState.currentLevel}); });
+    this.makeButton(width/2, 370, 'MENU', 0xff6666, () => { mariachiMusic.stop(); this.scene.stop('GameScene'); this.scene.stop('UIScene'); this.scene.stop(); this.scene.start('MenuScene'); });
 
     // ============ WORLD SELECTION ============
-    this.add.text(width/2, 380, 'JUMP TO WORLD', {
+    this.add.text(width/2, 430, 'JUMP TO WORLD', {
       fontFamily: 'Arial Black', fontSize: '14px', color: '#aaaaaa'
     }).setOrigin(0.5);
 
@@ -7621,7 +7725,7 @@ class PauseScene extends Phaser.Scene {
 
     worldData.forEach((world, i) => {
       const x = worldStartX + i * btnSize;
-      const y = 430;
+      const y = 480;
       const firstLevel = getFirstLevelOfWorld(world.num);
       const isUnlocked = gameState.currentLevel >= firstLevel || firstLevel === 1;
       const isCurrent = getWorldForLevel(gameState.currentLevel) === world.num;
@@ -7662,7 +7766,7 @@ class PauseScene extends Phaser.Scene {
     });
 
     // World name tooltip area
-    this.add.text(width/2, 470, 'Click a world to jump there', {
+    this.add.text(width/2, 520, 'Click a world to jump there', {
       fontFamily: 'Arial', fontSize: '11px', color: '#666666'
     }).setOrigin(0.5);
 

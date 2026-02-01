@@ -765,6 +765,19 @@ export default class GameScene extends Phaser.Scene {
     this.player.die();
     window.gameState.lives--;
 
+    // Show discreet controls hint on death
+    const { width, height } = this.cameras.main;
+    const hint = this.add.text(width / 2, height - 40, 'X = Jump    Z = Attack    XX = Super Jump', {
+      fontFamily: 'Arial', fontSize: '12px', color: '#888888'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(100).setAlpha(0);
+
+    this.tweens.add({
+      targets: hint, alpha: 0.8, duration: 500,
+      onComplete: () => {
+        this.tweens.add({ targets: hint, alpha: 0, delay: 1000, duration: 500, onComplete: () => hint.destroy() });
+      }
+    });
+
     if (window.gameState.lives <= 0) {
       this.time.delayedCall(2000, () => {
         window.gameState.lives = window.DIFFICULTY_SETTINGS[window.gameState.difficulty].lives;

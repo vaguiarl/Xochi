@@ -171,15 +171,22 @@ export default class MenuScene extends Phaser.Scene {
       });
 
     // New Game button
-    this.createButton(width / 2, 475, 200, 50, 0xdd5588, 0xcc4477, 0xee6699,
+    this.createButton(width / 2, 465, 200, 45, 0xdd5588, 0xcc4477, 0xee6699,
       'NEW GAME', () => {
         this.playSelectSound();
         window.resetGame();
         this.scene.start('GameScene', { level: 1 });
       });
 
+    // Controls button
+    this.createButton(width / 2, 515, 200, 40, 0x4466aa, 0x335599, 0x5577bb,
+      'CONTROLS', () => {
+        this.playSelectSound();
+        this.showControlsOverlay();
+      });
+
     // World Selection
-    this.add.text(width/2, 510, 'SELECT WORLD', {
+    this.add.text(width/2, 555, 'SELECT WORLD', {
       fontFamily: 'Arial Black', fontSize: '12px', color: '#aaaaaa'
     }).setOrigin(0.5);
 
@@ -197,7 +204,7 @@ export default class MenuScene extends Phaser.Scene {
 
     worldData.forEach((world, i) => {
       const x = worldStartX + i * wBtnSize;
-      const y = 540;
+      const y = 580;
       const isCurrent = window.getWorldForLevel(window.gameState.currentLevel) === world.num;
 
       const btnBg = this.add.rectangle(x, y, wBtnSize - 4, wBtnSize - 4, world.color);
@@ -215,7 +222,7 @@ export default class MenuScene extends Phaser.Scene {
       btnBg.on('pointerover', () => {
         btnBg.setScale(1.1);
         if (!this.worldTooltip) {
-          this.worldTooltip = this.add.text(width/2, 575, '', {
+          this.worldTooltip = this.add.text(width/2, height - 15, '', {
             fontFamily: 'Arial', fontSize: '11px', color: '#ffffff',
             backgroundColor: '#000000', padding: { x: 8, y: 4 }
           }).setOrigin(0.5).setDepth(100);
@@ -237,14 +244,6 @@ export default class MenuScene extends Phaser.Scene {
         this.scene.start('GameScene', { level: startLevel });
       });
     });
-
-    // Controls instructions
-    this.add.text(width/2, height - 25, 'WASD/Arrows = Move | SPACE = Run | X = Jump | Z = Attack', {
-      fontFamily: 'Arial', fontSize: '9px', color: '#555555'
-    }).setOrigin(0.5);
-    this.add.text(width/2, height - 10, 'Grab ledges by pressing toward them while falling!', {
-      fontFamily: 'Arial', fontSize: '9px', color: '#666666'
-    }).setOrigin(0.5);
 
     // Keyboard shortcut to start
     this.input.keyboard.on('keydown-X', () => {
@@ -292,5 +291,104 @@ export default class MenuScene extends Phaser.Scene {
       this.menuMusic = this.sound.add('music-menu', { loop: true, volume: 0.4 });
       this.menuMusic.play();
     }
+  }
+
+  showControlsOverlay() {
+    const { width, height } = this.cameras.main;
+
+    // Container for all overlay elements
+    const overlay = this.add.container(0, 0).setDepth(200);
+
+    // Dark background
+    const bg = this.add.rectangle(width/2, height/2, width, height, 0x000000, 0.9);
+    overlay.add(bg);
+
+    // Title
+    const title = this.add.text(width/2, 50, 'CONTROLS', {
+      fontFamily: 'Arial Black', fontSize: '32px', color: '#4ecdc4'
+    }).setOrigin(0.5);
+    overlay.add(title);
+
+    // Keyboard section
+    const keyboardTitle = this.add.text(width/2, 100, '-- KEYBOARD --', {
+      fontFamily: 'Arial Black', fontSize: '16px', color: '#ffcc66'
+    }).setOrigin(0.5);
+    overlay.add(keyboardTitle);
+
+    const keyControls = [
+      { key: 'Arrow Keys / WASD', action: 'Move left and right' },
+      { key: 'X', action: 'JUMP' },
+      { key: 'X + X (double tap)', action: 'SUPER JUMP (uses power-up)' },
+      { key: 'Z', action: 'Attack with mace' },
+      { key: 'SPACE (hold)', action: 'Run faster' },
+      { key: 'ESC', action: 'Pause game' }
+    ];
+
+    keyControls.forEach((ctrl, i) => {
+      const y = 135 + i * 28;
+      const keyText = this.add.text(width/2 - 140, y, ctrl.key, {
+        fontFamily: 'Arial Black', fontSize: '13px', color: '#ffffff'
+      });
+      const actionText = this.add.text(width/2 + 10, y, ctrl.action, {
+        fontFamily: 'Arial', fontSize: '13px', color: '#aaaaaa'
+      });
+      overlay.add([keyText, actionText]);
+    });
+
+    // Touch/Mobile section
+    const touchTitle = this.add.text(width/2, 320, '-- TOUCH / MOBILE --', {
+      fontFamily: 'Arial Black', fontSize: '16px', color: '#ff6b9d'
+    }).setOrigin(0.5);
+    overlay.add(touchTitle);
+
+    const touchControls = [
+      { key: 'Tap left side', action: 'Move left' },
+      { key: 'Tap right side', action: 'Move right' },
+      { key: 'Swipe up', action: 'JUMP' },
+      { key: 'Double swipe up', action: 'SUPER JUMP' },
+      { key: 'Tap center', action: 'Attack' },
+      { key: 'Hold while moving', action: 'Run faster' }
+    ];
+
+    touchControls.forEach((ctrl, i) => {
+      const y = 355 + i * 28;
+      const keyText = this.add.text(width/2 - 140, y, ctrl.key, {
+        fontFamily: 'Arial Black', fontSize: '13px', color: '#ffffff'
+      });
+      const actionText = this.add.text(width/2 + 10, y, ctrl.action, {
+        fontFamily: 'Arial', fontSize: '13px', color: '#aaaaaa'
+      });
+      overlay.add([keyText, actionText]);
+    });
+
+    // Tip
+    const tip = this.add.text(width/2, height - 70, 'TIP: Hold toward a wall while falling to grab ledges!', {
+      fontFamily: 'Arial', fontSize: '12px', color: '#66ddcc', fontStyle: 'italic'
+    }).setOrigin(0.5);
+    overlay.add(tip);
+
+    // Close button
+    const closeBg = this.add.rectangle(width/2, height - 30, 150, 35, 0x4ecdc4).setInteractive({ useHandCursor: true });
+    const closeText = this.add.text(width/2, height - 30, 'GOT IT!', {
+      fontFamily: 'Arial Black', fontSize: '16px', color: '#ffffff'
+    }).setOrigin(0.5);
+    overlay.add([closeBg, closeText]);
+
+    closeBg.on('pointerover', () => closeBg.setFillStyle(0x6eeede));
+    closeBg.on('pointerout', () => closeBg.setFillStyle(0x4ecdc4));
+    closeBg.on('pointerdown', () => {
+      this.playSelectSound();
+      overlay.destroy();
+    });
+
+    // Also close on ESC or X
+    const closeHandler = (event) => {
+      if (event.key === 'Escape' || event.key === 'x' || event.key === 'X') {
+        this.playSelectSound();
+        overlay.destroy();
+        this.input.keyboard.off('keydown', closeHandler);
+      }
+    };
+    this.input.keyboard.on('keydown', closeHandler);
   }
 }

@@ -12,20 +12,39 @@ export default class PauseScene extends Phaser.Scene {
     this.add.rectangle(0, 0, width, height, 0x000000, 0.7).setOrigin(0);
 
     // Pause title
-    this.add.text(width / 2, 150, 'PAUSED', {
+    this.add.text(width / 2, 100, 'PAUSED', {
       fontFamily: 'Arial Black',
       fontSize: '48px',
       color: '#4ecdc4'
     }).setOrigin(0.5);
 
+    // Controls section
+    this.add.text(width / 2, 155, 'CONTROLS', {
+      fontFamily: 'Arial Black',
+      fontSize: '14px',
+      color: '#888888'
+    }).setOrigin(0.5);
+
+    this.add.text(width / 2, 180, 'X = Jump    Z = Attack    XX = Super Jump', {
+      fontFamily: 'Arial Black',
+      fontSize: '13px',
+      color: '#ffffff'
+    }).setOrigin(0.5);
+
+    this.add.text(width / 2, 200, 'Arrows = Move    SPACE = Run    ESC = Pause', {
+      fontFamily: 'Arial',
+      fontSize: '11px',
+      color: '#aaaaaa'
+    }).setOrigin(0.5);
+
     // Resume button
-    this.createButton(width / 2, 280, 'RESUME', '#4ecdc4', () => {
+    this.createButton(width / 2, 250, 'RESUME', '#4ecdc4', () => {
       this.scene.resume('GameScene');
       this.scene.stop();
     });
 
     // Restart button
-    this.createButton(width / 2, 350, 'RESTART LEVEL', '#ffe66d', () => {
+    this.createButton(width / 2, 310, 'RESTART LEVEL', '#ffe66d', () => {
       this.scene.stop('GameScene');
       this.scene.stop('UIScene');
       this.scene.stop();
@@ -34,7 +53,7 @@ export default class PauseScene extends Phaser.Scene {
 
     // Music toggle
     const musicText = window.gameState.musicEnabled ? 'MUSIC: ON' : 'MUSIC: OFF';
-    this.musicBtn = this.createButton(width / 2, 420, musicText, '#ff6b9d', () => {
+    this.musicBtn = this.createButton(width / 2, 370, musicText, '#ff6b9d', () => {
       window.gameState.musicEnabled = !window.gameState.musicEnabled;
       this.musicBtn.getAt(1).setText(window.gameState.musicEnabled ? 'MUSIC: ON' : 'MUSIC: OFF');
 
@@ -51,13 +70,13 @@ export default class PauseScene extends Phaser.Scene {
 
     // SFX toggle
     const sfxText = window.gameState.sfxEnabled ? 'SFX: ON' : 'SFX: OFF';
-    this.sfxBtn = this.createButton(width / 2, 490, sfxText, '#ff6b9d', () => {
+    this.sfxBtn = this.createButton(width / 2, 430, sfxText, '#ff6b9d', () => {
       window.gameState.sfxEnabled = !window.gameState.sfxEnabled;
       this.sfxBtn.getAt(1).setText(window.gameState.sfxEnabled ? 'SFX: ON' : 'SFX: OFF');
     });
 
     // Quit button
-    this.createButton(width / 2, 560, 'QUIT TO MENU', '#ff6b6b', () => {
+    this.createButton(width / 2, 490, 'QUIT TO MENU', '#ff6b6b', () => {
       this.scene.stop('GameScene');
       this.scene.stop('UIScene');
       this.scene.stop();
