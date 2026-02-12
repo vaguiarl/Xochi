@@ -173,8 +173,8 @@ func _on_restart_pressed() -> void:
 	AudioManager.play_sfx("menu_select")
 	get_tree().paused = false
 
-	# Stop music
-	AudioManager.stop_music()
+	# Music keeps playing -- same world song loops uninterrupted through restarts.
+	# play_for_level() in game_scene will see it's the same track and skip.
 
 	# Reload current level
 	SceneManager.change_scene("res://scenes/game/game_scene.tscn")
