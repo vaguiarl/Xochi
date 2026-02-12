@@ -1,0 +1,16 @@
+# Godot
+.godot/
+*.import
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+*.swp
+
+# Node (xochi-web)
+node_modules/
+
+# Claude Code
+.claude/settings/
