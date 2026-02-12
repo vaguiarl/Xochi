@@ -52,17 +52,21 @@ const WORLD_TRACKS: Dictionary = {
 	6: "fiesta_de_xochi",     # Fiesta de Xochi (celebration!)
 }
 
-# SFX mapping
-var sfx_tracks: Dictionary = {
-	"jump": preload("res://assets/audio/sfx/jump_small.ogg"),
-	"jump_super": preload("res://assets/audio/sfx/jump_super.ogg"),
-	"land": preload("res://assets/audio/sfx/land_soft.ogg"),
-	"stomp": preload("res://assets/audio/sfx/stomp.ogg"),
-	"hurt": preload("res://assets/audio/sfx/hurt.ogg"),
-	"flower": preload("res://assets/audio/sfx/flower.ogg"),
-	"menu_select": preload("res://assets/audio/sfx/menu_select.ogg"),
-	"powerup": preload("res://assets/audio/sfx/powerup.ogg"),
+# SFX paths -- lazy-loaded like music to prevent autoload crashes when
+# the import cache is missing or stale.
+const SFX_PATHS: Dictionary = {
+	"jump": "res://assets/audio/sfx/jump_small.ogg",
+	"jump_super": "res://assets/audio/sfx/jump_super.ogg",
+	"land": "res://assets/audio/sfx/land_soft.ogg",
+	"stomp": "res://assets/audio/sfx/stomp.ogg",
+	"hurt": "res://assets/audio/sfx/hurt.ogg",
+	"flower": "res://assets/audio/sfx/flower.ogg",
+	"menu_select": "res://assets/audio/sfx/menu_select.ogg",
+	"powerup": "res://assets/audio/sfx/powerup.ogg",
 }
+
+# Loaded SFX streams (populated on first use).
+var sfx_tracks: Dictionary = {}
 
 
 func _ready() -> void:
@@ -163,20 +167,34 @@ func stop_music() -> void:
 # SFX PLAYBACK
 # =============================================================================
 
+func _load_sfx(key: String) -> AudioStream:
+	## Lazy-load an SFX track. Returns null if the file isn't imported yet.
+	if key in sfx_tracks:
+		return sfx_tracks[key]
+	if key not in SFX_PATHS:
+		return null
+	var stream = load(SFX_PATHS[key])
+	if stream:
+		sfx_tracks[key] = stream
+	return stream
+
+
 func play_sfx(sfx_key: String) -> void:
 	if not GameState.sfx_enabled:
 		return
-	if sfx_key not in sfx_tracks:
+
+	var stream := _load_sfx(sfx_key)
+	if stream == null:
 		return
 
 	for player in sfx_players:
 		if not player.playing:
-			player.stream = sfx_tracks[sfx_key]
+			player.stream = stream
 			player.play()
 			return
 
 	# All busy -- override the oldest sound.
-	sfx_players[0].stream = sfx_tracks[sfx_key]
+	sfx_players[0].stream = stream
 	sfx_players[0].play()
 
 
