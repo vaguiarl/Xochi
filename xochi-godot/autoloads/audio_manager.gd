@@ -44,7 +44,7 @@ var music_tracks: Dictionary = {}
 # Each world gets its own unique song. No overrides for boss/escape levels --
 # the world song plays through ALL levels in that world, uninterrupted.
 const WORLD_TRACKS: Dictionary = {
-	1: "music_gardens",       # Flowers of the Last Dawn
+	1: "music_menu",          # Traviesa Axolotla (same as menu -- the hit!)
 	2: "music_world3",        # World 3 track (temple ruins)
 	3: "music_upscroller",    # Upscroller intensity
 	4: "music_night",         # Xochimilco Moonwake

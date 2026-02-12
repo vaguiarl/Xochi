@@ -268,23 +268,90 @@ func _build_placeholder():
 	var visual := Node2D.new()
 	visual.name = "Sprite"
 
+	# Fluorescent alebrije colors -- impossible to miss!
 	var body := ColorRect.new()
 	body.size = Vector2(40.0, 45.0)
 	body.position = Vector2(-20.0, -22.5)
-	body.color = Color(0.8, 0.2, 0.6)
+	body.color = Color(1.0, 0.0, 1.0)  # Hot magenta
 	visual.add_child(body)
 
+	# Belly stripe
+	var belly := ColorRect.new()
+	belly.size = Vector2(30.0, 14.0)
+	belly.position = Vector2(-15.0, -6.0)
+	belly.color = Color(0.0, 1.0, 0.6)  # Neon green
+	visual.add_child(belly)
+
+	# Ears -- tall, neon
 	var ear_left := ColorRect.new()
-	ear_left.size = Vector2(6.0, 16.0)
-	ear_left.position = Vector2(-12.0, -38.0)
-	ear_left.color = Color(0.9, 0.3, 0.7)
+	ear_left.size = Vector2(8.0, 22.0)
+	ear_left.position = Vector2(-14.0, -44.0)
+	ear_left.color = Color(1.0, 1.0, 0.0)  # Neon yellow
 	visual.add_child(ear_left)
 
 	var ear_right := ColorRect.new()
-	ear_right.size = Vector2(6.0, 16.0)
-	ear_right.position = Vector2(6.0, -38.0)
-	ear_right.color = Color(0.9, 0.3, 0.7)
+	ear_right.size = Vector2(8.0, 22.0)
+	ear_right.position = Vector2(6.0, -44.0)
+	ear_right.color = Color(1.0, 1.0, 0.0)  # Neon yellow
 	visual.add_child(ear_right)
+
+	# Inner ear
+	var inner_left := ColorRect.new()
+	inner_left.size = Vector2(4.0, 14.0)
+	inner_left.position = Vector2(-12.0, -40.0)
+	inner_left.color = Color(1.0, 0.4, 0.0)  # Orange
+	visual.add_child(inner_left)
+
+	var inner_right := ColorRect.new()
+	inner_right.size = Vector2(4.0, 14.0)
+	inner_right.position = Vector2(8.0, -40.0)
+	inner_right.color = Color(1.0, 0.4, 0.0)  # Orange
+	visual.add_child(inner_right)
+
+	# Eyes -- big white with dark pupils
+	var eye_l := ColorRect.new()
+	eye_l.size = Vector2(10.0, 10.0)
+	eye_l.position = Vector2(-16.0, -18.0)
+	eye_l.color = Color.WHITE
+	visual.add_child(eye_l)
+
+	var pupil_l := ColorRect.new()
+	pupil_l.size = Vector2(5.0, 5.0)
+	pupil_l.position = Vector2(-13.0, -15.0)
+	pupil_l.color = Color.BLACK
+	visual.add_child(pupil_l)
+
+	var eye_r := ColorRect.new()
+	eye_r.size = Vector2(10.0, 10.0)
+	eye_r.position = Vector2(6.0, -18.0)
+	eye_r.color = Color.WHITE
+	visual.add_child(eye_r)
+
+	var pupil_r := ColorRect.new()
+	pupil_r.size = Vector2(5.0, 5.0)
+	pupil_r.position = Vector2(9.0, -15.0)
+	pupil_r.color = Color.BLACK
+	visual.add_child(pupil_r)
+
+	# Nose
+	var nose := ColorRect.new()
+	nose.size = Vector2(6.0, 4.0)
+	nose.position = Vector2(-3.0, -8.0)
+	nose.color = Color(1.0, 0.3, 0.5)
+	visual.add_child(nose)
+
+	# Feet
+	var foot_l := ColorRect.new()
+	foot_l.size = Vector2(12.0, 6.0)
+	foot_l.position = Vector2(-18.0, 18.0)
+	foot_l.color = Color(0.0, 1.0, 1.0)  # Cyan
+	visual.add_child(foot_l)
+
+	var foot_r := ColorRect.new()
+	foot_r.size = Vector2(12.0, 6.0)
+	foot_r.position = Vector2(6.0, 18.0)
+	foot_r.color = Color(0.0, 1.0, 1.0)  # Cyan
+	visual.add_child(foot_r)
 
 	_sprite = null
 	add_child(visual)
