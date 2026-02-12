@@ -1,5 +1,4 @@
 extends EnemyBase
-class_name Crowquistador
 ## Crowquistador enemy -- armored crow conquistador with Sword Knight personality!
 ##
 ## A Kirby Sword Knight-inspired flying swordsman. Rather than mindlessly

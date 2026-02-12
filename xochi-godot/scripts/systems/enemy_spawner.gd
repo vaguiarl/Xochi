@@ -103,21 +103,35 @@ static func spawn_enemies(level_data: Dictionary, enemies_node: Node2D):
 			enemies_node.add_child(ahuizotl)
 			continue
 
-		var enemy: EnemyBase
-
+		# --- Crowquistador: flying sword knight (skeletal rig) ---
+		# Loaded dynamically to prevent cascade failures.
 		if type == "flying":
-			enemy = Crowquistador.new()
-			enemy.position = Vector2(enemy_data.x, enemy_data.y)
-			enemy.setup({
+			var script = load("res://scripts/entities/crowquistador.gd")
+			if script == null:
+				push_warning("EnemySpawner: failed to load crowquistador.gd, skipping flying enemy")
+				continue
+			var crow = script.new()
+			crow.position = Vector2(enemy_data.x, enemy_data.y)
+			crow.setup({
 				"dir": enemy_data.get("dir", 1),
 				"speed": enemy_data.get("speed", 80),
 				"y": enemy_data.y,
 				"amplitude": enemy_data.get("amplitude", 40.0),
 				"level_width": level_data.get("width", 2000)
 			})
+			crow.add_to_group("enemies")
+			enemies_node.add_child(crow)
+			continue
 
-		elif type == "platform":
-			enemy = Gull.new()
+		# --- Gull: ground/platform patrol (procedural visual) ---
+		# Loaded dynamically to prevent cascade failures.
+		var gull_script = load("res://scripts/entities/gull.gd")
+		if gull_script == null:
+			push_warning("EnemySpawner: failed to load gull.gd, skipping enemy")
+			continue
+		var enemy = gull_script.new()
+
+		if type == "platform":
 			enemy.position = Vector2(enemy_data.x, enemy_data.y)
 			enemy.setup({
 				"type": "platform",
@@ -128,7 +142,6 @@ static func spawn_enemies(level_data: Dictionary, enemies_node: Node2D):
 
 		else:
 			# Default: ground gull
-			enemy = Gull.new()
 			enemy.position = Vector2(enemy_data.x, enemy_data.y)
 			enemy.setup({
 				"type": "ground",
