@@ -40,11 +40,11 @@ const KILL_SCORE: int = 50
 ## Duration of the death shrink animation (seconds).
 const DEATH_DURATION: float = 0.3
 
-## Target height in pixels for the sprite (source is ~997px).
+## Target height in pixels for the sprite (source is ~500px).
 const TARGET_HEIGHT: float = 50.0
 
 ## How far ahead of center the ledge detector probes (px).
-const LEDGE_PROBE_X: float = 22.0
+const LEDGE_PROBE_X: float = 28.0
 
 ## How far down the ledge detector probes (px). Must reach past the
 ## platform surface when standing on it.
@@ -364,7 +364,7 @@ func _build_placeholder():
 func _build_collision():
 	var collision := CollisionShape2D.new()
 	var shape := RectangleShape2D.new()
-	shape.size = Vector2(40.0, 45.0)
+	shape.size = Vector2(50.0, 45.0)
 	collision.shape = shape
 	add_child(collision)
 
@@ -431,7 +431,7 @@ func _build_hit_area():
 
 	var shape := CollisionShape2D.new()
 	var rect := RectangleShape2D.new()
-	rect.size = Vector2(44.0, 48.0)
+	rect.size = Vector2(54.0, 48.0)
 	shape.shape = rect
 	_hit_area.add_child(shape)
 	add_child(_hit_area)
