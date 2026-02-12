@@ -110,7 +110,7 @@ func _build_skeletal_rig():
 	add_child(rig)
 
 	# Scale to fit game proportions
-	var rig_scale: float = 0.10  # Larger for better visibility
+	var rig_scale: float = 0.05  # Half size for better gameplay proportion
 	rig.scale = Vector2(rig_scale, rig_scale)
 
 	# Build anatomically correct crow: head → body → wings → tail behind, legs below
@@ -192,7 +192,7 @@ func _build_skeletal_rig():
 	# --- Collision shape ---
 	var collision = CollisionShape2D.new()
 	var shape = RectangleShape2D.new()
-	shape.size = Vector2(35, 45)  # Slightly bigger collision
+	shape.size = Vector2(18, 22)  # Half size collision to match smaller rig
 	collision.shape = shape
 	add_child(collision)
 
