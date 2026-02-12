@@ -23,18 +23,22 @@ var _crossfade_player: AudioStreamPlayer = null
 var sfx_players: Array[AudioStreamPlayer] = []
 const SFX_POOL_SIZE: int = 4
 
-# Music tracks -- one per world + menu/credits
-var music_tracks: Dictionary = {
-	"music_menu": preload("res://assets/audio/music/music_menu.ogg"),
-	"music_gardens": preload("res://assets/audio/music/music_gardens.ogg"),
-	"music_world3": preload("res://assets/audio/music/music_world3.ogg"),
-	"music_upscroller": preload("res://assets/audio/music/music_upscroller.ogg"),
-	"music_night": preload("res://assets/audio/music/music_night.ogg"),
-	"music_boss": preload("res://assets/audio/music/music_boss.ogg"),
-	"fiesta_de_xochi": preload("res://assets/audio/music/fiesta_de_xochi.ogg"),
-	"music_fiesta": preload("res://assets/audio/music/music_fiesta.ogg"),
-	"music_finale": preload("res://assets/audio/music/music_finale.ogg"),
+# Music track paths -- loaded lazily at runtime so a missing import
+# file cannot crash the autoload and break the entire game.
+const MUSIC_PATHS: Dictionary = {
+	"music_menu": "res://assets/audio/music/music_menu.ogg",
+	"music_gardens": "res://assets/audio/music/music_gardens.ogg",
+	"music_world3": "res://assets/audio/music/music_world3.ogg",
+	"music_upscroller": "res://assets/audio/music/music_upscroller.ogg",
+	"music_night": "res://assets/audio/music/music_night.ogg",
+	"music_boss": "res://assets/audio/music/music_boss.ogg",
+	"fiesta_de_xochi": "res://assets/audio/music/fiesta_de_xochi.ogg",
+	"music_fiesta": "res://assets/audio/music/music_fiesta.ogg",
+	"music_finale": "res://assets/audio/music/music_finale.ogg",
 }
+
+# Loaded music streams (populated on first use).
+var music_tracks: Dictionary = {}
 
 # World → Track mapping
 # Each world gets its own unique song. No overrides for boss/escape levels --
@@ -81,6 +85,21 @@ func _ready() -> void:
 # MUSIC PLAYBACK
 # =============================================================================
 
+func _load_track(key: String) -> AudioStream:
+	## Lazy-load a music track. Returns null if the file doesn't exist yet
+	## (e.g. Godot hasn't imported it). This prevents autoload crashes.
+	if key in music_tracks:
+		return music_tracks[key]
+	if key not in MUSIC_PATHS:
+		return null
+	var stream = load(MUSIC_PATHS[key])
+	if stream:
+		music_tracks[key] = stream
+	else:
+		push_warning("AudioManager: could not load track '%s'" % key)
+	return stream
+
+
 func play_music(track_key: String) -> void:
 	if not GameState.music_enabled:
 		return
@@ -89,7 +108,8 @@ func play_music(track_key: String) -> void:
 	if is_playing and current_track == track_key:
 		return
 
-	if track_key not in music_tracks:
+	var stream := _load_track(track_key)
+	if stream == null:
 		return
 
 	if is_playing and current_music.playing:
@@ -102,7 +122,7 @@ func play_music(track_key: String) -> void:
 		fade_out.tween_property(_crossfade_player, "volume_db", -80.0, CROSSFADE_DURATION)
 		fade_out.tween_callback(_crossfade_player.stop)
 
-		current_music.stream = music_tracks[track_key]
+		current_music.stream = stream
 		current_music.volume_db = -80.0
 		current_music.play()
 
@@ -110,7 +130,7 @@ func play_music(track_key: String) -> void:
 		fade_in.tween_property(current_music, "volume_db", linear_to_db(0.4), CROSSFADE_DURATION)
 	else:
 		stop_music()
-		current_music.stream = music_tracks[track_key]
+		current_music.stream = stream
 		current_music.volume_db = linear_to_db(0.4)
 		current_music.play()
 
