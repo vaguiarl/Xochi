@@ -412,33 +412,26 @@ func _spawn_luchador_mask() -> void:
 	marker.set_meta("base_y", spawn_y)
 	marker.set_meta("bob_offset", randf() * TAU)
 
-	# Diamond body -- magenta/blue
-	var diamond := ColorRect.new()
-	diamond.size = Vector2(20.0, 20.0)
-	diamond.position = Vector2(-10.0, -10.0)
-	diamond.rotation = PI / 4.0
-	diamond.color = Color("0066ff")
-	marker.add_child(diamond)
-
-	# Inner mask shape -- white center
-	var center := ColorRect.new()
-	center.size = Vector2(10.0, 10.0)
-	center.position = Vector2(-5.0, -5.0)
-	center.color = Color("aaccff")
-	marker.add_child(center)
-
-	# Eye holes -- two small dark squares for the mask look
-	var left_eye := ColorRect.new()
-	left_eye.size = Vector2(3.0, 3.0)
-	left_eye.position = Vector2(-5.0, -3.0)
-	left_eye.color = Color("002244")
-	marker.add_child(left_eye)
-
-	var right_eye := ColorRect.new()
-	right_eye.size = Vector2(3.0, 3.0)
-	right_eye.position = Vector2(2.0, -3.0)
-	right_eye.color = Color("002244")
-	marker.add_child(right_eye)
+	# Golden star sprite for luchador mask
+	var tex = load("res://assets/sprites/collectibles/luchador_star.png")
+	if tex:
+		var sprite := Sprite2D.new()
+		sprite.texture = tex
+		sprite.centered = true
+		# Scale to ~34px tall
+		var s: float = 34.0 / tex.get_height()
+		sprite.scale = Vector2(s, s)
+		# Blue-gold tint for luchador identity
+		sprite.modulate = Color(0.7, 0.9, 1.3)
+		marker.add_child(sprite)
+	else:
+		# Fallback: blue diamond
+		var fb := ColorRect.new()
+		fb.size = Vector2(20.0, 20.0)
+		fb.position = Vector2(-10.0, -10.0)
+		fb.rotation = PI / 4.0
+		fb.color = Color("0066ff")
+		marker.add_child(fb)
 
 	collectibles_node.add_child(marker)
 	_luchador_spawned = true

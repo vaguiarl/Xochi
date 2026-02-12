@@ -1217,7 +1217,7 @@ func _create_collectibles() -> void:
 
 
 func _create_flower(data) -> void:
-	## Creates a cempasuchil flower (coin) -- bright orange marigold with petals.
+	## Creates a cempasuchil flower (coin) -- Mesoamerican gold coin sprite.
 
 	var pos := _parse_position(data)
 
@@ -1228,42 +1228,28 @@ func _create_flower(data) -> void:
 	marker.set_meta("base_y", pos.y)
 	marker.set_meta("bob_offset", randf() * TAU)
 
-	# Soft glow halo
-	var glow := ColorRect.new()
-	glow.size = Vector2(28.0, 28.0)
-	glow.position = Vector2(-14.0, -14.0)
-	glow.color = Color(1.0, 0.6, 0.0, 0.25)
-	marker.add_child(glow)
-
-	# Petals (4 rotated squares forming a flower shape)
-	for i in 4:
-		var petal := ColorRect.new()
-		petal.size = Vector2(10.0, 10.0)
-		petal.position = Vector2(-5.0, -12.0)
-		petal.pivot_offset = Vector2(5.0, 12.0)
-		petal.rotation = i * (TAU / 4.0)
-		petal.color = Color(1.0, 0.55 + randf() * 0.15, 0.0)
-		marker.add_child(petal)
-
-	# Center disc
-	var center := ColorRect.new()
-	center.size = Vector2(10.0, 10.0)
-	center.position = Vector2(-5.0, -5.0)
-	center.color = Color(1.0, 0.9, 0.3)
-	marker.add_child(center)
-
-	# Inner seed
-	var seed := ColorRect.new()
-	seed.size = Vector2(4.0, 4.0)
-	seed.position = Vector2(-2.0, -2.0)
-	seed.color = Color(0.8, 0.4, 0.0)
-	marker.add_child(seed)
+	var tex = load("res://assets/sprites/collectibles/flower.png")
+	if tex:
+		var sprite := Sprite2D.new()
+		sprite.texture = tex
+		sprite.centered = true
+		# Scale to ~28px tall for gameplay
+		var s: float = 28.0 / tex.get_height()
+		sprite.scale = Vector2(s, s)
+		marker.add_child(sprite)
+	else:
+		# Fallback: orange square
+		var fb := ColorRect.new()
+		fb.size = Vector2(20.0, 20.0)
+		fb.position = Vector2(-10.0, -10.0)
+		fb.color = Color(1.0, 0.6, 0.0)
+		marker.add_child(fb)
 
 	collectibles_node.add_child(marker)
 
 
 func _create_elote(data, index: int) -> void:
-	## Creates an elote (star) visual marker -- golden corn cob with husk.
+	## Creates an elote (star) visual marker -- golden corn basket sprite.
 
 	var pos := _parse_position(data)
 
@@ -1275,54 +1261,29 @@ func _create_elote(data, index: int) -> void:
 	marker.set_meta("base_y", pos.y)
 	marker.set_meta("bob_offset", randf() * TAU)
 
-	# Golden glow halo
-	var glow := ColorRect.new()
-	glow.size = Vector2(36.0, 36.0)
-	glow.position = Vector2(-18.0, -18.0)
-	glow.color = Color(1.0, 0.85, 0.0, 0.2)
-	marker.add_child(glow)
-
-	# Outer diamond (gold)
-	var diamond := ColorRect.new()
-	diamond.size = Vector2(22.0, 22.0)
-	diamond.position = Vector2(-11.0, -11.0)
-	diamond.rotation = PI / 4.0
-	diamond.color = Color("FFD700")
-	marker.add_child(diamond)
-
-	# Inner diamond (bright)
-	var inner := ColorRect.new()
-	inner.size = Vector2(12.0, 12.0)
-	inner.position = Vector2(-6.0, -6.0)
-	inner.rotation = PI / 4.0
-	inner.color = Color("FFEE66")
-	marker.add_child(inner)
-
-	# Core sparkle (white)
-	var core := ColorRect.new()
-	core.size = Vector2(6.0, 6.0)
-	core.position = Vector2(-3.0, -3.0)
-	core.color = Color.WHITE
-	marker.add_child(core)
-
-	# Sparkle arms (cross shape)
-	var h_arm := ColorRect.new()
-	h_arm.size = Vector2(18.0, 2.0)
-	h_arm.position = Vector2(-9.0, -1.0)
-	h_arm.color = Color(1.0, 1.0, 0.7, 0.6)
-	marker.add_child(h_arm)
-
-	var v_arm := ColorRect.new()
-	v_arm.size = Vector2(2.0, 18.0)
-	v_arm.position = Vector2(-1.0, -9.0)
-	v_arm.color = Color(1.0, 1.0, 0.7, 0.6)
-	marker.add_child(v_arm)
+	var tex = load("res://assets/sprites/collectibles/elote.png")
+	if tex:
+		var sprite := Sprite2D.new()
+		sprite.texture = tex
+		sprite.centered = true
+		# Scale to ~36px tall — elotes are bigger and rarer than flowers
+		var s: float = 36.0 / tex.get_height()
+		sprite.scale = Vector2(s, s)
+		marker.add_child(sprite)
+	else:
+		# Fallback: gold diamond
+		var fb := ColorRect.new()
+		fb.size = Vector2(24.0, 24.0)
+		fb.position = Vector2(-12.0, -12.0)
+		fb.rotation = PI / 4.0
+		fb.color = Color("FFD700")
+		marker.add_child(fb)
 
 	collectibles_node.add_child(marker)
 
 
 func _create_powerup(data) -> void:
-	## Creates a powerup visual marker -- glowing orb with pulsing ring.
+	## Creates a powerup visual marker -- rainbow mushroom sprite.
 
 	var pos := _parse_position(data)
 	var pu_type: String = "super_jump"
@@ -1337,56 +1298,29 @@ func _create_powerup(data) -> void:
 	marker.set_meta("base_y", pos.y)
 	marker.set_meta("bob_offset", randf() * TAU)
 
-	# Color based on powerup type
-	var pu_color := Color("00FFFF")  # Cyan default (super jump)
-	var glow_color := Color("00FFFF")
-	match pu_type:
-		"super_jump":
-			pu_color = Color("00FFFF")
-			glow_color = Color(0.0, 1.0, 1.0, 0.2)
-		"mace_attack":
-			pu_color = Color("FFD700")
-			glow_color = Color(1.0, 0.85, 0.0, 0.2)
-		"luchador":
-			pu_color = Color("FF44FF")
-			glow_color = Color(1.0, 0.3, 1.0, 0.2)
-
-	# Outer glow halo
-	var glow := ColorRect.new()
-	glow.size = Vector2(36.0, 36.0)
-	glow.position = Vector2(-18.0, -18.0)
-	glow.color = glow_color
-	marker.add_child(glow)
-
-	# Outer ring (rotated diamond)
-	var ring := ColorRect.new()
-	ring.size = Vector2(24.0, 24.0)
-	ring.position = Vector2(-12.0, -12.0)
-	ring.rotation = PI / 4.0
-	ring.color = pu_color
-	marker.add_child(ring)
-
-	# Inner fill (darker)
-	var inner := ColorRect.new()
-	inner.size = Vector2(16.0, 16.0)
-	inner.position = Vector2(-8.0, -8.0)
-	inner.rotation = PI / 4.0
-	inner.color = Color(pu_color, 0.6)
-	marker.add_child(inner)
-
-	# Bright core
-	var core := ColorRect.new()
-	core.size = Vector2(8.0, 8.0)
-	core.position = Vector2(-4.0, -4.0)
-	core.color = Color.WHITE
-	marker.add_child(core)
-
-	# Power symbol -- vertical bar
-	var bar := ColorRect.new()
-	bar.size = Vector2(2.0, 10.0)
-	bar.position = Vector2(-1.0, -5.0)
-	bar.color = pu_color
-	marker.add_child(bar)
+	var tex = load("res://assets/sprites/collectibles/powerup.png")
+	if tex:
+		var sprite := Sprite2D.new()
+		sprite.texture = tex
+		sprite.centered = true
+		# Scale to ~32px tall for gameplay
+		var s: float = 32.0 / tex.get_height()
+		sprite.scale = Vector2(s, s)
+		# Tint by powerup type for visual distinction
+		match pu_type:
+			"mace_attack":
+				sprite.modulate = Color(1.2, 1.0, 0.7)  # Warm gold tint
+			"luchador":
+				sprite.modulate = Color(1.2, 0.8, 1.2)  # Purple tint
+		marker.add_child(sprite)
+	else:
+		# Fallback: colored diamond
+		var fb := ColorRect.new()
+		fb.size = Vector2(24.0, 24.0)
+		fb.position = Vector2(-12.0, -12.0)
+		fb.rotation = PI / 4.0
+		fb.color = Color("00FFFF")
+		marker.add_child(fb)
 
 	collectibles_node.add_child(marker)
 
