@@ -97,12 +97,22 @@ const LUCHADOR_JUMP_MULT: float = 1.2
 # =============================================================================
 # PRELOADED TEXTURES
 # =============================================================================
-# Preload so we never hitch on a texture swap mid-gameplay.
+# Lazy-load textures on first use to prevent crashes on stale import cache.
 
-var _tex_walk: Texture2D = preload("res://assets/sprites/player/xochi_walk.png")
-var _tex_run: Texture2D = preload("res://assets/sprites/player/xochi_run.png")
-var _tex_jump: Texture2D = preload("res://assets/sprites/player/xochi_jump.png")
-var _tex_attack: Texture2D = preload("res://assets/sprites/player/xochi_attack.png")
+var _tex_walk: Texture2D = null
+var _tex_run: Texture2D = null
+var _tex_jump: Texture2D = null
+var _tex_attack: Texture2D = null
+
+func _ensure_textures() -> void:
+	if _tex_walk == null:
+		_tex_walk = load("res://assets/sprites/player/xochi_walk.png")
+	if _tex_run == null:
+		_tex_run = load("res://assets/sprites/player/xochi_run.png")
+	if _tex_jump == null:
+		_tex_jump = load("res://assets/sprites/player/xochi_jump.png")
+	if _tex_attack == null:
+		_tex_attack = load("res://assets/sprites/player/xochi_attack.png")
 
 
 # =============================================================================
@@ -175,6 +185,9 @@ var touch_input = null  # TouchInputManager assigned at runtime
 func _ready() -> void:
 	# Register in the "player" group so enemies and combat systems can find us.
 	add_to_group("player")
+
+	# Load textures lazily (prevents crashes when import cache is missing).
+	_ensure_textures()
 
 	# Start with walk texture and correct scale.
 	sprite.texture = _tex_walk

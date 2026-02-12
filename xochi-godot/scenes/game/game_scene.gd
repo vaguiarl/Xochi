@@ -103,13 +103,23 @@ const WATER_WAVE_SPEED: float = 1.5
 # PRELOADED ASSETS
 # =============================================================================
 
-## Beautiful DKC-style pre-rendered 3D trajinera sprites (green screen removed)
-const TRAJINERA_1: Texture2D = preload("res://assets/sprites/prerendered/environment/trajineras/trajinera_1.png")
-const TRAJINERA_2: Texture2D = preload("res://assets/sprites/prerendered/environment/trajineras/trajinera_2.png")
-const TRAJINERA_3: Texture2D = preload("res://assets/sprites/prerendered/environment/trajineras/trajinera_3.png")
+## Trajinera texture paths -- loaded lazily to prevent crashes on stale import cache.
+const TRAJINERA_PATHS: Array[String] = [
+	"res://assets/sprites/prerendered/environment/trajineras/trajinera_1.png",
+	"res://assets/sprites/prerendered/environment/trajineras/trajinera_2.png",
+	"res://assets/sprites/prerendered/environment/trajineras/trajinera_3.png",
+]
+var _trajinera_textures: Array = []
 
-## Array of all trajinera textures for random selection
-const TRAJINERA_TEXTURES: Array[Texture2D] = [TRAJINERA_1, TRAJINERA_2, TRAJINERA_3]
+func _get_trajinera_texture() -> Texture2D:
+	if _trajinera_textures.is_empty():
+		for p in TRAJINERA_PATHS:
+			var tex = load(p)
+			if tex:
+				_trajinera_textures.append(tex)
+	if _trajinera_textures.is_empty():
+		return null
+	return _trajinera_textures[randi() % _trajinera_textures.size()]
 
 
 # =============================================================================
@@ -173,7 +183,7 @@ var hud_level_name_label: Label
 # PRELOADED SCENES
 # =============================================================================
 
-var _player_scene: PackedScene = preload("res://scenes/game/player.tscn")
+var _player_scene: PackedScene = null
 
 
 # =============================================================================
@@ -935,9 +945,8 @@ func _create_trajinera(data: Dictionary) -> void:
 	shape.one_way_collision = true  # Allow jumping through from below!
 	body.add_child(shape)
 
-	# Use specific texture index if provided, otherwise random
-	var texture_idx: int = data.get("texture_idx", randi() % TRAJINERA_TEXTURES.size())
-	var sprite_texture: Texture2D = TRAJINERA_TEXTURES[texture_idx]
+	# Use a lazily loaded trajinera texture
+	var sprite_texture: Texture2D = _get_trajinera_texture()
 
 	if sprite_texture != null:
 		# Use the beautiful DKC-style pre-rendered 3D side-view sprite
@@ -1081,6 +1090,8 @@ func _spawn_player() -> void:
 	## The player scene (player.tscn) already includes the CharacterBody2D,
 	## Sprite2D, CollisionShape2D, and Camera2D.
 
+	if _player_scene == null:
+		_player_scene = load("res://scenes/game/player.tscn")
 	player = _player_scene.instantiate()
 	var spawn: Vector2 = Vector2(100.0, 400.0)
 
@@ -1341,7 +1352,7 @@ func _create_baby(data) -> void:
 
 	# Use the actual baby axolotl sprite!
 	var sprite := Sprite2D.new()
-	sprite.texture = preload("res://assets/sprites/collectibles/baby_axolotl.png")
+	sprite.texture = load("res://assets/sprites/collectibles/baby_axolotl.png")
 	sprite.scale = Vector2(0.07, 0.07)  # Half size of Xochi (she's 0.15)
 	marker.add_child(sprite)
 

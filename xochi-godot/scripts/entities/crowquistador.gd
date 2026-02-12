@@ -26,16 +26,30 @@ class_name Crowquistador
 # PRELOADED BODY PARTS
 # =============================================================================
 
-const PART_HEAD: Texture2D = preload("res://assets/sprites/prerendered/enemies/crowquistador_parts/head.png")
-const PART_BODY: Texture2D = preload("res://assets/sprites/prerendered/enemies/crowquistador_parts/body.png")
-const PART_WING_UP_LEFT: Texture2D = preload("res://assets/sprites/prerendered/enemies/crowquistador_parts/left_wing_up.png")
-const PART_WING_UP_RIGHT: Texture2D = preload("res://assets/sprites/prerendered/enemies/crowquistador_parts/right_wing_up.png")
-const PART_WING_DOWN_LEFT: Texture2D = preload("res://assets/sprites/prerendered/enemies/crowquistador_parts/left_wing_down.png")
-const PART_WING_DOWN_RIGHT: Texture2D = preload("res://assets/sprites/prerendered/enemies/crowquistador_parts/right_wing_down.png")
-const PART_TAIL: Texture2D = preload("res://assets/sprites/prerendered/enemies/crowquistador_parts/tail.png")
-const PART_LEG_LEFT: Texture2D = preload("res://assets/sprites/prerendered/enemies/crowquistador_parts/leg_left.png")
-const PART_LEG_RIGHT: Texture2D = preload("res://assets/sprites/prerendered/enemies/crowquistador_parts/leg_right.png")
-const PART_SWORD: Texture2D = preload("res://assets/sprites/prerendered/enemies/crowquistador_parts/sword.png")
+var PART_HEAD: Texture2D = null
+var PART_BODY: Texture2D = null
+var PART_WING_UP_LEFT: Texture2D = null
+var PART_WING_UP_RIGHT: Texture2D = null
+var PART_WING_DOWN_LEFT: Texture2D = null
+var PART_WING_DOWN_RIGHT: Texture2D = null
+var PART_TAIL: Texture2D = null
+var PART_LEG_LEFT: Texture2D = null
+var PART_LEG_RIGHT: Texture2D = null
+var PART_SWORD: Texture2D = null
+
+func _load_parts() -> void:
+	if PART_HEAD != null:
+		return
+	PART_HEAD = load("res://assets/sprites/prerendered/enemies/crowquistador_parts/head.png")
+	PART_BODY = load("res://assets/sprites/prerendered/enemies/crowquistador_parts/body.png")
+	PART_WING_UP_LEFT = load("res://assets/sprites/prerendered/enemies/crowquistador_parts/left_wing_up.png")
+	PART_WING_UP_RIGHT = load("res://assets/sprites/prerendered/enemies/crowquistador_parts/right_wing_up.png")
+	PART_WING_DOWN_LEFT = load("res://assets/sprites/prerendered/enemies/crowquistador_parts/left_wing_down.png")
+	PART_WING_DOWN_RIGHT = load("res://assets/sprites/prerendered/enemies/crowquistador_parts/right_wing_down.png")
+	PART_TAIL = load("res://assets/sprites/prerendered/enemies/crowquistador_parts/tail.png")
+	PART_LEG_LEFT = load("res://assets/sprites/prerendered/enemies/crowquistador_parts/leg_left.png")
+	PART_LEG_RIGHT = load("res://assets/sprites/prerendered/enemies/crowquistador_parts/leg_right.png")
+	PART_SWORD = load("res://assets/sprites/prerendered/enemies/crowquistador_parts/sword.png")
 
 
 # =============================================================================
@@ -84,6 +98,7 @@ func _ready():
 	super._ready()
 	# Flying enemies ignore gravity
 	gravity = 0.0
+	_load_parts()
 	_build_skeletal_rig()
 
 

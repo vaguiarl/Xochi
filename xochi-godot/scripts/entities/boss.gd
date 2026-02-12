@@ -102,7 +102,7 @@ const COLOR_MAGENTA: Color = Color(0.8, 0.0, 0.6)
 # =============================================================================
 ## Uses the player's walk sprite -- Dark Xochi IS the player's shadow.
 
-var _tex_walk: Texture2D = preload("res://assets/sprites/player/xochi_walk.png")
+var _tex_walk: Texture2D = null
 
 
 # =============================================================================
@@ -228,6 +228,8 @@ func _ready() -> void:
 	# -- Sprite2D child --
 	sprite = Sprite2D.new()
 	sprite.name = "Sprite2D"
+	if _tex_walk == null:
+		_tex_walk = load("res://assets/sprites/player/xochi_walk.png")
 	sprite.texture = _tex_walk
 	sprite.scale = Vector2(BASE_SCALE, BASE_SCALE)
 	add_child(sprite)

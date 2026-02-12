@@ -186,13 +186,18 @@ func _create_ui() -> void:
 	glow_tween.parallel().tween_property(glow, "modulate:a", 0.3, 1.0)
 
 	# Xochi warrior sprite (replacing cyan placeholder)
-	var xochi_texture := load("res://assets/sprites/player/big_xochi_idle_small.png") as Texture2D
+	var xochi_texture = load("res://assets/sprites/player/big_xochi_idle_small.png")
 	xochi_preview = Sprite2D.new()
-	xochi_preview.texture = xochi_texture
-	# Scale to fit ~60px preview area (source is 604x320)
-	var sprite_scale := (60.0 * ui_scale) / xochi_texture.get_height()
-	xochi_preview.scale = Vector2(sprite_scale, sprite_scale)
 	xochi_preview.position = Vector2(center_x, preview_y)
+	var sprite_scale := 0.1  # Safe default
+	if xochi_texture:
+		xochi_preview.texture = xochi_texture
+		# Scale to fit ~60px preview area (source is 604x320)
+		sprite_scale = (60.0 * ui_scale) / xochi_texture.get_height()
+		xochi_preview.scale = Vector2(sprite_scale, sprite_scale)
+	else:
+		push_warning("Menu: warrior sprite not loaded, using placeholder")
+		xochi_preview.scale = Vector2(sprite_scale, sprite_scale)
 	add_child(xochi_preview)
 
 	# Bobbing animation
