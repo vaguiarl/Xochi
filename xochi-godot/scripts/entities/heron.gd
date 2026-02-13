@@ -1,5 +1,4 @@
 extends EnemyBase
-class_name Heron
 ## Heron enemy -- flies vertically, patrols horizontally, SHOOTS at the player!
 ##
 ## Exact port from original game.js lines 7006-7039.

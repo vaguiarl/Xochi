@@ -1,5 +1,4 @@
 extends CharacterBody2D
-class_name Ahuizotl
 ## Ahuizotl -- Aztec water monster that patrols at the water surface in
 ## upscroller levels.
 ##

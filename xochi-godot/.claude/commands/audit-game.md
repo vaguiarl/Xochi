@@ -7,10 +7,12 @@ $ARGUMENTS
 
 ## Audit Checklist
 
-### 1. Parse Safety
+### 1. Parse Safety & Cascade Prevention
 - Read every .gd file and check for obvious syntax issues
-- Verify all `class_name` declarations match their file names
+- **CRITICAL**: Verify NO dynamically-loaded entity has `class_name` (gull, heron, crowquistador, rabbitbrije, calaca, ahuizotl, jaguar_warrior). Only EnemyBase, Player, DarkXochi, and system scripts may have class_name.
+- Verify `.godot/global_script_class_cache.cfg` has no stale entries for removed class_names
 - Check that all `preload()`/`load()` paths point to existing files
+- Verify ZERO `preload()` calls exist anywhere (all must be lazy `load()`)
 - Verify no circular dependencies between scripts
 
 ### 2. Signal Wiring

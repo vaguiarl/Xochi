@@ -18,21 +18,38 @@ class_name EnemySpawner
 
 
 # =============================================================================
+# HELPERS
+# =============================================================================
+
+## Safely load and validate a GDScript. Returns null if the script cannot be
+## loaded OR cannot be instantiated (e.g. parse error). This prevents a broken
+## script from crashing the entire spawner loop.
+static func _safe_load(path: String) -> GDScript:
+	var script = load(path)
+	if script == null:
+		push_warning("EnemySpawner: failed to load %s" % path)
+		return null
+	if not script.can_instantiate():
+		push_warning("EnemySpawner: %s has errors, skipping" % path)
+		return null
+	return script
+
+
+# =============================================================================
 # SPAWN ENTRY POINT
 # =============================================================================
 
 ## Parse the "enemies" array from level_data and instantiate each enemy
 ## as a child of enemies_node.
 static func spawn_enemies(level_data: Dictionary, enemies_node: Node2D):
-	for enemy_data in level_data.get("enemies", []):
+	var enemies_array = level_data.get("enemies", [])
+	for enemy_data in enemies_array:
 		var type = enemy_data.get("type", "ground")
 
 		# --- Jaguar Warriors are standalone CharacterBody2D (not EnemyBase) ---
-		# Loaded dynamically to prevent cascade failures.
 		if type == "jaguar":
-			var script = load("res://scripts/entities/jaguar_warrior.gd")
+			var script = _safe_load("res://scripts/entities/jaguar_warrior.gd")
 			if script == null:
-				push_warning("EnemySpawner: failed to load jaguar_warrior.gd, skipping jaguar enemy")
 				continue
 			var jaguar: CharacterBody2D = script.new()
 			jaguar.position = Vector2(enemy_data.x, enemy_data.y)
@@ -46,11 +63,9 @@ static func spawn_enemies(level_data: Dictionary, enemies_node: Node2D):
 			continue
 
 		# --- Rabbitbrije: basic goomba ground patrol (PNG sprite) ---
-		# Loaded dynamically to prevent cascade failures.
 		if type == "rabbit":
-			var script = load("res://scripts/entities/rabbitbrije.gd")
+			var script = _safe_load("res://scripts/entities/rabbitbrije.gd")
 			if script == null:
-				push_warning("EnemySpawner: failed to load rabbitbrije.gd, skipping rabbit enemy")
 				continue
 			var rabbit: CharacterBody2D = script.new()
 			rabbit.position = Vector2(enemy_data.x, enemy_data.y)
@@ -64,11 +79,9 @@ static func spawn_enemies(level_data: Dictionary, enemies_node: Node2D):
 			continue
 
 		# --- Calaca: floating sugar skull (PNG sprite) ---
-		# Loaded dynamically to prevent cascade failures.
 		if type == "calaca":
-			var script = load("res://scripts/entities/calaca.gd")
+			var script = _safe_load("res://scripts/entities/calaca.gd")
 			if script == null:
-				push_warning("EnemySpawner: failed to load calaca.gd, skipping calaca enemy")
 				continue
 			var calaca: CharacterBody2D = script.new()
 			calaca.position = Vector2(enemy_data.x, enemy_data.y)
@@ -84,12 +97,9 @@ static func spawn_enemies(level_data: Dictionary, enemies_node: Node2D):
 			continue
 
 		# --- Water enemies (Ahuizotl) are a separate class hierarchy ---
-		# Loaded dynamically so a parse error in ahuizotl.gd only breaks
-		# water enemies, not the entire spawner (which would hide ALL enemies).
 		if type == "water":
-			var script = load("res://scripts/entities/ahuizotl.gd")
+			var script = _safe_load("res://scripts/entities/ahuizotl.gd")
 			if script == null:
-				push_warning("EnemySpawner: failed to load ahuizotl.gd, skipping water enemy")
 				continue
 			var ahuizotl: CharacterBody2D = script.new()
 			ahuizotl.position = Vector2(enemy_data.x, enemy_data.y)
@@ -104,11 +114,9 @@ static func spawn_enemies(level_data: Dictionary, enemies_node: Node2D):
 			continue
 
 		# --- Crowquistador: flying sword knight (skeletal rig) ---
-		# Loaded dynamically to prevent cascade failures.
 		if type == "flying":
-			var script = load("res://scripts/entities/crowquistador.gd")
+			var script = _safe_load("res://scripts/entities/crowquistador.gd")
 			if script == null:
-				push_warning("EnemySpawner: failed to load crowquistador.gd, skipping flying enemy")
 				continue
 			var crow = script.new()
 			crow.position = Vector2(enemy_data.x, enemy_data.y)
@@ -124,10 +132,8 @@ static func spawn_enemies(level_data: Dictionary, enemies_node: Node2D):
 			continue
 
 		# --- Gull: ground/platform patrol (procedural visual) ---
-		# Loaded dynamically to prevent cascade failures.
-		var gull_script = load("res://scripts/entities/gull.gd")
+		var gull_script = _safe_load("res://scripts/entities/gull.gd")
 		if gull_script == null:
-			push_warning("EnemySpawner: failed to load gull.gd, skipping enemy")
 			continue
 		var enemy = gull_script.new()
 
@@ -149,7 +155,6 @@ static func spawn_enemies(level_data: Dictionary, enemies_node: Node2D):
 			})
 
 		# --- Procedural placeholder visuals (only for gull enemies) ---
-		# Flying/water/jaguar enemies create their own visual rigs
 		if type != "flying":
 			var visual = Node2D.new()
 			visual.name = "Visual"

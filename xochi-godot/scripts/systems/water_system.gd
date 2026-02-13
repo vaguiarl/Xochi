@@ -275,7 +275,7 @@ func _update_visuals() -> void:
 	var screen_h: float = viewport_size.y
 
 	# Camera center in world space
-	var cam_center: Vector2 = camera.get_screen_center_of_mass()
+	var cam_center: Vector2 = camera.get_screen_center_position()
 	var zoom: Vector2 = camera.zoom
 
 	# Camera top edge in world space

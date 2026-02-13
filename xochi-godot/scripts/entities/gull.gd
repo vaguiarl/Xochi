@@ -1,5 +1,4 @@
 extends EnemyBase
-class_name Gull
 ## Seagull enemy -- walks back and forth on ground or platforms.
 ##
 ## Exact port from original game.js lines 7001-7072.

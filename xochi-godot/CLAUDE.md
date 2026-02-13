@@ -25,7 +25,10 @@ assets/           - sprites/, audio/music/, audio/sfx/, fonts/
 ## Key Patterns
 - Systems follow: setup(scene, player, enemies), _physics_process(delta), destroy
 - Enemy combat uses duck typing: `has_method("hit_by_stomp")` and `.get("alive")`
-- Non-EnemyBase enemies (Ahuizotl) must be dynamically loaded in EnemySpawner
+- **ALL enemies** must be dynamically loaded in EnemySpawner via `load()` + null check + `continue`
+- **NEVER** use `class_name` on enemy entity scripts — only EnemyBase, Player, DarkXochi, and system scripts may have class_name
+- **NEVER** use `preload()` anywhere — all resource loading must use runtime `load()`
+- Delete `.godot/global_script_class_cache.cfg` after removing class_name from any script
 - Level routing: `LevelData.get_level_data(level_num)` handles static vs generated levels
 - Levels 1-6 static, 7+9 escape generator, 8 upscroller generator, 10 boss arena, 11 fiesta
 - Music per world (not per level) — AudioManager checks `current_track` to avoid restarts
@@ -38,8 +41,8 @@ assets/           - sprites/, audio/music/, audio/sfx/, fonts/
 - **Soul first, polish second**: Get game feel right before visual effects
 
 ## Gotchas
-- Player constructor calls `scene.physics.add.existing(this)` — don't double-add
-- Static class_name references cascade failures: if Ahuizotl.gd fails, EnemySpawner breaks ALL enemies. Use dynamic `load()` for non-core entities.
+- **class_name cascade**: `.godot/global_script_class_cache.cfg` caches class_names. If a stale entry points to a script that no longer declares class_name, Godot cascades ALL enemies. Fix: delete the cache file.
+- Camera2D: use `get_screen_center_position()` NOT `get_screen_center_of_mass()` (doesn't exist in Godot 4)
 - PauseScene references `gameScene.musicManager.currentMusic` for pause/resume
 - Crowquistador/Heron boundary fix: check direction before reversing (not `dir *= -1`)
 - Water starts at `level_height - 20` not `+ 50` to be visible from the start

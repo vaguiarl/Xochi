@@ -1,5 +1,4 @@
 extends CharacterBody2D
-class_name JaguarWarrior
 ## Jaguar Warrior (Ocelotl) -- elite Aztec ground enemy with 4-state AI.
 ##
 ## The Ocelotl is an Aztec Jaguar Knight: a fearsome warrior draped in jaguar

@@ -153,7 +153,7 @@ var afterimage_timer: float = 0.0
 var spin_rotation: float = 0.0
 
 ## Cached reference to the player (refreshed each frame)
-var _player_ref: Node = null
+var _player_ref: Node2D = null
 
 ## Sword rest position in rig-local coords (set during rig build)
 var sword_rest_pos: Vector2 = Vector2(120, 200)
@@ -195,7 +195,7 @@ func _build_skeletal_rig():
 	add_child(rig)
 
 	# Scale to fit game proportions
-	var rig_scale: float = 0.05  # Half size for better gameplay proportion
+	var rig_scale: float = 0.10  # Original size
 	rig.scale = Vector2(rig_scale, rig_scale)
 
 	# Build anatomically correct crow: head -> body -> wings -> tail behind, legs below
@@ -277,7 +277,7 @@ func _build_skeletal_rig():
 	# --- Collision shape ---
 	var collision = CollisionShape2D.new()
 	var shape = RectangleShape2D.new()
-	shape.size = Vector2(18, 22)  # Half size collision to match smaller rig
+	shape.size = Vector2(35, 45)  # Original collision size
 	collision.shape = shape
 	add_child(collision)
 
@@ -611,7 +611,7 @@ func _should_parry() -> bool:
 	if _player_ref.get("alive") == false:
 		return false
 
-	var dx := abs(_player_ref.global_position.x - global_position.x)
+	var dx := absf(_player_ref.global_position.x - global_position.x)
 	var dy := global_position.y - _player_ref.global_position.y  # positive = player above
 
 	# Player must be above within the vertical window
@@ -921,8 +921,8 @@ func _spawn_afterimage() -> void:
 # =============================================================================
 
 ## Find the player node via group lookup.
-func _find_player() -> Node:
+func _find_player() -> Node2D:
 	var players = get_tree().get_nodes_in_group("player")
 	if players.size() > 0:
-		return players[0]
+		return players[0] as Node2D
 	return null
