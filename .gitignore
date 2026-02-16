@@ -1,0 +1,14 @@
+# Local backup of old game versions (not tracked)
+old-game-backup/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Godot build artifacts
+*.import
+.godot/
+
+# Editor
+.claude/
+.clawhub/

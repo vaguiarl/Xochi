@@ -1,76 +1,21 @@
-# Xochi - Side Scroller Game
+# Xochi - Aztec Warrior Adventure
 
-A Mario-style side-scrolling platformer featuring Xochi the axolotl as the main character.
+A 2D platformer inspired by Donkey Kong Country, set in Mesoamerican mythology. Play as Xochi, an Aztec warrior navigating through 11 levels across 6 worlds of Xochimilco's canals, fighting enemies, collecting cempasuchil flowers, and rescuing baby axolotls.
 
-## Quick Start
+## Play
 
-### Easy Installation (Recommended)
+This branch serves the web build via GitHub Pages.
 
-**On macOS/Linux:**
-```bash
-./run.sh
-```
+**Source code** is on the [`xochi-2.0`](https://github.com/vaguiarl/Xochi/tree/xochi-2.0) branch (`xochi-godot/`).
 
-**On Windows:**
-```bash
-run.bat
-```
+## Tech
 
-The script will automatically install dependencies if needed.
+- Godot 4 with GDScript
+- Celeste-inspired physics (apex hang time, asymmetric gravity, corner correction)
+- Skeletal enemy rigs with AI state machines
+- 6 worlds, 11 handcrafted levels, 2 boss fights
 
-### Manual Installation
+## Old Versions
 
-1. Ensure you have Python 3.9+ installed
-2. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. Run the game:
-   ```bash
-   python main.py
-   ```
-
-## Controls
-
-- **Arrow Keys** or **H/L**: Move left/right
-- **Space** or **Up Arrow** or **K**: Jump
-- **Left Shift**: Run boost
-- **Escape** or **F5**: Pause game
-- **Right Click**: Add enemies (debug feature)
-- **Left Click**: Add coins (debug feature)
-
-## Features
-
-- Classic Mario-style gameplay
-- Play as Xochi the axolotl
-- Collect coins and mushrooms
-- Power-up transformations
-- Multiple levels
-- Enemies: Goombas and Koopas
-
-## Project Structure
-
-```
-Xochi/
-├── classes/       # Core game systems (Sprites, Level, Camera, etc.)
-├── entities/      # Game entities (Player, Enemies, Items)
-├── sprites/       # Sprite definitions (JSON)
-├── levels/        # Level data (JSON)
-├── img/          # Sprite sheets and images
-├── sfx/          # Sound effects
-└── main.py       # Entry point
-```
-
-## Version 0.1 Notes
-
-This is a sprite-swap version. Only the player character has been replaced with Xochi sprites. All gameplay mechanics and other sprites remain from the original template.
-
-## Requirements
-
-- Python 3.9+
-- pygame
-- scipy
-- numpy
-
-All dependencies are automatically installed when using `run.sh` or `run.bat`
+- **Original Phaser 3 web version**: git tag `old-phaser-web-backup`
+- **Local backup**: `old-game-backup/` (gitignored)
