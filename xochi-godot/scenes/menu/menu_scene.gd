@@ -185,15 +185,15 @@ func _create_ui() -> void:
 	glow_tween.tween_property(glow, "scale", Vector2.ONE, 1.0)
 	glow_tween.parallel().tween_property(glow, "modulate:a", 0.3, 1.0)
 
-	# Xochi warrior sprite (replacing cyan placeholder)
-	var xochi_texture = load("res://assets/sprites/player/big_xochi_idle_small.png")
+	# Xochi warrior sprite
+	var xochi_texture = load("res://assets/sprites/player/xochi_walk.png")
 	xochi_preview = Sprite2D.new()
 	xochi_preview.position = Vector2(center_x, preview_y)
-	var sprite_scale := 0.1  # Safe default
+	var sprite_scale := 0.18 * ui_scale  # Safe default
 	if xochi_texture:
 		xochi_preview.texture = xochi_texture
-		# Scale to fit ~60px preview area (source is 604x320)
-		sprite_scale = (60.0 * ui_scale) / xochi_texture.get_height()
+		# Scale warrior to fit ~85px preview area (source is 427x475)
+		sprite_scale = (85.0 * ui_scale) / xochi_texture.get_height()
 		xochi_preview.scale = Vector2(sprite_scale, sprite_scale)
 	else:
 		push_warning("Menu: warrior sprite not loaded, using placeholder")

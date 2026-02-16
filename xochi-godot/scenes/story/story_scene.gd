@@ -62,7 +62,7 @@ func _create_ui() -> void:
 
 	# Continue instruction
 	continue_text = Label.new()
-	continue_text.text = "Click or Press Space to Continue"
+	continue_text.text = "Tap or Press Space to Continue"
 	continue_text.add_theme_font_size_override("font_size", int(16 * ui_scale))
 	continue_text.add_theme_color_override("font_color", Color("888888"))
 	continue_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -388,6 +388,6 @@ func _finish_story() -> void:
 
 
 func _input(event: InputEvent) -> void:
-	# Advance on click or space
-	if event.is_action_pressed("ui_accept") or (event is InputEventMouseButton and event.pressed):
+	# Advance on click, tap, or space
+	if event.is_action_pressed("ui_accept") or (event is InputEventMouseButton and event.pressed) or (event is InputEventScreenTouch and event.pressed):
 		_next_slide()

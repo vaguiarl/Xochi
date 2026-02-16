@@ -1202,7 +1202,7 @@ static func _level_10_data() -> Dictionary:
 	return {
 		"width": 1400.0,
 		"height": 900.0,
-		"player_spawn": Vector2(100, 800),
+		"player_spawn": Vector2(140, 690),
 		"baby_position": Vector2(1200, 320),
 		"water_y": 780.0,  # WATER WORLD: water visible at arena edges, laps at floor
 

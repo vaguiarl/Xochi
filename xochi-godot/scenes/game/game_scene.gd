@@ -258,10 +258,17 @@ func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("pause_game"):
 		_toggle_pause()
 
-	# ANY key = INSTANT restart when dead (X, Z, Space, Enter, arrow keys...)
+	# ANY key or tap = INSTANT restart when dead
 	# DEBOUNCE: Only allow one restart press to prevent queue-ups
 	if player != null and player.is_dead and not restart_in_progress:
+		var should_restart := false
 		if event is InputEventKey and event.pressed and not event.echo:
+			should_restart = true
+		elif event is InputEventScreenTouch and event.pressed:
+			should_restart = true
+		elif event is InputEventMouseButton and event.pressed:
+			should_restart = true
+		if should_restart:
 			restart_in_progress = true  # Prevent double-press
 			# Reset lives if game over (xochi 1.0 style - always can retry!)
 			if GameState.lives <= 0:
@@ -1857,11 +1864,13 @@ func _setup_boss() -> void:
 		return
 
 	# Spawn position: 300 px right of the player spawn, 100 px up
-	var ps: Dictionary = level_data.get("player_spawn", {"x": 100, "y": 400})
-	var spawn_pos: Vector2 = Vector2(
-		ps.get("x", 100) + 300,
-		ps.get("y", 400) - 100
-	)
+	var spawn_data = level_data.get("player_spawn", null)
+	var ps: Vector2 = Vector2(100, 400)
+	if spawn_data is Vector2:
+		ps = spawn_data
+	elif spawn_data is Dictionary:
+		ps = Vector2(spawn_data.get("x", 100), spawn_data.get("y", 400))
+	var spawn_pos: Vector2 = Vector2(ps.x + 300, ps.y - 100)
 
 	boss = DarkXochi.new()
 	boss.name = "DarkXochi"
@@ -2104,6 +2113,18 @@ func _show_game_over_text() -> void:
 	# Add to HUD layer
 	if hud_layer:
 		hud_layer.add_child(retry_label)
+
+	# Instruction text below
+	var hint_label := Label.new()
+	hint_label.text = "Tap or press any key"
+	hint_label.add_theme_font_size_override("font_size", 20)
+	hint_label.add_theme_color_override("font_color", Color("aaaaaa"))
+	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint_label.position = Vector2(viewport_size.x * 0.5 - 200.0, viewport_size.y * 0.45 + 70.0)
+	hint_label.size = Vector2(400.0, 40.0)
+	hint_label.z_index = 100
+	if hud_layer:
+		hud_layer.add_child(hint_label)
 
 	# Pulse animation
 	var tween := create_tween()
