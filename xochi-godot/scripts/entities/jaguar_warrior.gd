@@ -232,9 +232,12 @@ func _state_patrol(_delta: float):
 	# Horizontal movement at patrol speed.
 	velocity.x = speed * dir
 
-	# Reverse at walls.
+	# Reverse at walls (directional check prevents jitter).
 	if is_on_wall():
-		dir *= -1
+		if dir > 0:
+			dir = -1
+		elif dir < 0:
+			dir = 1
 
 	# Reverse at level boundaries.
 	if position.x < EDGE_MARGIN and dir < 0:

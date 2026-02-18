@@ -282,6 +282,8 @@ func _exit_tree() -> void:
 		Events.player_died.disconnect(_on_player_died)
 	if Events.level_completed.is_connected(_on_level_completed_signal):
 		Events.level_completed.disconnect(_on_level_completed_signal)
+	if Events.game_paused.is_connected(_toggle_pause):
+		Events.game_paused.disconnect(_toggle_pause)
 	if Events.boss_defeated.is_connected(_on_boss_defeated):
 		Events.boss_defeated.disconnect(_on_boss_defeated)
 
@@ -625,6 +627,10 @@ func _create_platform(data: Dictionary) -> void:
 	var rect := RectangleShape2D.new()
 	rect.size = Vector2(plat_w, plat_h)
 	shape.shape = rect
+	# Upscroller levels: one-way platforms so Xochi can jump through from below
+	# (simulates 3D jump — same behavior as trajineras)
+	if level_data.get("is_upscroller", false):
+		shape.one_way_collision = true
 	body.add_child(shape)
 
 	# --- World tint setup (shared by all platform types) ---

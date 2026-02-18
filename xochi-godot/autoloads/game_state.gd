@@ -127,14 +127,14 @@ var WORLDS: Dictionary = {
 func get_world_for_level(level_num: int) -> int:
 	if level_num <= 2: return 1
 	if level_num <= 4: return 2
-	if level_num <= 6: return 3
-	if level_num <= 8: return 4
-	if level_num <= 10: return 5
+	if level_num == 5: return 3
+	if level_num <= 7: return 4
+	if level_num <= 9: return 5
 	return 6
 
 
 func is_first_level_of_world(level_num: int) -> bool:
-	return level_num in [1, 3, 5, 7, 9, 11]
+	return level_num in [1, 3, 5, 6, 8, 10]
 
 
 func get_first_level_of_world(world_num: int) -> int:
@@ -142,9 +142,9 @@ func get_first_level_of_world(world_num: int) -> int:
 		1: return 1
 		2: return 3
 		3: return 5
-		4: return 7
-		5: return 9
-		6: return 11
+		4: return 6
+		5: return 8
+		6: return 10
 		_: return 1
 
 

@@ -116,14 +116,16 @@ func _physics_process(delta: float):
 	velocity.x = speed * dir
 
 	# --- Reversal checks (priority: ledge > wall > boundary) ---
+	# Uses elif so ledge + wall can't both fire in the same frame
+	# (which would reverse dir twice, canceling out).
 
 	# Ledge detection: reverse BEFORE walking off the platform edge.
 	if is_on_floor() and _ledge_ray and not _ledge_ray.is_colliding():
 		dir *= -1
 		_sync_ledge_ray()
 
-	# Reverse at walls.
-	if is_on_wall():
+	# Reverse at walls (only if ledge didn't already reverse).
+	elif is_on_wall():
 		dir *= -1
 		_sync_ledge_ray()
 

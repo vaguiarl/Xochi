@@ -430,7 +430,7 @@ func _check_too_deep() -> void:
 
 	if player.global_position.y > water_y + TOO_DEEP_THRESHOLD:
 		_show_too_deep_text()
-		player.hit(999)  # Instant death
+		player.die()
 
 
 # =============================================================================

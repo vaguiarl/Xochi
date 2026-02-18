@@ -68,15 +68,21 @@ func _physics_process(delta):
 		elif position.x >= platform_right:
 			dir = -1
 
-		# Also reverse at walls
+		# Also reverse at walls (directional check prevents jitter)
 		if is_on_wall():
-			dir *= -1
+			if dir > 0:
+				dir = -1
+			elif dir < 0:
+				dir = 1
 
 		velocity.x = speed * dir
 	else:
-		# Ground enemy: reverse at walls
+		# Ground enemy: reverse at walls (directional check prevents jitter)
 		if is_on_wall():
-			dir *= -1
+			if dir > 0:
+				dir = -1
+			elif dir < 0:
+				dir = 1
 		velocity.x = speed * dir
 
 	# Flip sprite based on direction
