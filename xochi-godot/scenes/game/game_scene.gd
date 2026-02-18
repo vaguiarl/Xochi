@@ -1350,35 +1350,196 @@ func _create_powerup(data) -> void:
 
 
 func _create_baby(data) -> void:
-	## Creates the baby axolotl visual marker -- the level goal.
-	## Beautiful pixel art sprite with sparkle effect!
+	## Creates the baby axolotl -- the level goal.
+	## Cute scared-but-dancing AI: shuffles back and forth on its platform,
+	## nervous little hops, manual squash/stretch on the sprite.
+	## Sits on a special world-themed pedestal with a crowquistador guard.
 	## When the player reaches this position, the level is complete.
 
 	var pos := _parse_position(data)
+	var world_num: int = GameState.get_world_for_level(level_num)
+
+	# --- World-themed pedestal under the baby ---
+	_create_baby_pedestal(pos, world_num)
 
 	var marker := Node2D.new()
 	marker.name = "BabyAxolotl"
 	marker.position = pos
 	marker.set_meta("type", "baby")
 	marker.set_meta("base_y", pos.y)
+	marker.set_meta("base_x", pos.x)
 	marker.set_meta("bob_offset", 0.0)
+	# AI state: scared-but-dancing shuffle
+	marker.set_meta("baby_dir", 1)
+	marker.set_meta("baby_speed", 15.0)
+	marker.set_meta("shuffle_range", 25.0)  # px each side of spawn
+	marker.set_meta("dance_timer", 0.0)
+	marker.set_meta("hop_timer", 0.0)
+	marker.set_meta("next_hop", randf_range(1.5, 3.0))
+	marker.set_meta("is_hopping", false)
+	marker.set_meta("hop_vy", 0.0)
 
-	# Use the actual baby axolotl sprite!
+	# Sprite (new cleaned art, ~468x500 → scale to ~24px tall)
 	var sprite := Sprite2D.new()
+	sprite.name = "Sprite"
 	sprite.texture = load("res://assets/sprites/collectibles/baby_axolotl.png")
-	sprite.scale = Vector2(0.07, 0.07)  # Half size of Xochi (she's 0.15)
+	var baby_height: float = 24.0
+	if sprite.texture:
+		var scale_factor: float = baby_height / sprite.texture.get_height()
+		sprite.scale = Vector2(scale_factor, scale_factor)
+	else:
+		sprite.scale = Vector2(0.048, 0.048)
+	sprite.centered = true
 	marker.add_child(sprite)
 
 	# Sparkle ring (outer glow that pulses)
 	var sparkle := ColorRect.new()
 	sparkle.name = "Sparkle"
-	sparkle.size = Vector2(50.0, 50.0)
-	sparkle.position = Vector2(-25.0, -25.0)
+	sparkle.size = Vector2(36.0, 36.0)
+	sparkle.position = Vector2(-18.0, -18.0)
 	sparkle.color = Color(1.0, 0.9, 0.95, 0.25)
-	sparkle.z_index = -1  # Behind the sprite
+	sparkle.z_index = -1
 	marker.add_child(sparkle)
 
 	collectibles_node.add_child(marker)
+
+	# --- Crowquistador guard patrolling near the baby ---
+	_spawn_baby_guard(pos, world_num)
+
+
+func _create_baby_pedestal(pos: Vector2, world_num: int) -> void:
+	## Builds a special world-themed pedestal under the baby axolotl.
+	## Each world gets a distinct color scheme and decorative pattern.
+	var pedestal := Node2D.new()
+	pedestal.name = "BabyPedestal"
+	pedestal.position = pos
+	pedestal.z_index = Z_PLATFORMS - 1  # Just behind platforms
+
+	# World-specific colors
+	var base_color: Color
+	var accent_color: Color
+	var glow_color: Color
+	match world_num:
+		1:  # Canal Dawn — warm terracotta
+			base_color = Color("8B4513")
+			accent_color = Color("FFD700")
+			glow_color = Color("FFB6C1")
+		2:  # Bright Trajineras — vibrant green/gold
+			base_color = Color("228B22")
+			accent_color = Color("FFFF00")
+			glow_color = Color("7FFF00")
+		3:  # Crystal Cave — amethyst/crystal
+			base_color = Color("4B0082")
+			accent_color = Color("00FFFF")
+			glow_color = Color("9370DB")
+		4:  # Floating Gardens — sunset stone
+			base_color = Color("8B4513")
+			accent_color = Color("FF4500")
+			glow_color = Color("FFD700")
+		5:  # Night Canals — obsidian/moonlight
+			base_color = Color("1A1A2E")
+			accent_color = Color("C0C0C0")
+			glow_color = Color("4682B4")
+		_:  # La Fiesta — fiesta gold/pink
+			base_color = Color("DAA520")
+			accent_color = Color("FF69B4")
+			glow_color = Color("FFD700")
+
+	# Glowing aura under pedestal
+	var aura := ColorRect.new()
+	aura.name = "Aura"
+	aura.size = Vector2(80.0, 20.0)
+	aura.position = Vector2(-40.0, -4.0)
+	aura.color = Color(glow_color.r, glow_color.g, glow_color.b, 0.2)
+	aura.z_index = -2
+	pedestal.add_child(aura)
+
+	# Main platform block — wider than normal platforms
+	var base := Polygon2D.new()
+	base.polygon = PackedVector2Array([
+		Vector2(-30.0, 0.0),
+		Vector2(-26.0, -8.0),
+		Vector2(26.0, -8.0),
+		Vector2(30.0, 0.0),
+		Vector2(30.0, 6.0),
+		Vector2(-30.0, 6.0)
+	])
+	base.color = base_color
+	pedestal.add_child(base)
+
+	# Top trim — decorative accent stripe
+	var trim := Polygon2D.new()
+	trim.polygon = PackedVector2Array([
+		Vector2(-26.0, -8.0),
+		Vector2(-24.0, -10.0),
+		Vector2(24.0, -10.0),
+		Vector2(26.0, -8.0)
+	])
+	trim.color = accent_color
+	pedestal.add_child(trim)
+
+	# Left pillar
+	var pillar_l := Polygon2D.new()
+	pillar_l.polygon = PackedVector2Array([
+		Vector2(-28.0, 0.0),
+		Vector2(-26.0, -8.0),
+		Vector2(-22.0, -8.0),
+		Vector2(-24.0, 0.0)
+	])
+	pillar_l.color = base_color.lightened(0.15)
+	pedestal.add_child(pillar_l)
+
+	# Right pillar
+	var pillar_r := Polygon2D.new()
+	pillar_r.polygon = PackedVector2Array([
+		Vector2(24.0, 0.0),
+		Vector2(22.0, -8.0),
+		Vector2(26.0, -8.0),
+		Vector2(28.0, 0.0)
+	])
+	pillar_r.color = base_color.lightened(0.15)
+	pedestal.add_child(pillar_r)
+
+	# Center glyph — small diamond accent
+	var glyph := Polygon2D.new()
+	glyph.polygon = PackedVector2Array([
+		Vector2(0.0, -2.0),
+		Vector2(3.0, 0.0),
+		Vector2(0.0, 2.0),
+		Vector2(-3.0, 0.0)
+	])
+	glyph.color = accent_color
+	pedestal.add_child(glyph)
+
+	# Store reference for animation (aura pulses)
+	pedestal.set_meta("type", "baby_pedestal")
+	pedestal.set_meta("aura_node", aura)
+	pedestal.set_meta("glow_color", glow_color)
+
+	collectibles_node.add_child(pedestal)
+
+
+func _spawn_baby_guard(baby_pos: Vector2, world_num: int) -> void:
+	## Spawns a crowquistador guard that patrols near the baby axolotl.
+	## The guard circles tightly around the baby's position, acting as
+	## a prison warden the player must defeat to rescue the baby.
+	var crow_script = load("res://scripts/entities/crowquistador.gd")
+	if crow_script == null:
+		return
+
+	var guard = crow_script.new()
+	guard.name = "BabyGuard"
+	# Position guard above and slightly to the right of the baby
+	guard.position = Vector2(baby_pos.x + 40.0, baby_pos.y - 60.0)
+	guard.setup({
+		"dir": -1,
+		"speed": 50,
+		"y": baby_pos.y - 60.0,
+		"amplitude": 25.0,
+		"level_width": level_data.get("width", 2000)
+	})
+	guard.add_to_group("enemies")
+	enemies_node.add_child(guard)
 
 
 func _update_collectibles(delta: float) -> void:
@@ -1407,14 +1568,103 @@ func _update_collectibles(delta: float) -> void:
 				# Float and gently rotate
 				item.position.y = base_y + sin(anim_time * COLLECTIBLE_BOB_SPEED * 0.8 + bob_offset) * COLLECTIBLE_BOB_AMPLITUDE * 1.5
 
+			"baby_pedestal":
+				# Aura pulses gently
+				var aura_ref = item.get_meta("aura_node", null)
+				var g_color: Color = item.get_meta("glow_color", Color.WHITE)
+				if aura_ref and is_instance_valid(aura_ref):
+					var pulse: float = 0.15 + sin(anim_time * 2.5) * 0.1
+					aura_ref.color = Color(g_color.r, g_color.g, g_color.b, pulse)
+
 			"baby":
 				# Sparkle: pulsing outer glow
 				var sparkle_node: ColorRect = item.get_node_or_null("Sparkle")
 				if sparkle_node:
 					var sparkle_alpha: float = 0.15 + sin(anim_time * BABY_SPARKLE_SPEED) * 0.15
 					sparkle_node.color.a = sparkle_alpha
-				# Gentle bob
-				item.position.y = base_y + sin(anim_time * COLLECTIBLE_BOB_SPEED * 0.5) * COLLECTIBLE_BOB_AMPLITUDE * 0.5
+
+				# --- Scared-but-dancing AI ---
+				var base_x: float = item.get_meta("base_x", item.position.x)
+				var baby_dir: int = item.get_meta("baby_dir", 1)
+				var baby_speed: float = item.get_meta("baby_speed", 15.0)
+				var shuffle_range: float = item.get_meta("shuffle_range", 25.0)
+				var dance_timer: float = item.get_meta("dance_timer", 0.0)
+				var hop_timer: float = item.get_meta("hop_timer", 0.0)
+				var next_hop: float = item.get_meta("next_hop", 2.0)
+				var is_hopping: bool = item.get_meta("is_hopping", false)
+				var hop_vy: float = item.get_meta("hop_vy", 0.0)
+
+				dance_timer += delta
+
+				# Nervous shuffle: walk back and forth near spawn point
+				var dance_speed: float = baby_speed * (1.0 + sin(dance_timer * 3.0) * 0.3)
+				item.position.x += baby_dir * dance_speed * delta
+
+				# Reverse at shuffle boundaries
+				if item.position.x > base_x + shuffle_range:
+					baby_dir = -1
+				elif item.position.x < base_x - shuffle_range:
+					baby_dir = 1
+
+				# Random direction changes (nervous fidgeting)
+				if randf() < 0.005:
+					baby_dir *= -1
+
+				# Flip sprite to face movement direction
+				var baby_sprite: Sprite2D = item.get_node_or_null("Sprite")
+				if baby_sprite:
+					baby_sprite.flip_h = (baby_dir < 0)
+
+				# Nervous hop: little scared jumps at random intervals
+				hop_timer += delta
+				if not is_hopping and hop_timer >= next_hop:
+					is_hopping = true
+					hop_vy = -80.0  # Little hop upward
+					hop_timer = 0.0
+					next_hop = randf_range(1.2, 3.5)
+
+				# Squash/stretch base scale (from sprite setup)
+				var base_scale: float = 24.0 / 500.0  # 24px target / 500px texture
+				var sy: float = 1.0
+				var sx: float = 1.0
+
+				if is_hopping:
+					hop_vy += 400.0 * delta  # Gravity
+					item.position.y += hop_vy * delta
+					if item.position.y >= base_y:
+						item.position.y = base_y
+						is_hopping = false
+						hop_vy = 0.0
+						# Landing squash
+						sy = 0.7
+						sx = 1.0 / sy
+					elif hop_vy < 0.0:
+						# Rising: stretch tall
+						sy = 1.15
+						sx = 1.0 / sy
+					else:
+						# Falling: slight squash anticipation
+						sy = 0.9
+						sx = 1.0 / sy
+				else:
+					# Gentle dance bob when not hopping
+					item.position.y = base_y + sin(dance_timer * 6.0) * 1.5
+					# Idle breathing wobble
+					sy = 1.0 - sin(dance_timer * 4.0) * 0.04
+					sx = 1.0 / sy
+
+				# Apply squash/stretch to sprite (lerp for smooth recovery)
+				if baby_sprite:
+					var goal := Vector2(base_scale * sx, base_scale * sy)
+					baby_sprite.scale = baby_sprite.scale.lerp(goal, 8.0 * delta)
+
+				# Store state back
+				item.set_meta("baby_dir", baby_dir)
+				item.set_meta("dance_timer", dance_timer)
+				item.set_meta("hop_timer", hop_timer)
+				item.set_meta("next_hop", next_hop)
+				item.set_meta("is_hopping", is_hopping)
+				item.set_meta("hop_vy", hop_vy)
 
 
 func _parse_position(data) -> Vector2:
