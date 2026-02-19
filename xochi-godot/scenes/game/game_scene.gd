@@ -149,6 +149,17 @@ var anim_time: float = 0.0
 ## Debounce flag to prevent multiple X presses during restart
 var restart_in_progress: bool = false
 
+## Per-level collectible tracking for celebration stats
+var level_flowers_collected: int = 0
+var level_flowers_total: int = 0
+var level_stars_collected: int = 0
+var level_stars_total: int = 0
+
+## Celebration screen state
+var celebration_active: bool = false
+var celebration_skipped: bool = false
+var celebration_layer: CanvasLayer = null
+
 
 # =============================================================================
 # CONTAINER NODE REFERENCES
@@ -226,6 +237,8 @@ func _ready() -> void:
 	Events.player_died.connect(_on_player_died)
 	Events.level_completed.connect(_on_level_completed_signal)
 	Events.game_paused.connect(_toggle_pause)
+	Events.flower_collected.connect(_on_flower_collected_for_level)
+	Events.elote_collected.connect(_on_elote_collected_for_level)
 
 	# Connect viewport signals for responsive layout
 	ViewportManager.orientation_changed.connect(_on_orientation_changed)
@@ -237,6 +250,9 @@ func _physics_process(delta: float) -> void:
 	## Handles trajinera movement, collectible animations, water death checks,
 	## and HUD updates.
 	if level_complete:
+		if celebration_active:
+			_update_water_effects(delta)
+			anim_time += delta
 		return
 
 	anim_time += delta
@@ -254,7 +270,21 @@ func _physics_process(delta: float) -> void:
 
 
 func _input(event: InputEvent) -> void:
-	## Handles pause toggle and quick restart.
+	## Handles pause toggle, celebration skip, and quick restart.
+
+	# Skip celebration on any input
+	if celebration_active and not celebration_skipped:
+		var should_skip := false
+		if event is InputEventKey and event.pressed and not event.echo:
+			should_skip = true
+		elif event is InputEventScreenTouch and event.pressed:
+			should_skip = true
+		elif event is InputEventMouseButton and event.pressed:
+			should_skip = true
+		if should_skip:
+			_skip_celebration()
+			return
+
 	if event.is_action_pressed("pause_game"):
 		_toggle_pause()
 
@@ -286,6 +316,10 @@ func _exit_tree() -> void:
 		Events.game_paused.disconnect(_toggle_pause)
 	if Events.boss_defeated.is_connected(_on_boss_defeated):
 		Events.boss_defeated.disconnect(_on_boss_defeated)
+	if Events.flower_collected.is_connected(_on_flower_collected_for_level):
+		Events.flower_collected.disconnect(_on_flower_collected_for_level)
+	if Events.elote_collected.is_connected(_on_elote_collected_for_level):
+		Events.elote_collected.disconnect(_on_elote_collected_for_level)
 
 
 # =============================================================================
@@ -1239,6 +1273,10 @@ func _create_collectibles() -> void:
 	if baby_data != null:
 		_create_baby(baby_data)
 
+	# Record totals for celebration stats
+	level_flowers_total = level_data.get("coins", []).size()
+	level_stars_total = level_data.get("stars", []).size()
+
 
 func _create_flower(data) -> void:
 	## Creates a cempasuchil flower (coin) -- Mesoamerican gold coin sprite.
@@ -1886,7 +1924,7 @@ func _check_baby_pickup() -> void:
 
 
 func _complete_level() -> void:
-	## Handles level completion: saves progress, shows a brief celebration,
+	## Handles level completion: saves progress, triggers celebration sequence,
 	## then transitions to the next level or the victory screen.
 
 	level_complete = true
@@ -1906,22 +1944,17 @@ func _complete_level() -> void:
 	# Emit signals
 	level_completed.emit(level_num)
 	Events.level_completed.emit(level_num)
+	Events.baby_rescued.emit(level_num)
 
 	AudioManager.play_sfx("powerup")
 
-	# Quick pause for celebration, then instant next level!
-	await get_tree().create_timer(0.8).timeout  # Snappy, not sluggish
+	# Trigger existing particle celebration VFX
+	var baby_node: Node2D = collectibles_node.get_node_or_null("BabyAxolotl")
+	if baby_node and collectible_system:
+		collectible_system.celebrate_baby_rescue(baby_node.global_position)
 
-	if level_num >= GameState.total_levels:
-		# Game won!
-		Events.game_won.emit()
-		GameState.save_game()
-		SceneManager.change_scene("res://scenes/end/end_scene.tscn")
-	else:
-		# Advance to next level
-		GameState.current_level = level_num + 1
-		GameState.save_game()
-		SceneManager.change_scene("res://scenes/game/game_scene.tscn")
+	# Start the full celebration sequence instead of instant transition
+	_start_celebration_sequence()
 
 
 # =============================================================================
@@ -2420,6 +2453,498 @@ func _on_level_completed_signal(completed_level: int) -> void:
 	## This is separate from the local level_completed signal to allow
 	## other systems (achievements, analytics) to react independently.
 	pass
+
+
+func _on_flower_collected_for_level(_count) -> void:
+	level_flowers_collected += 1
+
+
+func _on_elote_collected_for_level(_level, _index) -> void:
+	level_stars_collected += 1
+
+
+# =============================================================================
+# POST-LEVEL CELEBRATION SCREEN
+# =============================================================================
+
+func _start_celebration_sequence() -> void:
+	## Orchestrates the DKC-style post-level celebration.
+	## Timeline: water cleans (0s), flowers grow (0.5s), overlay (2s),
+	## dance (2.5s), stats (4s), eco message (4.5s), skip hint (7s),
+	## auto-proceed (10s). Skippable at any point.
+
+	celebration_active = true
+	celebration_skipped = false
+
+	# Phase 1: Water cleaning (0.0s)
+	_animate_water_cleaning(2.0)
+
+	# Phase 2: Flowers growing (0.5s)
+	await get_tree().create_timer(0.5).timeout
+	if celebration_skipped:
+		return
+	_animate_flowers_growing(1.5)
+
+	# Phase 3: Overlay appears (2.0s)
+	await get_tree().create_timer(1.5).timeout
+	if celebration_skipped:
+		return
+	_create_celebration_overlay()
+
+	# Phase 4: Dance starts (2.5s)
+	await get_tree().create_timer(0.5).timeout
+	if celebration_skipped:
+		return
+	_animate_celebration_dance()
+
+	# Phase 5: Stats display (4.0s)
+	await get_tree().create_timer(1.5).timeout
+	if celebration_skipped:
+		return
+	_show_celebration_stats()
+
+	# Phase 6: Eco message (4.5s)
+	await get_tree().create_timer(0.5).timeout
+	if celebration_skipped:
+		return
+	_show_ecological_message()
+
+	# Phase 7: Skip hint (7.0s)
+	await get_tree().create_timer(2.5).timeout
+	if celebration_skipped:
+		return
+	_show_skip_hint()
+
+	# Phase 8: Auto-proceed (10.0s)
+	await get_tree().create_timer(3.0).timeout
+	if celebration_skipped:
+		return
+	_proceed_after_celebration()
+
+
+func _animate_water_cleaning(duration: float) -> void:
+	## Tweens all water ColorRects toward pristine turquoise to show
+	## ecological recovery. The water "cleans" as the baby is rescued.
+
+	if water_node == null:
+		return
+
+	var clean_color := Color("00BCD4")  # Pristine turquoise
+
+	for child in water_node.get_children():
+		if not child is ColorRect:
+			continue
+
+		# Lerp toward clean turquoise
+		var target: Color = child.color.lerp(clean_color, 0.7)
+		target.s = clampf(target.s * 1.2, 0.0, 1.0)
+		target.v = clampf(target.v * 1.15, 0.0, 1.0)
+
+		var tween := create_tween()
+		tween.tween_property(child, "color", target, duration).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
+
+	# Make foam pure white-cyan
+	var foam: ColorRect = water_node.get_meta("foam_line", null)
+	if foam:
+		var foam_tween := create_tween()
+		foam_tween.tween_property(foam, "color", Color(0.85, 1.0, 1.0, 0.9), duration).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
+
+
+func _animate_flowers_growing(duration: float) -> void:
+	## Grows existing platform flowers to larger size and spawns new ones
+	## to show nature being restored after the baby rescue.
+
+	if platforms_node == null:
+		return
+
+	var delay_offset: float = 0.0
+
+	for platform in platforms_node.get_children():
+		if not platform is StaticBody2D:
+			continue
+
+		var pw: float = 0.0
+		var hh: float = 0.0
+		var hw: float = 0.0
+		# Find platform dimensions from the first ColorRect child (the base)
+		for child in platform.get_children():
+			if child is ColorRect and pw == 0.0:
+				pw = child.size.x
+				hw = pw * 0.5
+				hh = child.size.y * 0.5
+				break
+
+		if pw < 10.0:
+			continue
+
+		# Grow existing 4x4 flowers to 8x8
+		for child in platform.get_children():
+			if not child is ColorRect:
+				continue
+			# Identify flowers: 4x4 orange or gold squares
+			if child.size.x >= 3.0 and child.size.x <= 5.0 and child.size.y >= 3.0 and child.size.y <= 5.0:
+				var is_flower_color: bool = (child.color.r > 0.8 and child.color.g > 0.3 and child.color.b < 0.3)
+				if is_flower_color:
+					var tween := create_tween()
+					tween.tween_property(child, "size", Vector2(8.0, 8.0), duration * 0.6).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK).set_delay(delay_offset)
+
+		# Spawn 2-4 new flowers per platform
+		var new_flower_count: int = randi_range(2, 4)
+		for i in new_flower_count:
+			var flower := ColorRect.new()
+			flower.size = Vector2(0.0, 0.0)  # Start invisible, grow in
+			var fx: float = -hw + 4.0 + randf() * (pw - 12.0)
+			var fy: float = -hh - 2.0 + randf() * 2.0
+			flower.position = Vector2(fx, fy)
+			# Mix of orange and pink (recovery colors)
+			if randf() > 0.5:
+				flower.color = Color("FF69B4")  # Pink = new life
+			else:
+				flower.color = Color("FF8C00")  # Orange = cempasuchil
+			platform.add_child(flower)
+
+			var target_size: float = randf_range(5.0, 7.0)
+			var tween := create_tween()
+			tween.tween_property(flower, "size", Vector2(target_size, target_size), duration * 0.7).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK).set_delay(delay_offset + i * 0.1)
+
+		delay_offset += 0.05
+
+
+func _create_celebration_overlay() -> void:
+	## Creates the CanvasLayer overlay for the celebration screen.
+	## Semi-transparent so the cleaned world shows through.
+
+	celebration_layer = CanvasLayer.new()
+	celebration_layer.name = "CelebrationOverlay"
+	celebration_layer.layer = 20
+	add_child(celebration_layer)
+
+	# Container Control for animations
+	var container := Control.new()
+	container.name = "Container"
+	container.set_anchors_preset(Control.PRESET_FULL_RECT)
+	container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	celebration_layer.add_child(container)
+
+	# Semi-transparent background (35% black so world shows through)
+	var bg := ColorRect.new()
+	bg.name = "Background"
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.color = Color(0.0, 0.0, 0.0, 0.0)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	container.add_child(bg)
+
+	# Fade in the background
+	var tween := create_tween()
+	tween.tween_property(bg, "color:a", 0.35, 0.5).set_ease(Tween.EASE_IN_OUT)
+
+
+func _animate_celebration_dance() -> void:
+	## Spawns Xochi and baby sprites that dance together with
+	## Mexican dance feel: side-to-side steps, bounce, rotation wiggle.
+
+	if celebration_layer == null:
+		return
+
+	var container: Control = celebration_layer.get_node_or_null("Container")
+	if container == null:
+		return
+
+	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
+	var center_x: float = viewport_size.x * 0.5
+	var dance_y: float = viewport_size.y * 0.45
+
+	# Spawn confetti behind the dancers
+	_spawn_celebration_confetti(container, viewport_size)
+
+	# Xochi sprite (left side)
+	var xochi_tex = load("res://assets/sprites/xochi_walk.png")
+	var xochi_sprite := Sprite2D.new()
+	xochi_sprite.name = "XochiDance"
+	if xochi_tex:
+		xochi_sprite.texture = xochi_tex
+		var s: float = 60.0 / xochi_tex.get_height()
+		xochi_sprite.scale = Vector2(s, s)
+	xochi_sprite.position = Vector2(-100.0, dance_y)  # Start off-screen left
+	container.add_child(xochi_sprite)
+
+	# Baby sprite (right side)
+	var baby_tex = load("res://assets/sprites/collectibles/baby_axolotl.png")
+	var baby_sprite := Sprite2D.new()
+	baby_sprite.name = "BabyDance"
+	if baby_tex:
+		baby_sprite.texture = baby_tex
+		var s: float = 30.0 / baby_tex.get_height()
+		baby_sprite.scale = Vector2(s, s)
+	baby_sprite.position = Vector2(viewport_size.x + 100.0, dance_y)  # Start off-screen right
+	container.add_child(baby_sprite)
+
+	# Bounce Xochi in from left
+	var xochi_target_x: float = center_x - 40.0
+	var tween_xochi := create_tween()
+	tween_xochi.tween_property(xochi_sprite, "position:x", xochi_target_x, 0.6).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+
+	# Bounce baby in from right with delay
+	var baby_target_x: float = center_x + 40.0
+	var tween_baby := create_tween()
+	tween_baby.tween_property(baby_sprite, "position:x", baby_target_x, 0.6).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK).set_delay(0.2)
+
+	# Start dance loops after entrance
+	await tween_baby.finished
+	if celebration_skipped:
+		return
+	_start_dance_loops(xochi_sprite, baby_sprite, xochi_target_x, baby_target_x, dance_y)
+
+
+func _start_dance_loops(xochi: Sprite2D, baby: Sprite2D, xochi_x: float, baby_x: float, base_y: float) -> void:
+	## Loops the dance animation: side-to-side steps + bounce + rotation wiggle.
+
+	if not is_instance_valid(xochi) or not is_instance_valid(baby):
+		return
+
+	# Xochi dance loop: side-to-side + bounce + wiggle
+	var xochi_tween := create_tween().set_loops()
+	# Step right
+	xochi_tween.tween_property(xochi, "position", Vector2(xochi_x + 15.0, base_y - 8.0), 0.3).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_SINE)
+	xochi_tween.tween_property(xochi, "rotation_degrees", 8.0, 0.15)
+	# Stomp down
+	xochi_tween.tween_property(xochi, "position", Vector2(xochi_x + 15.0, base_y), 0.15).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
+	xochi_tween.tween_property(xochi, "rotation_degrees", 0.0, 0.1)
+	# Step left
+	xochi_tween.tween_property(xochi, "position", Vector2(xochi_x - 15.0, base_y - 8.0), 0.3).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_SINE)
+	xochi_tween.tween_property(xochi, "rotation_degrees", -8.0, 0.15)
+	# Stomp down
+	xochi_tween.tween_property(xochi, "position", Vector2(xochi_x - 15.0, base_y), 0.15).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
+	xochi_tween.tween_property(xochi, "rotation_degrees", 0.0, 0.1)
+
+	# Baby dance loop: same pattern but smaller + delayed
+	var baby_tween := create_tween().set_loops()
+	baby_tween.tween_interval(0.15)  # Slight offset from Xochi
+	baby_tween.tween_property(baby, "position", Vector2(baby_x - 10.0, base_y - 5.0), 0.25).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_SINE)
+	baby_tween.tween_property(baby, "rotation_degrees", -12.0, 0.12)
+	baby_tween.tween_property(baby, "position", Vector2(baby_x - 10.0, base_y), 0.12).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
+	baby_tween.tween_property(baby, "rotation_degrees", 0.0, 0.1)
+	baby_tween.tween_property(baby, "position", Vector2(baby_x + 10.0, base_y - 5.0), 0.25).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_SINE)
+	baby_tween.tween_property(baby, "rotation_degrees", 12.0, 0.12)
+	baby_tween.tween_property(baby, "position", Vector2(baby_x + 10.0, base_y), 0.12).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
+	baby_tween.tween_property(baby, "rotation_degrees", 0.0, 0.1)
+
+
+func _spawn_celebration_confetti(container: Control, viewport_size: Vector2) -> void:
+	## Spawns 25 falling confetti diamond particles behind the dancers.
+
+	var confetti_colors: Array[Color] = [
+		Color("E63946"),  # Red
+		Color("FFD700"),  # Gold
+		Color("2A9D8F"),  # Teal
+		Color("FF8C00"),  # Orange
+		Color("9B5DE5"),  # Purple
+		Color("FF69B4"),  # Pink
+	]
+
+	for i in 25:
+		var confetti := Polygon2D.new()
+		# Diamond shape
+		confetti.polygon = PackedVector2Array([
+			Vector2(0, -4), Vector2(4, 0), Vector2(0, 4), Vector2(-4, 0)
+		])
+		confetti.color = confetti_colors[i % confetti_colors.size()]
+
+		var start_x: float = randf_range(viewport_size.x * 0.15, viewport_size.x * 0.85)
+		var start_y: float = randf_range(-40.0, -10.0)
+		confetti.position = Vector2(start_x, start_y)
+		confetti.z_index = -1  # Behind dancers
+		container.add_child(confetti)
+
+		# Fall + sway animation
+		var fall_duration: float = randf_range(3.0, 6.0)
+		var end_y: float = viewport_size.y + 20.0
+		var sway_x: float = randf_range(-50.0, 50.0)
+
+		var tween := create_tween()
+		tween.set_parallel(true)
+		tween.tween_property(confetti, "position:y", end_y, fall_duration).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD).set_delay(randf_range(0.0, 2.0))
+		tween.tween_property(confetti, "position:x", start_x + sway_x, fall_duration).set_delay(randf_range(0.0, 2.0))
+		tween.tween_property(confetti, "rotation", randf_range(-TAU, TAU), fall_duration).set_delay(randf_range(0.0, 2.0))
+
+
+func _show_celebration_stats() -> void:
+	## Shows "LEVEL CLEAR" title and collectible stats panel.
+
+	if celebration_layer == null:
+		return
+
+	var container: Control = celebration_layer.get_node_or_null("Container")
+	if container == null:
+		return
+
+	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
+	var center_x: float = viewport_size.x * 0.5
+
+	# "LEVEL CLEAR!" title
+	var title := Label.new()
+	title.name = "LevelClearTitle"
+	title.text = "LEVEL CLEAR!"
+	title.add_theme_font_size_override("font_size", 36)
+	title.add_theme_color_override("font_color", Color("FFD700"))
+	title.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.8))
+	title.add_theme_constant_override("shadow_offset_x", 3)
+	title.add_theme_constant_override("shadow_offset_y", 3)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.position = Vector2(center_x - 200.0, viewport_size.y * 0.12)
+	title.size = Vector2(400.0, 50.0)
+	title.modulate.a = 0.0
+	container.add_child(title)
+
+	# Fade in title
+	var title_tween := create_tween()
+	title_tween.tween_property(title, "modulate:a", 1.0, 0.4).set_ease(Tween.EASE_OUT)
+
+	# Stats panel
+	var stats_y: float = viewport_size.y * 0.22
+
+	# Flowers stat
+	var flowers_label := Label.new()
+	flowers_label.name = "FlowersStat"
+	flowers_label.text = "Flowers: %d / %d" % [level_flowers_collected, level_flowers_total]
+	flowers_label.add_theme_font_size_override("font_size", 22)
+	flowers_label.add_theme_color_override("font_color", Color("FFA500"))  # Orange
+	flowers_label.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.7))
+	flowers_label.add_theme_constant_override("shadow_offset_x", 2)
+	flowers_label.add_theme_constant_override("shadow_offset_y", 2)
+	flowers_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	flowers_label.position = Vector2(center_x - 200.0, stats_y)
+	flowers_label.size = Vector2(400.0, 30.0)
+	flowers_label.modulate.a = 0.0
+	container.add_child(flowers_label)
+
+	# Stars stat
+	var stars_label := Label.new()
+	stars_label.name = "StarsStat"
+	stars_label.text = "Stars: %d / %d" % [level_stars_collected, level_stars_total]
+	stars_label.add_theme_font_size_override("font_size", 22)
+	stars_label.add_theme_color_override("font_color", Color("FFD700"))  # Gold
+	stars_label.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.7))
+	stars_label.add_theme_constant_override("shadow_offset_x", 2)
+	stars_label.add_theme_constant_override("shadow_offset_y", 2)
+	stars_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	stars_label.position = Vector2(center_x - 200.0, stats_y + 35.0)
+	stars_label.size = Vector2(400.0, 30.0)
+	stars_label.modulate.a = 0.0
+	container.add_child(stars_label)
+
+	# Staggered fade-in for stats
+	var flowers_tween := create_tween()
+	flowers_tween.tween_property(flowers_label, "modulate:a", 1.0, 0.3).set_ease(Tween.EASE_OUT).set_delay(0.3)
+
+	var stars_tween := create_tween()
+	stars_tween.tween_property(stars_label, "modulate:a", 1.0, 0.3).set_ease(Tween.EASE_OUT).set_delay(0.6)
+
+
+func _show_ecological_message() -> void:
+	## Shows a world-specific ecological message about water and nature.
+
+	if celebration_layer == null:
+		return
+
+	var container: Control = celebration_layer.get_node_or_null("Container")
+	if container == null:
+		return
+
+	var world_num: int = GameState.get_world_for_level(level_num)
+	var messages: Dictionary = {
+		1: "The canals of Xochimilco breathe again.\nClean water gives life to the axolotl.",
+		2: "The trajineras carry more than people --\nthey carry the memory of ancient gardens.",
+		3: "Deep in the crystal caves, water\nfilters pure and feeds the roots above.",
+		4: "The chinampas bloom once more.\nFloating gardens sustain the whole ecosystem.",
+		5: "Even in the darkest canals, life endures.\nThe axolotl finds a way.",
+		6: "La Fiesta celebrates all life --\nwater, flowers, and the spirit of Xochimilco.",
+	}
+
+	var msg_text: String = messages.get(world_num, messages[1])
+
+	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
+	var center_x: float = viewport_size.x * 0.5
+
+	var msg_label := Label.new()
+	msg_label.name = "EcoMessage"
+	msg_label.text = msg_text
+	msg_label.add_theme_font_size_override("font_size", 16)
+	msg_label.add_theme_color_override("font_color", Color(0.7, 1.0, 0.85, 0.9))
+	msg_label.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.6))
+	msg_label.add_theme_constant_override("shadow_offset_x", 1)
+	msg_label.add_theme_constant_override("shadow_offset_y", 1)
+	msg_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	msg_label.position = Vector2(center_x - 250.0, viewport_size.y * 0.75)
+	msg_label.size = Vector2(500.0, 60.0)
+	msg_label.modulate.a = 0.0
+	container.add_child(msg_label)
+
+	var tween := create_tween()
+	tween.tween_property(msg_label, "modulate:a", 1.0, 0.5).set_ease(Tween.EASE_OUT)
+
+
+func _show_skip_hint() -> void:
+	## Shows a pulsing "Tap or press space to continue" hint.
+
+	if celebration_layer == null:
+		return
+
+	var container: Control = celebration_layer.get_node_or_null("Container")
+	if container == null:
+		return
+
+	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
+	var center_x: float = viewport_size.x * 0.5
+
+	var hint := Label.new()
+	hint.name = "SkipHint"
+	hint.text = "Tap or press space to continue"
+	hint.add_theme_font_size_override("font_size", 18)
+	hint.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 0.6))
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint.position = Vector2(center_x - 200.0, viewport_size.y * 0.88)
+	hint.size = Vector2(400.0, 30.0)
+	container.add_child(hint)
+
+	# Gentle pulse animation
+	var tween := create_tween().set_loops()
+	tween.tween_property(hint, "modulate:a", 0.4, 0.8).set_ease(Tween.EASE_IN_OUT)
+	tween.tween_property(hint, "modulate:a", 1.0, 0.8).set_ease(Tween.EASE_IN_OUT)
+
+
+func _skip_celebration() -> void:
+	## Immediately ends the celebration and transitions to the next level.
+
+	if celebration_skipped:
+		return
+	celebration_skipped = true
+	celebration_active = false
+
+	# Clean up overlay
+	if celebration_layer and is_instance_valid(celebration_layer):
+		celebration_layer.queue_free()
+		celebration_layer = null
+
+	_proceed_after_celebration()
+
+
+func _proceed_after_celebration() -> void:
+	## Transitions to the next level or end scene.
+	## Contains the same branching logic from the old _complete_level().
+
+	celebration_active = false
+
+	if level_num >= GameState.total_levels:
+		# Game won!
+		Events.game_won.emit()
+		GameState.save_game()
+		SceneManager.change_scene("res://scenes/end/end_scene.tscn")
+	else:
+		# Advance to next level
+		GameState.current_level = level_num + 1
+		GameState.save_game()
+		SceneManager.change_scene("res://scenes/game/game_scene.tscn")
 
 
 # =============================================================================
