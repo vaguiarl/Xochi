@@ -20,7 +20,7 @@ var difficulty: String = "medium"
 # --- Difficulty Settings (exact copy from original game.js) ---
 var DIFFICULTY_SETTINGS: Dictionary = {
 	"easy": {
-		"lives": 5,
+		"lives": 3,
 		"starting_super_jumps": 3,
 		"starting_mace_attacks": 2,
 		"platform_density": 1.2,
@@ -32,7 +32,7 @@ var DIFFICULTY_SETTINGS: Dictionary = {
 		"boss_health": { 5: 3, 10: 4 }
 	},
 	"medium": {
-		"lives": 3,
+		"lives": 2,
 		"starting_super_jumps": 2,
 		"starting_mace_attacks": 1,
 		"platform_density": 1.0,
@@ -44,16 +44,16 @@ var DIFFICULTY_SETTINGS: Dictionary = {
 		"boss_health": { 5: 4, 10: 5 }
 	},
 	"hard": {
-		"lives": 2,
+		"lives": 1,
 		"starting_super_jumps": 1,
-		"starting_mace_attacks": 1,
+		"starting_mace_attacks": 0,
 		"platform_density": 0.9,
 		"platform_gap_mult": 1.1,
-		"enemy_mult": 1.2,
+		"enemy_mult": 1.3,
 		"powerup_mult": 0.8,
 		"sky_platforms": 4,
 		"coin_mult": 0.9,
-		"boss_health": { 5: 5, 10: 7 }
+		"boss_health": { 5: 6, 10: 7 }
 	}
 }
 
