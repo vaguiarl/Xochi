@@ -57,6 +57,7 @@ func _physics_process(delta):
 
 	_check_stomp()
 	_update_projectiles(delta)
+	_update_boss_projectiles(delta)
 
 
 # =============================================================================
@@ -89,7 +90,25 @@ func _check_stomp():
 			enemy.hit_by_stomp()
 			player.stomp_bounce()  # -250 velocity.y
 			_show_floating_text(enemy.global_position, "+100", Color.WHITE)
-			break  # Only stomp one enemy per frame
+			return  # Only stomp one enemy per frame
+
+	# -- Also check boss group (boss is added to scene root, not enemies_node) --
+	for boss in get_tree().get_nodes_in_group("boss"):
+		if not boss.has_method("hit_by_stomp"):
+			continue
+		if boss.get("state") == "DEAD":
+			continue
+
+		var player_bottom = player.global_position.y + 25
+		var boss_top = boss.global_position.y - 25  # Boss is taller
+
+		var x_overlap = abs(player.global_position.x - boss.global_position.x) < 40
+
+		if player_bottom >= boss_top and player_bottom <= boss_top + 30 and x_overlap:
+			boss.hit_by_stomp()
+			player.stomp_bounce()
+			_show_floating_text(boss.global_position, "STOMPED!", Color.YELLOW)
+			return
 
 
 # =============================================================================
@@ -107,6 +126,18 @@ func _on_player_attacked(attack_pos: Vector2, attack_dir: int):
 		if attack_pos.distance_to(enemy.global_position) < 70:
 			enemy.hit_by_attack()
 			_show_floating_text(enemy.global_position, "+100", Color.WHITE)
+
+	# -- Also check boss group (boss uses hit_by_melee, only works in RECOVER) --
+	for boss in get_tree().get_nodes_in_group("boss"):
+		if not boss.has_method("hit_by_melee"):
+			continue
+		if boss.get("state") == "DEAD":
+			continue
+
+		if attack_pos.distance_to(boss.global_position) < 70:
+			boss.hit_by_melee()
+			if boss.get("state") == "RECOVER":
+				_show_floating_text(boss.global_position, "MELEE HIT!", Color.YELLOW)
 
 
 # =============================================================================
@@ -185,6 +216,71 @@ func _update_projectiles(delta):
 	# Clean up expired/destroyed projectiles
 	for proj in to_remove:
 		projectiles.erase(proj)
+
+
+# =============================================================================
+# BOSS PROJECTILE UPDATE (shadow bolts, dark rain)
+# =============================================================================
+
+func _update_boss_projectiles(delta):
+	## Moves boss projectiles and checks for player collision.
+	## Boss projectiles are Node2D children of game_scene with "is_boss_projectile" meta.
+	if game_scene == null or not is_instance_valid(game_scene):
+		return
+
+	var to_remove: Array = []
+	for child in game_scene.get_children():
+		if not is_instance_valid(child):
+			continue
+		if not child.has_meta("is_boss_projectile"):
+			continue
+
+		# Move
+		var vel: Vector2 = child.get_meta("velocity", Vector2.ZERO)
+		if vel != Vector2.ZERO:
+			child.position += vel * delta
+
+		# Tick lifetime
+		var lifetime: float = child.get_meta("lifetime", 0.0) - delta
+		child.set_meta("lifetime", lifetime)
+
+		if lifetime <= 0:
+			to_remove.append(child)
+			continue
+
+		# Check player collision (distance-based, 20px radius)
+		if player != null and is_instance_valid(player):
+			if child.global_position.distance_to(player.global_position) < 20.0:
+				player.hit(1)
+				to_remove.append(child)
+				# Particle burst on hit
+				_spawn_bolt_hit_particles(child.global_position)
+				continue
+
+	for proj in to_remove:
+		if is_instance_valid(proj):
+			proj.queue_free()
+
+
+func _spawn_bolt_hit_particles(pos: Vector2):
+	## Small magenta particle burst when a boss projectile hits the player.
+	if game_scene == null:
+		return
+	for i in 6:
+		var p = ColorRect.new()
+		p.size = Vector2(4, 4)
+		p.position = pos + Vector2(-2, -2)
+		p.color = Color(0.8, 0.0, 0.6)
+		p.z_index = 80
+		game_scene.add_child(p)
+
+		var angle: float = float(i) / 6.0 * TAU
+		var end: Vector2 = p.position + Vector2(cos(angle), sin(angle)) * 30.0
+		var tween = game_scene.create_tween()
+		tween.set_parallel(true)
+		tween.tween_property(p, "position", end, 0.3)
+		tween.tween_property(p, "modulate:a", 0.0, 0.3)
+		tween.chain().tween_callback(p.queue_free)
 
 
 # =============================================================================

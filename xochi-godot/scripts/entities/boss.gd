@@ -2,15 +2,10 @@ extends CharacterBody2D
 class_name DarkXochi
 ## Dark Xochi -- the boss encounter for levels 5 and 10.
 ##
-## A dark-tinted evil doppelganger of the player. Uses the same xochi_walk.png
-## sprite with a sinister purple/magenta modulate. Cycles through a DKC2-style
-## 4-state AI loop: APPROACH -> TELEGRAPH -> ATTACK -> RECOVER.
-##
-## Exact port from original game.js lines 4542-6002 and 7074-7258.
-## All timings, speeds, health values, and state transitions match the original
-## pixel-for-pixel. This is the climax of worlds 3 and 5 -- it MUST feel like
-## a real boss fight: threatening during APPROACH/ATTACK, tense during TELEGRAPH,
-## and satisfying to stomp during RECOVER.
+## Multi-phase boss with 4 attacks, taunt system, and escalating difficulty.
+## Phase 1 (100%-60% HP): LEAP + SWING. Cocky taunts.
+## Phase 2 (59%-30% HP): Adds SHADOW_BOLT ranged. Frustrated taunts.
+## Phase 3 (29%-0% HP): Adds DARK_RAIN (lv10 only). Desperate/respect taunts.
 ##
 ## Scene tree (built programmatically in _ready, no .tscn needed):
 ##   DarkXochi (CharacterBody2D)
@@ -28,106 +23,64 @@ class_name DarkXochi
 # PHYSICS CONSTANTS
 # =============================================================================
 
-## Gravity matches the player and the project setting exactly.
 const GRAVITY: float = 900.0
-
-## Sprite scale -- identical to the player's BASE_SCALE.
 const BASE_SCALE: float = 0.15
-
-## Jump velocity when chasing the player (APPROACH state).
 const APPROACH_JUMP_VELOCITY: float = -380.0
-
-## Jump velocity during LEAP attack.
 const LEAP_JUMP_VELOCITY: float = -450.0
-
-## Horizontal velocity multiplier during LEAP attack.
 const LEAP_HORIZONTAL_SPEED: float = 300.0
-
-## Mace swing hit radius in pixels.
 const MACE_SWING_RADIUS: float = 100.0
-
-## Visual radius of the mace swing arc.
 const MACE_SWING_ARC_RADIUS: float = 60.0
-
-## Player height above boss threshold to trigger a jump (pixels).
 const JUMP_HEIGHT_THRESHOLD: float = 120.0
-
-## Distance to player that triggers transition from APPROACH to TELEGRAPH.
 const TELEGRAPH_TRIGGER_DISTANCE: float = 120.0
-
-## Player bounce velocity after a successful stomp on the boss.
 const STOMP_BOUNCE_VELOCITY: float = -400.0
-
-## Invincibility duration after taking a hit (milliseconds as seconds).
 const HIT_INVINCIBILITY_TIME: float = 0.5
-
-## Duration of the ATTACK state (seconds).
 const ATTACK_DURATION: float = 0.4
-
-## Duration of the TELEGRAPH state (seconds).
 const TELEGRAPH_DURATION: float = 0.5
-
-## Score awarded on defeat.
 const DEFEAT_SCORE: int = 5000
 
+## Shadow bolt projectile constants
+const SHADOW_BOLT_SPEED: float = 250.0
+const SHADOW_BOLT_LIFETIME: float = 2.5
+const SHADOW_BOLT_CHARGE_TIME: float = 0.3
+
+## Dark rain constants (lv10 phase 3)
+const DARK_RAIN_BOLT_COUNT: int = 5
+const DARK_RAIN_BOLT_SPEED: float = 300.0
+const DARK_RAIN_STAGGER: float = 0.3
+const DARK_RAIN_WARNING_TIME: float = 0.5
+
 
 # =============================================================================
-# TINT COLORS -- exact hex values from the original game.js
+# TINT COLORS
 # =============================================================================
 
-## Dark purple tint during APPROACH (the default "evil" look).
 const TINT_DARK: Color = Color(0.13, 0.0, 0.13)
-
-## Yellow flash during TELEGRAPH warning.
 const TINT_TELEGRAPH_YELLOW: Color = Color(1.0, 1.0, 0.0)
-
-## Red-orange flash during TELEGRAPH warning.
 const TINT_TELEGRAPH_RED: Color = Color(1.0, 0.27, 0.0)
-
-## Red tint during ATTACK state.
 const TINT_ATTACK: Color = Color(1.0, 0.0, 0.0)
-
-## Gray tint during RECOVER state (VULNERABLE!).
 const TINT_RECOVER: Color = Color(0.4, 0.4, 0.53)
-
-## Lighter gray for the "window closing" flash in late RECOVER.
 const TINT_RECOVER_LIGHT: Color = Color(0.6, 0.6, 0.73)
-
-## Magenta color used for effects (swing arc, shockwave, defeat particles).
 const COLOR_MAGENTA: Color = Color(0.8, 0.0, 0.6)
+const TINT_PHASE_TRANSITION: Color = Color(1.0, 0.0, 1.0)
 
 
 # =============================================================================
-# PRELOADED TEXTURES
+# TEXTURES
 # =============================================================================
-## Uses the player's walk sprite -- Dark Xochi IS the player's shadow.
 
 var _tex_walk: Texture2D = null
 
 
 # =============================================================================
-# EXPORTED / CONFIGURABLE PROPERTIES
+# CONFIGURABLE PROPERTIES
 # =============================================================================
 
-## Which level this boss is on. Determines speed, health, and timing.
 var level_num: int = 5
-
-## Maximum health points -- set from GameState.DIFFICULTY_SETTINGS in setup().
 var max_health: int = 4
-
-## Current health points.
 var health: int = 4
-
-## Base horizontal movement speed in APPROACH state (px/s).
 var base_speed: float = 80.0
-
-## Time spent in APPROACH state before transitioning (seconds).
 var approach_time: float = 2.0
-
-## Time spent in TELEGRAPH state -- the "get ready!" warning (seconds).
 var telegraph_time: float = 0.5
-
-## Base time spent in RECOVER state -- the vulnerable window (seconds).
 var recover_time: float = 1.5
 
 
@@ -135,50 +88,35 @@ var recover_time: float = 1.5
 # STATE MACHINE
 # =============================================================================
 
-## Current AI state: IDLE, APPROACH, TELEGRAPH, ATTACK, RECOVER, DEAD.
+## Current AI state: IDLE, APPROACH, TELEGRAPH, ATTACK, RECOVER, TAUNT,
+## SHADOW_BOLT, DARK_RAIN, PHASE_TRANSITION, DEAD.
 var state: String = "IDLE"
-
-## Time elapsed in the current state (seconds). Resets on state transition.
 var state_timer: float = 0.0
 
-## Which attack to use next. Alternates: 0 = LEAP, 1 = MACE SWING.
-var attack_type: int = 0
+## Attack type for the current ATTACK state: "LEAP" or "SWING"
+var attack_type: String = "LEAP"
 
-## True during brief post-hit invincibility frames. Prevents damage stacking.
 var is_invincible: bool = false
-
-## Dynamic speed multiplier that increases as health drops.
-## Formula: 1.0 + (1.0 - hp_ratio) * 0.5
-## At full HP = 1.0x, at low HP = up to 1.5x. Creates escalating tension.
 var speed_multiplier: float = 1.0
-
-## True after the intro sequence completes and the AI loop begins.
 var ai_active: bool = false
+
+## Current phase (1, 2, or 3). Determines available attacks and timings.
+var current_phase: int = 1
+
+## Whether DARK_RAIN has been used this phase 3 entry (one guaranteed use).
+var _dark_rain_used_initial: bool = false
 
 
 # =============================================================================
 # REFERENCES
 # =============================================================================
 
-## Cached reference to the player. Set in setup().
 var player_ref: CharacterBody2D = null
-
-## The "!" warning label shown during TELEGRAPH state.
 var telegraph_label: Label = null
-
-## The floating text label for state indicators ("LEAP!", "SWING!", "TIRED...").
 var action_label: Label = null
-
-## CanvasLayer holding the boss health bar UI (fixed on screen).
 var health_bar_layer: CanvasLayer = null
-
-## The health bar fill rectangle -- scales horizontally with health percentage.
 var health_bar_fill: ColorRect = null
-
-## The health bar name label.
 var health_bar_name_label: Label = null
-
-## The baby axolotl spawn position for after defeat.
 var baby_position: Vector2 = Vector2.ZERO
 
 
@@ -186,10 +124,7 @@ var baby_position: Vector2 = Vector2.ZERO
 # NODE REFERENCES (created in _ready)
 # =============================================================================
 
-## The Sprite2D child showing the boss's appearance.
 var sprite: Sprite2D = null
-
-## The CollisionShape2D child defining the boss's physics hitbox.
 var collision: CollisionShape2D = null
 
 
@@ -197,20 +132,89 @@ var collision: CollisionShape2D = null
 # INTERNAL TRACKING
 # =============================================================================
 
-## Accumulated time in milliseconds for telegraph flash animation.
 var _telegraph_flash_timer: float = 0.0
-
-## Whether the boss is currently facing right.
 var _facing_right: bool = false
-
-## Whether the shockwave has been spawned for the current LEAP landing.
 var _shockwave_spawned: bool = false
-
-## Whether the mace swing visual has been spawned this ATTACK cycle.
 var _swing_visual_spawned: bool = false
-
-## Whether the LEAP attack has been launched this ATTACK cycle.
 var _leap_launched: bool = false
+
+## Shadow bolt tracking
+var _shadow_bolt_fired: bool = false
+var _shadow_bolt_charge_timer: float = 0.0
+
+## Dark rain tracking
+var _dark_rain_started: bool = false
+var _dark_rain_bolts_spawned: int = 0
+var _dark_rain_spawn_timer: float = 0.0
+var _dark_rain_warnings_shown: bool = false
+
+## RNG for attack selection and taunts
+var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
+
+
+# =============================================================================
+# TAUNT SYSTEM
+# =============================================================================
+
+var taunt_cooldown: float = 0.0
+var approach_cycles_since_taunt: int = 0
+var _taunt_bubble: Control = null
+var _taunt_canvas: CanvasLayer = null
+
+## Pre-written taunt lines organized by trigger category.
+var taunt_lines: Dictionary = {
+	"intro_lv5": [
+		"Ah, you made it! I was getting bored.",
+	],
+	"intro_lv10": [
+		"Back for more? Bold. Foolish. But bold.",
+	],
+	"phase2": [
+		"Not bad... for a flower picker.",
+		"Okay, playtime is over.",
+		"You actually hit me? Impressive.",
+	],
+	"phase3": [
+		"You're better than I expected.",
+		"Fine. No more games.",
+	],
+	"phase3_lv10": [
+		"This is where it ends -- for one of us.",
+	],
+	"approach": [
+		"Running? Smart. But I'm faster.",
+		"The babies don't need you. They need ME.",
+		"Your flowers won't save you here.",
+		"Do you ever wonder who waters MY gardens?",
+	],
+	"hit_player": [
+		"Too slow!",
+		"That one's free. Next one costs more.",
+		"The canals send their regards.",
+	],
+	"stomped": [
+		"Lucky shot.",
+		"Ow! My beautiful shadow scales!",
+		"You'll pay for that.",
+	],
+	"recover": [
+		"Just... catching my breath...",
+		"Don't get any ideas...",
+		"I'm not tired, I'm... strategizing.",
+	],
+	"near_death": [
+		"This isn't over...",
+	],
+	"near_death_lv10": [
+		"Xochimilco will remember my name!",
+	],
+	"defeat": [
+		"The shadows... will return...",
+	],
+	"defeat_lv10": [
+		"You win... this time. Guard the canals well.",
+	],
+}
 
 
 # =============================================================================
@@ -218,14 +222,11 @@ var _leap_launched: bool = false
 # =============================================================================
 
 func _ready() -> void:
-	## Build the scene tree programmatically. No .tscn file needed -- the boss
-	## is a runtime-constructed entity spawned by the GameScene on levels 5/10.
+	_rng.randomize()
 
-	# -- Collision configuration --
-	collision_layer = 32   # Boss layer (bit 6)
-	collision_mask = 1 | 2 # World (1) + Platforms (2)
+	collision_layer = 32
+	collision_mask = 1 | 2
 
-	# -- Sprite2D child --
 	sprite = Sprite2D.new()
 	sprite.name = "Sprite2D"
 	if _tex_walk == null:
@@ -234,7 +235,6 @@ func _ready() -> void:
 	sprite.scale = Vector2(BASE_SCALE, BASE_SCALE)
 	add_child(sprite)
 
-	# -- CollisionShape2D child --
 	collision = CollisionShape2D.new()
 	collision.name = "CollisionShape2D"
 	var shape := RectangleShape2D.new()
@@ -242,26 +242,23 @@ func _ready() -> void:
 	collision.shape = shape
 	add_child(collision)
 
-	# Start invisible -- the intro sequence fades us in.
 	modulate = TINT_DARK
 	modulate.a = 0.0
 
-	# Register in the "boss" group so combat systems can find us.
 	add_to_group("boss")
 
 
 func _physics_process(delta: float) -> void:
-	## Main physics loop. Applies gravity, runs the state machine, and calls
-	## move_and_slide(). Only active after the intro sequence completes.
-
 	if state == "DEAD":
 		return
 
-	# Gravity -- always applied when airborne, regardless of state.
 	if not is_on_floor():
 		velocity.y += GRAVITY * delta
 
-	# Only run AI after intro completes.
+	# Tick taunt cooldown
+	if taunt_cooldown > 0.0:
+		taunt_cooldown -= delta
+
 	if ai_active:
 		_update_speed_multiplier()
 		_run_state_machine(delta)
@@ -270,122 +267,161 @@ func _physics_process(delta: float) -> void:
 
 
 # =============================================================================
-# SETUP -- called by GameScene after instantiation
+# SETUP
 # =============================================================================
 
 func setup(p_level_num: int, p_player: CharacterBody2D, spawn_pos: Vector2) -> void:
-	## Configures the boss for the given level. Must be called before play_intro().
-	##
-	## Sets level-specific values (speed, health, timings) from GameState's
-	## difficulty settings, positions the boss at spawn_pos, and caches the
-	## player reference for AI targeting.
-
 	level_num = p_level_num
 	player_ref = p_player
 	position = spawn_pos
 
-	# -- Level-specific base values --
+	# Phase 1 base timings (will be adjusted by _apply_phase_timings)
 	if level_num >= 10:
 		base_speed = 100.0
-		approach_time = 1.5
-		recover_time = 1.2
 	else:
 		base_speed = 80.0
-		approach_time = 2.0
-		recover_time = 1.5
 
-	# -- Health from difficulty settings --
+	current_phase = 1
+	_apply_phase_timings()
+
 	var settings: Dictionary = GameState.get_settings()
 	var boss_health_map: Dictionary = settings.get("boss_health", { 5: 4, 10: 5 })
-
-	# The dictionary keys from game_state.gd are integers (5, 10).
 	max_health = boss_health_map.get(level_num, 4)
 	health = max_health
 
-	# -- Baby spawn position (from level data or offset from boss) --
 	baby_position = spawn_pos + Vector2(0, -20)
 
-	# Start in IDLE -- intro plays first, then transitions to APPROACH.
 	state = "IDLE"
 	ai_active = false
 
 
 # =============================================================================
-# INTRO SEQUENCE -- async cinematic before the fight begins
+# PHASE SYSTEM
+# =============================================================================
+
+func _apply_phase_timings() -> void:
+	## Sets approach_time, recover_time, telegraph_time based on phase and level.
+	if level_num >= 10:
+		match current_phase:
+			1:
+				approach_time = 1.5
+				recover_time = 1.2
+				telegraph_time = 0.5
+			2:
+				approach_time = 1.2
+				recover_time = 0.9
+				telegraph_time = 0.4
+			3:
+				approach_time = 0.8
+				recover_time = 0.6
+				telegraph_time = 0.3
+	else:
+		match current_phase:
+			1:
+				approach_time = 2.0
+				recover_time = 1.5
+				telegraph_time = 0.5
+			2:
+				approach_time = 1.6
+				recover_time = 1.2
+				telegraph_time = 0.4
+			3:
+				approach_time = 1.2
+				recover_time = 0.8
+				telegraph_time = 0.3
+
+
+func _get_speed_cap() -> float:
+	## Returns the speed multiplier cap for the current phase.
+	match current_phase:
+		1: return 1.2
+		2: return 1.4
+		3: return 1.6
+	return 1.2
+
+
+func _check_phase_transition() -> void:
+	## Called after taking damage. Checks if HP crossed a phase threshold.
+	var hp_ratio: float = float(health) / float(max_health) if max_health > 0 else 0.0
+	var new_phase: int = current_phase
+
+	if hp_ratio <= 0.29 and current_phase < 3:
+		new_phase = 3
+	elif hp_ratio <= 0.59 and current_phase < 2:
+		new_phase = 2
+
+	if new_phase != current_phase:
+		current_phase = new_phase
+		_apply_phase_timings()
+		_dark_rain_used_initial = false
+		_enter_state("PHASE_TRANSITION")
+
+
+# =============================================================================
+# INTRO SEQUENCE
 # =============================================================================
 
 func play_intro(callback: Callable) -> void:
-	## Plays the boss entrance cinematic: fade in from invisible with a dramatic
-	## title card. The AI state machine does NOT start until this completes.
-	##
-	## [param callback] is called when the intro finishes and the fight begins.
-	## This allows the GameScene to pause player input, play boss music, etc.
-
-	# Start fully invisible.
 	modulate.a = 0.0
 
-	# Delay before the reveal.
 	await get_tree().create_timer(0.5).timeout
 
-	# -- Show dramatic title text --
+	# -- Show personality intro instead of generic text --
+	var intro_text: String
+	if level_num >= 10:
+		intro_text = _pick_taunt("intro_lv10")
+	else:
+		intro_text = _pick_taunt("intro_lv5")
+
 	var intro_label := Label.new()
-	intro_label.text = "DARK XOCHI APPEARS!"
-	intro_label.add_theme_font_size_override("font_size", 48)
+	intro_label.text = intro_text
+	intro_label.add_theme_font_size_override("font_size", 36)
 	intro_label.add_theme_color_override("font_color", COLOR_MAGENTA)
+	intro_label.add_theme_constant_override("outline_size", 3)
+	intro_label.add_theme_color_override("font_outline_color", Color.BLACK)
 	intro_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	intro_label.position = Vector2(-200, -120)
-	intro_label.size = Vector2(400, 60)
+	intro_label.position = Vector2(-250, -120)
+	intro_label.size = Vector2(500, 60)
 	intro_label.z_index = 100
 	add_child(intro_label)
 
-	# -- Fade the boss sprite in over 500ms --
 	var fade_in_tween := create_tween()
 	fade_in_tween.tween_property(self, "modulate:a", 1.0, 0.5)
 
-	# -- Create the health bar UI --
 	_create_health_bar()
 
-	# Wait for the full intro duration (2 seconds total from start).
-	await get_tree().create_timer(1.5).timeout
+	await get_tree().create_timer(2.0).timeout
 
-	# -- Fade out the intro text --
 	var text_fade := create_tween()
 	text_fade.tween_property(intro_label, "modulate:a", 0.0, 0.3)
 	await text_fade.finished
 	intro_label.queue_free()
 
-	# -- Activate the AI and start fighting! --
 	state = "APPROACH"
 	state_timer = 0.0
 	ai_active = true
 	modulate = TINT_DARK
 
-	# Notify the GameScene that the boss is ready.
 	if callback.is_valid():
 		callback.call()
 
 
 # =============================================================================
-# HEALTH BAR UI -- CanvasLayer fixed on screen
+# HEALTH BAR UI
 # =============================================================================
 
 func _create_health_bar() -> void:
-	## Creates the boss health bar on a CanvasLayer so it stays fixed on screen.
-	## Shows "DARK XOCHI" label and a magenta fill bar that scales with health.
-
 	health_bar_layer = CanvasLayer.new()
 	health_bar_layer.name = "BossHealthBar"
-	health_bar_layer.layer = 15  # Above game, below pause overlay
+	health_bar_layer.layer = 15
 	add_child(health_bar_layer)
 
-	# -- Container Control for positioning and fade animation --
 	var container := Control.new()
 	container.name = "Container"
 	container.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	container.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	health_bar_layer.add_child(container)
 
-	# -- "DARK XOCHI" name label --
 	health_bar_name_label = Label.new()
 	health_bar_name_label.text = "DARK XOCHI"
 	health_bar_name_label.add_theme_font_size_override("font_size", 20)
@@ -395,7 +431,6 @@ func _create_health_bar() -> void:
 	health_bar_name_label.size = Vector2(200, 26)
 	container.add_child(health_bar_name_label)
 
-	# -- Health bar background (dark purple) --
 	var bar_bg := ColorRect.new()
 	bar_bg.name = "BarBG"
 	bar_bg.size = Vector2(200, 20)
@@ -403,7 +438,6 @@ func _create_health_bar() -> void:
 	bar_bg.color = Color(0.15, 0.0, 0.15)
 	container.add_child(bar_bg)
 
-	# -- Health bar fill (magenta, scales with health) --
 	health_bar_fill = ColorRect.new()
 	health_bar_fill.name = "BarFill"
 	health_bar_fill.size = Vector2(200, 20)
@@ -411,40 +445,32 @@ func _create_health_bar() -> void:
 	health_bar_fill.color = COLOR_MAGENTA
 	container.add_child(health_bar_fill)
 
-	# -- Start invisible, fade in over 1 second --
 	container.modulate.a = 0.0
 	var fade_tween := create_tween()
 	fade_tween.tween_property(container, "modulate:a", 1.0, 1.0)
 
 
 func _update_health_bar() -> void:
-	## Scales the health bar fill to reflect current HP as a percentage.
 	if health_bar_fill != null and is_instance_valid(health_bar_fill):
 		var hp_ratio: float = float(health) / float(max_health) if max_health > 0 else 0.0
 		health_bar_fill.size.x = 200.0 * hp_ratio
 
 
 # =============================================================================
-# SPEED MULTIPLIER -- escalating tension as boss weakens
+# SPEED MULTIPLIER
 # =============================================================================
 
 func _update_speed_multiplier() -> void:
-	## Recalculates the speed multiplier based on current HP ratio.
-	## At full HP: 1.0x. At 0 HP: 1.5x. Linear interpolation.
-	## This makes the fight progressively more intense -- the boss gets
-	## desperate and faster as it takes damage. DKC2-style escalation.
 	var hp_ratio: float = float(health) / float(max_health) if max_health > 0 else 0.0
-	speed_multiplier = 1.0 + (1.0 - hp_ratio) * 0.5
+	var cap: float = _get_speed_cap()
+	speed_multiplier = minf(1.0 + (1.0 - hp_ratio) * 0.6, cap)
 
 
 # =============================================================================
-# STATE MACHINE -- the brain of Dark Xochi
+# STATE MACHINE
 # =============================================================================
 
 func _run_state_machine(delta: float) -> void:
-	## Dispatches to the current state's update function.
-	## Each state handles its own movement, animation, and transition logic.
-
 	state_timer += delta
 
 	match state:
@@ -456,38 +482,40 @@ func _run_state_machine(delta: float) -> void:
 			_state_attack(delta)
 		"RECOVER":
 			_state_recover(delta)
+		"TAUNT":
+			_state_taunt(delta)
+		"SHADOW_BOLT":
+			_state_shadow_bolt(delta)
+		"DARK_RAIN":
+			_state_dark_rain(delta)
+		"PHASE_TRANSITION":
+			_state_phase_transition(delta)
 
 
 # =============================================================================
-# STATE: APPROACH -- hunting the player
+# STATE: APPROACH
 # =============================================================================
 
 func _state_approach(_delta: float) -> void:
-	## Walk toward the player aggressively. Jump if blocked or player is above.
-	## Transition to TELEGRAPH when close enough or timer expires.
-	## Tint: dark purple (not vulnerable to melee, but stomps always work).
-
 	if player_ref == null or not is_instance_valid(player_ref):
 		return
 
-	# -- Determine direction toward player --
 	var dir_to_player: float = sign(player_ref.global_position.x - global_position.x)
 	_facing_right = dir_to_player > 0
 	sprite.flip_h = not _facing_right
 
-	# -- Move toward player --
 	velocity.x = dir_to_player * base_speed * speed_multiplier
 
-	# -- Jump if blocked horizontally or player is high above --
 	var player_above: bool = (player_ref.global_position.y < global_position.y - JUMP_HEIGHT_THRESHOLD)
 	if is_on_floor() and (is_on_wall() or player_above):
 		velocity.y = APPROACH_JUMP_VELOCITY
 
-	# -- Apply tint --
 	if not is_invincible:
 		modulate = TINT_DARK
 
-	# -- Transition check: close enough or timer expired --
+	# -- Approach taunt (max once per 3 cycles, respecting cooldown) --
+	approach_cycles_since_taunt += 1
+
 	var dist_to_player: float = global_position.distance_to(player_ref.global_position)
 	var approach_elapsed: bool = state_timer >= approach_time
 
@@ -496,18 +524,12 @@ func _state_approach(_delta: float) -> void:
 
 
 # =============================================================================
-# STATE: TELEGRAPH -- warning flash before attack
+# STATE: TELEGRAPH
 # =============================================================================
 
 func _state_telegraph(delta: float) -> void:
-	## Stop moving, flash yellow/red to warn the player, show "!" above head.
-	## This is the tension moment -- the player knows an attack is coming.
-	## Duration: 500ms, then transition to ATTACK.
-
-	# -- Stop horizontal movement --
 	velocity.x = 0.0
 
-	# -- Flash between yellow and red-orange every 100ms --
 	_telegraph_flash_timer += delta
 	var flash_cycle: int = int(_telegraph_flash_timer / 0.1)
 	if flash_cycle % 2 == 0:
@@ -515,56 +537,105 @@ func _state_telegraph(delta: float) -> void:
 	else:
 		modulate = TINT_TELEGRAPH_RED
 
-	# -- Transition to ATTACK when timer expires --
-	if state_timer >= TELEGRAPH_DURATION:
+	if state_timer >= telegraph_time:
 		_remove_telegraph_label()
-		_enter_state("ATTACK")
+
+		# Choose attack based on distance + phase
+		var chosen_attack: String = _choose_attack()
+
+		if chosen_attack == "SHADOW_BOLT":
+			_enter_state("SHADOW_BOLT")
+		elif chosen_attack == "DARK_RAIN":
+			_enter_state("DARK_RAIN")
+		else:
+			attack_type = chosen_attack
+			_enter_state("ATTACK")
 
 
 # =============================================================================
-# STATE: ATTACK -- danger zone!
+# ATTACK SELECTION (contextual, not alternating)
+# =============================================================================
+
+func _choose_attack() -> String:
+	## Picks an attack based on distance to player and current phase.
+	if player_ref == null or not is_instance_valid(player_ref):
+		return "LEAP"
+
+	var dist: float = global_position.distance_to(player_ref.global_position)
+	var roll: float = _rng.randf()
+
+	# Check for DARK_RAIN (lv10, phase 3 only)
+	if current_phase >= 3 and level_num >= 10:
+		if not _dark_rain_used_initial:
+			_dark_rain_used_initial = true
+			return "DARK_RAIN"
+		if roll < 0.2:
+			return "DARK_RAIN"
+		# Re-roll for the remaining attacks
+		roll = _rng.randf()
+
+	var has_bolt: bool = current_phase >= 2
+
+	if dist > 200.0 and has_bolt:
+		# Far range: favor shadow bolt
+		if roll < 0.6:
+			return "SHADOW_BOLT"
+		elif roll < 0.9:
+			return "LEAP"
+		else:
+			return "SWING"
+	elif dist < 120.0:
+		# Close range: favor swing
+		if roll < 0.6:
+			return "SWING"
+		elif roll < 0.9:
+			return "LEAP"
+		elif has_bolt:
+			return "SHADOW_BOLT"
+		else:
+			return "SWING"
+	else:
+		# Mid range: favor leap
+		if roll < 0.5:
+			return "LEAP"
+		elif roll < 0.8:
+			return "SWING"
+		elif has_bolt:
+			return "SHADOW_BOLT"
+		else:
+			return "LEAP"
+
+
+# =============================================================================
+# STATE: ATTACK (LEAP or SWING)
 # =============================================================================
 
 func _state_attack(_delta: float) -> void:
-	## Execute the current attack type: LEAP (0) or MACE SWING (1).
-	## Duration: 400ms, then transition to RECOVER (if on floor for LEAP).
-	## Tint: red (dangerous -- touching the boss hurts the player).
-
 	modulate = TINT_ATTACK
 
 	if player_ref == null or not is_instance_valid(player_ref):
 		return
 
-	if attack_type == 0:
-		# -- LEAP ATTACK: jump toward the player --
+	if attack_type == "LEAP":
 		_attack_leap()
 	else:
-		# -- MACE SWING: wide melee arc --
 		_attack_mace_swing()
 
-	# -- Transition to RECOVER after duration and landing --
 	if state_timer >= ATTACK_DURATION:
-		if attack_type == 0:
-			# LEAP: must be on floor to transition (landing completes the attack)
+		if attack_type == "LEAP":
 			if is_on_floor():
-				# Spawn ground pound shockwave on landing
 				if not _shockwave_spawned:
 					_spawn_shockwave()
 					_shockwave_spawned = true
 				_enter_state("RECOVER")
 		else:
-			# MACE SWING: transitions after fixed duration
 			_enter_state("RECOVER")
 
 
 func _attack_leap() -> void:
-	## LEAP attack: launch toward the player with a powerful arc jump.
-	## Shows "LEAP!" text. On landing, creates a ground pound shockwave.
-
 	if not _leap_launched:
 		_leap_launched = true
 
-		# Direction toward player at moment of launch.
 		var dir: float = sign(player_ref.global_position.x - global_position.x)
 		_facing_right = dir > 0
 		sprite.flip_h = not _facing_right
@@ -577,9 +648,6 @@ func _attack_leap() -> void:
 
 
 func _attack_mace_swing() -> void:
-	## MACE SWING attack: wide melee arc that damages the player if within range.
-	## Shows a magenta semicircle visual and "SWING!" text.
-
 	velocity.x = 0.0
 
 	if not _swing_visual_spawned:
@@ -589,40 +657,207 @@ func _attack_mace_swing() -> void:
 		_spawn_mace_swing_visual()
 		AudioManager.play_sfx("stomp")
 
-		# -- Check if player is within swing range --
 		if player_ref != null and is_instance_valid(player_ref):
 			var dist: float = global_position.distance_to(player_ref.global_position)
 			if dist < MACE_SWING_RADIUS:
-				# Hit the player!
 				player_ref.hit(1)
+				_try_taunt("hit_player")
 
 
 # =============================================================================
-# STATE: RECOVER -- the vulnerable window
+# STATE: SHADOW_BOLT (Phase 2+ ranged attack)
+# =============================================================================
+
+func _state_shadow_bolt(delta: float) -> void:
+	velocity.x = 0.0
+
+	if not _shadow_bolt_fired:
+		# Charge-up phase: boss glows brighter
+		_shadow_bolt_charge_timer += delta
+		var charge_ratio: float = _shadow_bolt_charge_timer / SHADOW_BOLT_CHARGE_TIME
+		modulate = TINT_DARK.lerp(Color(0.6, 0.0, 0.6), charge_ratio)
+
+		if not _shadow_bolt_fired and _shadow_bolt_charge_timer < SHADOW_BOLT_CHARGE_TIME:
+			if not is_instance_valid(action_label):
+				_show_action_text("...", COLOR_MAGENTA)
+			return
+
+		# Fire!
+		_shadow_bolt_fired = true
+		_remove_action_label()
+		_show_action_text("SHADOW BOLT!", COLOR_MAGENTA)
+		_spawn_shadow_bolt()
+		AudioManager.play_sfx("stomp")
+		modulate = TINT_ATTACK
+
+	# After firing, wait briefly then recover
+	if _shadow_bolt_fired and state_timer >= SHADOW_BOLT_CHARGE_TIME + 0.3:
+		_enter_state("RECOVER")
+
+
+func _spawn_shadow_bolt() -> void:
+	## Fires a magenta diamond projectile toward the player's current position.
+	if player_ref == null or not is_instance_valid(player_ref):
+		return
+
+	var parent_node: Node = get_parent()
+	if parent_node == null:
+		return
+
+	var spawn_pos: Vector2 = global_position + Vector2(0, -10)
+	var target_pos: Vector2 = player_ref.global_position
+	var direction: Vector2 = (target_pos - spawn_pos).normalized()
+
+	var bolt := Node2D.new()
+	bolt.name = "ShadowBolt"
+	bolt.position = spawn_pos
+	bolt.z_index = 60
+
+	# 8x8 magenta diamond (rotated square)
+	var diamond := ColorRect.new()
+	diamond.size = Vector2(8, 8)
+	diamond.position = Vector2(-4, -4)
+	diamond.color = COLOR_MAGENTA
+	diamond.rotation_degrees = 45.0
+	bolt.add_child(diamond)
+
+	# Glow effect
+	var glow := ColorRect.new()
+	glow.size = Vector2(12, 12)
+	glow.position = Vector2(-6, -6)
+	glow.color = Color(COLOR_MAGENTA.r, COLOR_MAGENTA.g, COLOR_MAGENTA.b, 0.3)
+	glow.rotation_degrees = 45.0
+	bolt.add_child(glow)
+
+	bolt.set_meta("velocity", direction * SHADOW_BOLT_SPEED)
+	bolt.set_meta("lifetime", SHADOW_BOLT_LIFETIME)
+	bolt.set_meta("is_boss_projectile", true)
+
+	parent_node.add_child(bolt)
+
+
+# =============================================================================
+# STATE: DARK_RAIN (Level 10 Phase 3 only)
+# =============================================================================
+
+func _state_dark_rain(delta: float) -> void:
+	if not _dark_rain_started:
+		_dark_rain_started = true
+		_dark_rain_bolts_spawned = 0
+		_dark_rain_spawn_timer = 0.0
+		_dark_rain_warnings_shown = false
+
+		_show_action_text("DARK RAIN!", Color(1.0, 0.0, 1.0))
+
+		# Jump to arena center
+		var parent_node: Node = get_parent()
+		if parent_node != null:
+			# Estimate arena center from current position
+			velocity.y = -400.0
+			velocity.x = 0.0
+
+	# Hover at top briefly (clamp fall speed)
+	if velocity.y > 50.0:
+		velocity.y = 50.0
+
+	modulate = TINT_PHASE_TRANSITION
+
+	# Show warning markers on ground before bolts arrive
+	if not _dark_rain_warnings_shown and state_timer >= 0.3:
+		_dark_rain_warnings_shown = true
+		_spawn_dark_rain_warnings()
+
+	# Spawn bolts at staggered intervals
+	if state_timer >= DARK_RAIN_WARNING_TIME:
+		_dark_rain_spawn_timer += delta
+		while _dark_rain_bolts_spawned < DARK_RAIN_BOLT_COUNT and _dark_rain_spawn_timer >= DARK_RAIN_STAGGER:
+			_dark_rain_spawn_timer -= DARK_RAIN_STAGGER
+			_spawn_dark_rain_bolt(_dark_rain_bolts_spawned)
+			_dark_rain_bolts_spawned += 1
+
+	# All bolts spawned + extra time for them to land
+	var total_time: float = DARK_RAIN_WARNING_TIME + (DARK_RAIN_BOLT_COUNT * DARK_RAIN_STAGGER) + 0.8
+	if state_timer >= total_time:
+		_enter_state("RECOVER")
+
+
+func _spawn_dark_rain_warnings() -> void:
+	## Flashing red markers on the ground showing where bolts will fall.
+	var parent_node: Node = get_parent()
+	if parent_node == null:
+		return
+
+	var base_x: float = global_position.x
+	var ground_y: float = global_position.y + 100  # Approximate ground level
+
+	for i in DARK_RAIN_BOLT_COUNT:
+		var offset_x: float = (i - 2) * 60.0  # Spread: -120, -60, 0, 60, 120
+		var marker := ColorRect.new()
+		marker.size = Vector2(16, 4)
+		marker.position = Vector2(base_x + offset_x - 8, ground_y)
+		marker.color = Color(1.0, 0.0, 0.0, 0.6)
+		marker.z_index = 40
+		parent_node.add_child(marker)
+
+		# Flash and fade
+		var tween := parent_node.create_tween()
+		tween.tween_property(marker, "modulate:a", 0.2, 0.15)
+		tween.tween_property(marker, "modulate:a", 1.0, 0.15)
+		tween.tween_property(marker, "modulate:a", 0.2, 0.15)
+		tween.tween_property(marker, "modulate:a", 1.0, 0.15)
+		tween.tween_callback(marker.queue_free)
+
+
+func _spawn_dark_rain_bolt(index: int) -> void:
+	## Spawns a single shadow bolt falling from the top of the screen.
+	var parent_node: Node = get_parent()
+	if parent_node == null:
+		return
+
+	var base_x: float = global_position.x
+	var offset_x: float = (index - 2) * 60.0 + _rng.randf_range(-10.0, 10.0)
+	var spawn_y: float = global_position.y - 200  # Well above the boss
+
+	var bolt := Node2D.new()
+	bolt.name = "DarkRainBolt_%d" % index
+	bolt.position = Vector2(base_x + offset_x, spawn_y)
+	bolt.z_index = 60
+
+	var diamond := ColorRect.new()
+	diamond.size = Vector2(8, 8)
+	diamond.position = Vector2(-4, -4)
+	diamond.color = COLOR_MAGENTA
+	diamond.rotation_degrees = 45.0
+	bolt.add_child(diamond)
+
+	var trail := ColorRect.new()
+	trail.size = Vector2(4, 16)
+	trail.position = Vector2(-2, -20)
+	trail.color = Color(COLOR_MAGENTA.r, COLOR_MAGENTA.g, COLOR_MAGENTA.b, 0.5)
+	bolt.add_child(trail)
+
+	bolt.set_meta("velocity", Vector2(0, DARK_RAIN_BOLT_SPEED))
+	bolt.set_meta("lifetime", 2.0)
+	bolt.set_meta("is_boss_projectile", true)
+
+	parent_node.add_child(bolt)
+	AudioManager.play_sfx("jump")
+
+
+# =============================================================================
+# STATE: RECOVER
 # =============================================================================
 
 func _state_recover(delta: float) -> void:
-	## Stop moving, wobble tiredly, show "TIRED..." text.
-	## This is the ONLY state where melee attacks damage the boss.
-	## (Stomps damage the boss in ANY state -- a core design decision that
-	## rewards skilled play without making the fight unfair.)
-	##
-	## Duration: recover_time / speed_mult (shorter as boss weakens).
-	## Last 500ms: flash to warn the window is closing.
-
 	velocity.x = 0.0
 
-	# -- Wobble animation: rotation oscillation --
 	var time_ms: float = float(Time.get_ticks_msec())
 	rotation_degrees = sin(time_ms / 100.0) * 5.0
 
-	# -- Calculate effective recover duration (shortened by speed_mult) --
 	var effective_recover_time: float = recover_time / speed_multiplier
 
-	# -- Flash warning in the last 500ms --
 	var time_remaining: float = effective_recover_time - state_timer
 	if time_remaining < 0.5:
-		# Flash between gray and lighter gray
 		var flash_cycle: int = int(state_timer / 0.1)
 		if flash_cycle % 2 == 0:
 			modulate = TINT_RECOVER
@@ -632,10 +867,63 @@ func _state_recover(delta: float) -> void:
 		if not is_invincible:
 			modulate = TINT_RECOVER
 
-	# -- Transition back to APPROACH when timer expires --
 	if state_timer >= effective_recover_time:
 		rotation_degrees = 0.0
 		_remove_action_label()
+
+		# 30% chance of taunt state between recover and approach (if cooldown allows)
+		if taunt_cooldown <= 0.0 and _rng.randf() < 0.3:
+			_enter_state("TAUNT")
+		else:
+			_enter_state("APPROACH")
+
+
+# =============================================================================
+# STATE: TAUNT (personality breather between cycles)
+# =============================================================================
+
+func _state_taunt(_delta: float) -> void:
+	velocity.x = 0.0
+
+	if not is_invincible:
+		modulate = TINT_DARK
+
+	# Taunt lasts 1.5s, NOT vulnerable (distinct from RECOVER)
+	if state_timer >= 1.5:
+		_remove_taunt_bubble()
+		_enter_state("APPROACH")
+
+
+# =============================================================================
+# STATE: PHASE_TRANSITION (dramatic moment on phase change)
+# =============================================================================
+
+func _state_phase_transition(_delta: float) -> void:
+	velocity.x = 0.0
+
+	# Brief invincibility during transition
+	is_invincible = true
+
+	# Flash effect
+	var flash_cycle: int = int(state_timer / 0.08)
+	if flash_cycle % 2 == 0:
+		modulate = Color.WHITE
+	else:
+		modulate = TINT_PHASE_TRANSITION
+
+	# Show phase taunt at start
+	if state_timer < 0.1:
+		var category: String
+		if current_phase == 3:
+			category = "phase3_lv10" if level_num >= 10 else "phase3"
+		else:
+			category = "phase2"
+		_show_taunt(_pick_taunt(category))
+
+	# Duration: 1.5s
+	if state_timer >= 1.5:
+		is_invincible = false
+		_remove_taunt_bubble()
 		_enter_state("APPROACH")
 
 
@@ -644,9 +932,6 @@ func _state_recover(delta: float) -> void:
 # =============================================================================
 
 func _enter_state(new_state: String) -> void:
-	## Transitions to a new AI state. Resets the state timer and performs
-	## any state-entry setup (labels, flags, etc.).
-
 	var old_state: String = state
 	state = new_state
 	state_timer = 0.0
@@ -664,25 +949,57 @@ func _enter_state(new_state: String) -> void:
 		"RECOVER":
 			_remove_action_label()
 			rotation_degrees = 0.0
+		"SHADOW_BOLT":
+			_remove_action_label()
+			_shadow_bolt_fired = false
+			_shadow_bolt_charge_timer = 0.0
+		"DARK_RAIN":
+			_remove_action_label()
+			_dark_rain_started = false
+		"TAUNT":
+			_remove_taunt_bubble()
+		"PHASE_TRANSITION":
+			_remove_taunt_bubble()
 
 	# -- Set up new state --
 	match new_state:
 		"APPROACH":
 			modulate = TINT_DARK
+			# Maybe show approach taunt
+			if approach_cycles_since_taunt >= 3 and taunt_cooldown <= 0.0:
+				if _rng.randf() < 0.4:
+					_try_taunt("approach")
+					approach_cycles_since_taunt = 0
 		"TELEGRAPH":
 			_telegraph_flash_timer = 0.0
 			_show_telegraph_label()
 		"ATTACK":
 			modulate = TINT_ATTACK
-			# Reset attack-specific flags.
 			_shockwave_spawned = false
 			_swing_visual_spawned = false
 			_leap_launched = false
 		"RECOVER":
 			modulate = TINT_RECOVER
-			# Toggle attack type for next cycle: 0 -> 1 -> 0 -> 1...
-			attack_type = 1 - attack_type
-			_show_action_text("TIRED...", Color("88ff88"))
+			# Show recover taunt instead of generic "TIRED..."
+			var recover_line: String = _pick_taunt("recover")
+			_show_action_text(recover_line, Color("88ff88"))
+		"SHADOW_BOLT":
+			_shadow_bolt_fired = false
+			_shadow_bolt_charge_timer = 0.0
+		"DARK_RAIN":
+			_dark_rain_started = false
+			_dark_rain_bolts_spawned = 0
+			_dark_rain_spawn_timer = 0.0
+			_dark_rain_warnings_shown = false
+		"TAUNT":
+			# Pick a context-appropriate taunt
+			var category: String = "approach"
+			if current_phase == 3:
+				category = "phase3_lv10" if level_num >= 10 else "phase3"
+			elif current_phase == 2:
+				category = "phase2"
+			_show_taunt(_pick_taunt(category))
+			taunt_cooldown = 3.0
 
 
 # =============================================================================
@@ -690,38 +1007,27 @@ func _enter_state(new_state: String) -> void:
 # =============================================================================
 
 func take_damage(amount: int = 1) -> void:
-	## Reduces health, plays hit feedback, applies knockback, and checks for
-	## defeat. Called by the combat system on stomp (any state) or melee
-	## (RECOVER state only).
-	##
-	## Hit feedback: brief white flash, knockback away from player, floating
-	## "HIT! X/Y" text, and 500ms invincibility to prevent damage stacking.
-
 	if is_invincible or state == "DEAD":
 		return
 
-	# -- Reduce health --
 	health -= amount
 	if health < 0:
 		health = 0
 
-	# -- Update health bar --
 	_update_health_bar()
 
-	# -- Emit damage signal --
 	Events.boss_damaged.emit(health, max_health)
-
-	# -- SFX --
 	AudioManager.play_sfx("stomp")
 
-	# -- Floating "HIT!" text --
 	_show_floating_text(
 		"HIT! %d/%d" % [max_health - health, max_health],
 		Color.WHITE,
 		global_position + Vector2(0, -60)
 	)
 
-	# -- Knockback away from player --
+	# Stomp taunt
+	_try_taunt("stomped")
+
 	if player_ref != null and is_instance_valid(player_ref):
 		var knockback_dir: float = sign(global_position.x - player_ref.global_position.x)
 		if knockback_dir == 0:
@@ -729,64 +1035,66 @@ func take_damage(amount: int = 1) -> void:
 		velocity.x = knockback_dir * 200.0
 		velocity.y = -150.0
 
-	# -- Brief invincibility to prevent rapid damage stacking --
 	is_invincible = true
 
-	# -- White flash then back to state tint --
 	var flash_tween := create_tween()
 	flash_tween.tween_property(self, "modulate", Color.WHITE, 0.05)
 	flash_tween.tween_interval(0.1)
 
-	# -- Check for defeat --
 	if health <= 0:
 		defeat_sequence()
 		return
 
-	# After flash, return to state tint and reset to APPROACH.
+	# Near death taunt (1 HP)
+	if health == 1:
+		if level_num >= 10:
+			_try_taunt("near_death_lv10")
+		else:
+			_try_taunt("near_death")
+
+	# Check for phase transition
 	flash_tween.tween_callback(func():
-		_enter_state("APPROACH")
+		if state != "DEAD" and state != "PHASE_TRANSITION":
+			_check_phase_transition()
+			# If no phase transition happened, go to APPROACH
+			if state != "PHASE_TRANSITION":
+				_enter_state("APPROACH")
 	)
 
-	# Remove invincibility after the protection window.
 	flash_tween.tween_interval(HIT_INVINCIBILITY_TIME)
 	flash_tween.tween_callback(func():
-		is_invincible = false
+		if state != "PHASE_TRANSITION":
+			is_invincible = false
 	)
 
 
-## Called by the combat system when the player stomps the boss.
-## Stomps ALWAYS damage the boss regardless of state -- this is intentional.
-## It rewards skilled players who can land on the boss during any phase.
 func hit_by_stomp() -> void:
 	take_damage(1)
-	# Player bounce is handled by the caller (combat system / game scene).
 
 
-## Called by the combat system when the player's melee attack hits during RECOVER.
-## Melee only works in RECOVER state -- the vulnerable window.
 func hit_by_melee() -> void:
 	if state == "RECOVER":
 		take_damage(1)
 
 
 # =============================================================================
-# DEFEAT SEQUENCE -- the big payoff
+# DEFEAT SEQUENCE
 # =============================================================================
 
 func defeat_sequence() -> void:
-	## The boss is destroyed! Play a dramatic death sequence with flashing,
-	## particles, score award, and baby axolotl spawn. This is the reward for
-	## a hard-fought boss fight -- make it feel GOOD.
-
 	state = "DEAD"
 	ai_active = false
 	velocity = Vector2.ZERO
 	rotation_degrees = 0.0
 
-	# -- Show dramatic defeat text --
-	_show_action_text("NOOOOO!", COLOR_MAGENTA)
+	# Personality defeat line
+	var defeat_text: String
+	if level_num >= 10:
+		defeat_text = _pick_taunt("defeat_lv10")
+	else:
+		defeat_text = _pick_taunt("defeat")
+	_show_action_text(defeat_text, COLOR_MAGENTA)
 
-	# -- Rapid white/red flash (10 flashes at 100ms each = 1 second) --
 	var flash_tween := create_tween()
 	for i in 10:
 		if i % 2 == 0:
@@ -796,15 +1104,15 @@ func defeat_sequence() -> void:
 
 	await flash_tween.finished
 
-	# -- Explosion particles: 20 magenta rects that fly outward --
 	_spawn_defeat_particles()
 
-	# -- Fade out the boss sprite --
+	# Clean up any remaining boss projectiles
+	_cleanup_boss_projectiles()
+
 	var fade_tween := create_tween()
 	fade_tween.tween_property(self, "modulate:a", 0.0, 0.5)
 	await fade_tween.finished
 
-	# -- Award score --
 	GameState.score += DEFEAT_SCORE
 	Events.score_changed.emit(GameState.score)
 	_show_floating_text(
@@ -813,17 +1121,26 @@ func defeat_sequence() -> void:
 		global_position + Vector2(0, -80)
 	)
 
-	# -- Destroy health bar --
 	if health_bar_layer != null and is_instance_valid(health_bar_layer):
 		health_bar_layer.queue_free()
 		health_bar_layer = null
 
-	# -- Emit defeat signal --
+	_remove_taunt_bubble()
+
 	Events.boss_defeated.emit()
 
-	# -- After delay, spawn baby axolotl at the boss's position --
 	await get_tree().create_timer(1.5).timeout
 	_spawn_baby_axolotl()
+
+
+func _cleanup_boss_projectiles() -> void:
+	## Remove all shadow bolt / dark rain projectiles from the scene.
+	var parent_node: Node = get_parent()
+	if parent_node == null:
+		return
+	for child in parent_node.get_children():
+		if child.has_meta("is_boss_projectile"):
+			child.queue_free()
 
 
 # =============================================================================
@@ -831,21 +1148,14 @@ func defeat_sequence() -> void:
 # =============================================================================
 
 func _spawn_baby_axolotl() -> void:
-	## Spawns a baby axolotl collectible at the boss's last position.
-	## The GameScene's existing baby pickup logic will handle the rest.
-
-	# Find the parent scene (GameScene) to add the baby to.
 	var game_scene: Node = get_parent()
 	if game_scene == null:
 		return
 
-	# Try to find the Collectibles container in the game scene.
 	var collectibles_node: Node = game_scene.get_node_or_null("Collectibles")
 	if collectibles_node == null:
-		# Fallback: add directly to game scene.
 		collectibles_node = game_scene
 
-	# -- Create baby axolotl marker (same structure as GameScene._create_baby) --
 	var marker := Node2D.new()
 	marker.name = "BabyAxolotl"
 	marker.position = baby_position
@@ -853,21 +1163,18 @@ func _spawn_baby_axolotl() -> void:
 	marker.set_meta("base_y", baby_position.y)
 	marker.set_meta("bob_offset", 0.0)
 
-	# Body (pink)
 	var body_rect := ColorRect.new()
 	body_rect.size = Vector2(24.0, 24.0)
 	body_rect.position = Vector2(-12.0, -12.0)
 	body_rect.color = Color("FF88AA")
 	marker.add_child(body_rect)
 
-	# Face highlight
 	var face := ColorRect.new()
 	face.size = Vector2(14.0, 10.0)
 	face.position = Vector2(-7.0, -8.0)
 	face.color = Color("FFBBCC")
 	marker.add_child(face)
 
-	# Sparkle ring
 	var sparkle := ColorRect.new()
 	sparkle.name = "Sparkle"
 	sparkle.size = Vector2(36.0, 36.0)
@@ -877,10 +1184,90 @@ func _spawn_baby_axolotl() -> void:
 
 	collectibles_node.add_child(marker)
 
-	# Dramatic entrance: scale up from zero.
 	marker.scale = Vector2.ZERO
 	var pop_tween := create_tween()
 	pop_tween.tween_property(marker, "scale", Vector2.ONE, 0.3).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+
+
+# =============================================================================
+# TAUNT DISPLAY SYSTEM
+# =============================================================================
+
+func _pick_taunt(category: String) -> String:
+	## Returns a random line from the given category.
+	var lines: Array = taunt_lines.get(category, [])
+	if lines.is_empty():
+		return ""
+	return lines[_rng.randi_range(0, lines.size() - 1)]
+
+
+func _try_taunt(category: String) -> void:
+	## Shows a taunt if cooldown allows. Respects the 3s minimum between taunts.
+	if taunt_cooldown > 0.0:
+		return
+	var text: String = _pick_taunt(category)
+	if text.is_empty():
+		return
+	_show_taunt(text)
+	taunt_cooldown = 3.0
+
+
+func _show_taunt(text: String) -> void:
+	## Displays a speech bubble above the boss with the given text.
+	## Auto-fades after 2 seconds. Uses a CanvasLayer to stay on screen.
+	if text.is_empty():
+		return
+
+	_remove_taunt_bubble()
+
+	# Create a simple speech bubble as a child of the boss (moves with it)
+	_taunt_bubble = Control.new()
+	_taunt_bubble.name = "TauntBubble"
+	_taunt_bubble.z_index = 110
+	_taunt_bubble.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	# Background panel
+	var bg := ColorRect.new()
+	bg.color = Color(0.0, 0.0, 0.0, 0.8)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_taunt_bubble.add_child(bg)
+
+	# Text label
+	var label := Label.new()
+	label.text = text
+	label.add_theme_font_size_override("font_size", 14)
+	label.add_theme_color_override("font_color", COLOR_MAGENTA)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	# Size the bubble to fit text
+	var text_width: float = minf(text.length() * 8.0, 250.0)
+	label.size = Vector2(text_width, 0)
+	label.position = Vector2(4, 4)
+
+	bg.size = Vector2(text_width + 8, 40)
+	bg.position = Vector2(0, 0)
+
+	_taunt_bubble.add_child(label)
+	_taunt_bubble.position = Vector2(-text_width * 0.5, -110)
+	_taunt_bubble.size = Vector2(text_width + 8, 40)
+
+	add_child(_taunt_bubble)
+
+	# Auto-fade after 2 seconds
+	var fade_tween := create_tween()
+	fade_tween.tween_interval(1.5)
+	fade_tween.tween_property(_taunt_bubble, "modulate:a", 0.0, 0.5)
+	fade_tween.tween_callback(func():
+		_remove_taunt_bubble()
+	)
+
+
+func _remove_taunt_bubble() -> void:
+	if _taunt_bubble != null and is_instance_valid(_taunt_bubble):
+		_taunt_bubble.queue_free()
+		_taunt_bubble = null
 
 
 # =============================================================================
@@ -888,9 +1275,6 @@ func _spawn_baby_axolotl() -> void:
 # =============================================================================
 
 func _show_telegraph_label() -> void:
-	## Shows the "!" warning text above the boss's head during TELEGRAPH state.
-	## Yellow text with red outline, size 36.
-
 	_remove_telegraph_label()
 
 	telegraph_label = Label.new()
@@ -907,16 +1291,12 @@ func _show_telegraph_label() -> void:
 
 
 func _remove_telegraph_label() -> void:
-	## Removes the "!" warning label if it exists.
 	if telegraph_label != null and is_instance_valid(telegraph_label):
 		telegraph_label.queue_free()
 		telegraph_label = null
 
 
 func _show_action_text(text: String, color: Color) -> void:
-	## Shows a floating action label above the boss (e.g. "LEAP!", "SWING!",
-	## "TIRED...", "NOOOOO!"). Replaces any existing action label.
-
 	_remove_action_label()
 
 	action_label = Label.new()
@@ -931,16 +1311,12 @@ func _show_action_text(text: String, color: Color) -> void:
 
 
 func _remove_action_label() -> void:
-	## Removes the floating action label if it exists.
 	if action_label != null and is_instance_valid(action_label):
 		action_label.queue_free()
 		action_label = null
 
 
 func _show_floating_text(text: String, color: Color, pos: Vector2) -> void:
-	## Creates a floating text label at the given world position that drifts
-	## upward and fades out. Used for damage numbers and score popups.
-
 	var parent_node: Node = get_parent()
 	if parent_node == null:
 		return
@@ -954,7 +1330,6 @@ func _show_floating_text(text: String, color: Color, pos: Vector2) -> void:
 	label.z_index = 100
 	parent_node.add_child(label)
 
-	# Float upward and fade out over 1 second.
 	var tween := parent_node.create_tween()
 	tween.set_parallel(true)
 	tween.tween_property(label, "position:y", pos.y - 60.0, 1.0)
@@ -963,13 +1338,9 @@ func _show_floating_text(text: String, color: Color, pos: Vector2) -> void:
 
 
 func _spawn_mace_swing_visual() -> void:
-	## Spawns a magenta semicircle visual representing the mace swing arc.
-	## The visual is a ColorRect approximation that fades out quickly.
-
 	var swing_dir: float = -1.0 if _facing_right else 1.0
 	var offset_x: float = swing_dir * -MACE_SWING_ARC_RADIUS * 0.5
 
-	# Semicircle approximated as a wide, short, rounded ColorRect.
 	var arc := ColorRect.new()
 	arc.size = Vector2(MACE_SWING_ARC_RADIUS * 2.0, MACE_SWING_ARC_RADIUS)
 	arc.position = Vector2(offset_x - MACE_SWING_ARC_RADIUS, -MACE_SWING_ARC_RADIUS * 0.5)
@@ -977,23 +1348,16 @@ func _spawn_mace_swing_visual() -> void:
 	arc.z_index = 50
 	add_child(arc)
 
-	# Fade out and remove.
 	var tween := create_tween()
 	tween.tween_property(arc, "modulate:a", 0.0, 0.3)
 	tween.tween_callback(arc.queue_free)
 
 
 func _spawn_shockwave() -> void:
-	## Spawns a ground pound shockwave when landing from a LEAP attack.
-	## Two magenta rectangles expand outward from the landing point and fade.
-	## This is the visual punctuation on the LEAP -- it makes the landing
-	## feel impactful even if the player dodged.
-
 	var parent_node: Node = get_parent()
 	if parent_node == null:
 		return
 
-	# -- Left shockwave --
 	var wave_left := ColorRect.new()
 	wave_left.size = Vector2(20.0, 8.0)
 	wave_left.position = global_position + Vector2(-10.0, 20.0)
@@ -1001,7 +1365,6 @@ func _spawn_shockwave() -> void:
 	wave_left.z_index = 50
 	parent_node.add_child(wave_left)
 
-	# -- Right shockwave --
 	var wave_right := ColorRect.new()
 	wave_right.size = Vector2(20.0, 8.0)
 	wave_right.position = global_position + Vector2(-10.0, 20.0)
@@ -1009,7 +1372,6 @@ func _spawn_shockwave() -> void:
 	wave_right.z_index = 50
 	parent_node.add_child(wave_right)
 
-	# -- Expand outward and fade --
 	var tween_left := parent_node.create_tween()
 	tween_left.set_parallel(true)
 	tween_left.tween_property(wave_left, "position:x", global_position.x - 150.0, 0.4)
@@ -1024,15 +1386,10 @@ func _spawn_shockwave() -> void:
 	tween_right.tween_property(wave_right, "modulate:a", 0.0, 0.4)
 	tween_right.chain().tween_callback(wave_right.queue_free)
 
-	# SFX for the impact.
 	AudioManager.play_sfx("land")
 
 
 func _spawn_defeat_particles() -> void:
-	## Spawns 20 magenta explosion particles that fly outward from the boss.
-	## Each particle is a small ColorRect that moves in a random direction
-	## and fades out. This is the climactic visual payoff for defeating the boss.
-
 	var parent_node: Node = get_parent()
 	if parent_node == null:
 		return
@@ -1048,12 +1405,10 @@ func _spawn_defeat_particles() -> void:
 		particle.z_index = 80
 		parent_node.add_child(particle)
 
-		# Random outward direction and speed.
 		var angle: float = rng.randf_range(0.0, TAU)
 		var speed: float = rng.randf_range(80.0, 200.0)
 		var end_pos: Vector2 = particle.position + Vector2(cos(angle), sin(angle)) * speed
 
-		# Fly outward and fade.
 		var tween := parent_node.create_tween()
 		tween.set_parallel(true)
 		tween.tween_property(particle, "position", end_pos, 0.6).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
