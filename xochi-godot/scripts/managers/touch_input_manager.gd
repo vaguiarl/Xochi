@@ -28,6 +28,7 @@ const TAP_MAX_MOVEMENT: int = 30  # px
 const SWIPE_MIN_DISTANCE: int = 40  # px
 const HOLD_DURATION: int = 400  # ms
 const SWIPE_UP_THRESHOLD: int = -25  # px (negative = up)
+const SWIPE_DOWN_THRESHOLD: int = 25  # px (positive = down)
 const WALK_INITIAL_VELOCITY: float = 350.0
 const RUN_INITIAL_VELOCITY: float = 420.0
 const DOUBLE_SWIPE_WINDOW: int = 400  # ms
@@ -45,6 +46,8 @@ var right: bool = false
 var jump: bool = false
 var attack: bool = false
 var run: bool = false
+var down: bool = false
+var direction: float = 0.0  # -1.0 left, 0.0 none, 1.0 right
 var swipe_velocity_x: float = 0.0
 
 # =============================================================================
@@ -85,6 +88,10 @@ var pause_button: Control = null
 var hint_label: Label = null
 var ui_layer: CanvasLayer = null
 
+## Touch feedback visuals
+var touch_ring: ColorRect = null
+var touch_line: Line2D = null
+
 # =============================================================================
 # SETUP
 # =============================================================================
@@ -105,10 +112,14 @@ func _create_ui() -> void:
 	ui_layer.layer = 100  # Above everything
 	add_child(ui_layer)
 
-	# Pause button (top-right, viewport-relative)
+	# Pause button (top-right, safe-area-aware for notch/Dynamic Island)
 	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
-	var pause_x: float = viewport_size.x - 30.0
-	var pause_y: float = 30.0
+	var safe_area: Rect2 = Rect2(Vector2.ZERO, viewport_size)
+	var vm = get_node_or_null("/root/ViewportManager")
+	if vm and vm.has_method("get_safe_area"):
+		safe_area = vm.get_safe_area()
+	var pause_x: float = safe_area.end.x - 30.0
+	var pause_y: float = safe_area.position.y + 30.0
 
 	# Background circle
 	var pause_bg := ColorRect.new()
@@ -130,9 +141,9 @@ func _create_ui() -> void:
 
 	pause_button = pause_bg
 
-	# Control hint (bottom center)
+	# Control hint (bottom center, safe-area-aware for home indicator)
 	var hint_x: float = viewport_size.x / 2.0
-	var hint_y: float = viewport_size.y - 40.0
+	var hint_y: float = safe_area.end.y - 40.0
 
 	hint_label = Label.new()
 	hint_label.text = "SWIPE = MOVE  |  DOUBLE-SWIPE = RUN  |  SWIPE UP = JUMP  |  TAP = SUPER JUMP"
@@ -187,6 +198,9 @@ func _input(event: InputEvent) -> void:
 		primary_touch.has_triggered_swipe = false
 		movement_state.finger_down = true
 
+		# Visual touch feedback
+		_show_touch_indicator(event.position)
+
 		# Hold timer for attack (lines 874-885)
 		var hold_timer := get_tree().create_timer(HOLD_DURATION / 1000.0)
 		primary_touch.hold_timer = hold_timer
@@ -215,6 +229,9 @@ func _input(event: InputEvent) -> void:
 		primary_touch.current_y = event.position.y
 		primary_touch.last_move_time = now
 
+		# Update swipe direction line
+		_update_touch_line(event.position)
+
 		var dx: float = event.position.x - primary_touch.origin_x
 		var dy: float = event.position.y - primary_touch.origin_y
 		var distance: float = sqrt(dx*dx + dy*dy)
@@ -238,10 +255,12 @@ func _input(event: InputEvent) -> void:
 				if dx < -20:
 					left = true
 					right = false
+					direction = -1.0
 					movement_state.maintain_direction = -1
 				elif dx > 20:
 					left = false
 					right = true
+					direction = 1.0
 					movement_state.maintain_direction = 1
 
 				if absf(horizontal_power) > 30:
@@ -249,6 +268,14 @@ func _input(event: InputEvent) -> void:
 
 				await get_tree().create_timer(0.05).timeout
 				jump = false
+
+			# SWIPE DOWN = DROP (ledge drop / platform drop-through)
+			elif dy > SWIPE_DOWN_THRESHOLD and absf(dx) < SWIPE_MIN_DISTANCE and not primary_touch.is_used:
+				primary_touch.is_used = true
+				down = true
+				# Brief pulse — reset after 0.05s so it acts like a press
+				await get_tree().create_timer(0.05).timeout
+				down = false
 
 			# HORIZONTAL SWIPE = MOMENTUM (lines 924-943)
 			elif not primary_touch.has_jumped and not primary_touch.has_triggered_swipe:
@@ -271,9 +298,11 @@ func _input(event: InputEvent) -> void:
 				if swipe_direction < 0:
 					left = true
 					right = false
+					direction = -1.0
 				else:
 					left = false
 					right = true
+					direction = 1.0
 
 				swipe_velocity_x = movement_state.momentum
 
@@ -281,6 +310,8 @@ func _input(event: InputEvent) -> void:
 	elif event is InputEventScreenTouch and not event.pressed:
 		if not primary_touch.active or event.index != primary_touch.pointer_id:
 			return
+
+		_hide_touch_indicator()
 
 		var dx: float = event.position.x - primary_touch.origin_x
 		var dy: float = event.position.y - primary_touch.origin_y
@@ -310,6 +341,8 @@ func _input(event: InputEvent) -> void:
 		left = false
 		right = false
 		run = false
+		down = false
+		direction = 0.0
 		if not primary_touch.has_jumped:
 			swipe_velocity_x = 0.0
 		primary_touch.active = false
@@ -354,6 +387,60 @@ func _show_super_jump_effect() -> void:
 
 
 # =============================================================================
+# TOUCH FEEDBACK VISUALS
+# =============================================================================
+
+func _show_touch_indicator(pos: Vector2) -> void:
+	## Spawn a small white dot at the touch origin for discoverability.
+	if ui_layer == null:
+		return
+
+	# Clean up previous indicator
+	_hide_touch_indicator()
+
+	# White dot at touch origin (20x20, centered, 50% alpha)
+	var dot := ColorRect.new()
+	dot.name = "TouchRing"
+	dot.size = Vector2(20, 20)
+	dot.position = pos - Vector2(10, 10)
+	dot.color = Color(1.0, 1.0, 1.0, 0.5)
+	ui_layer.add_child(dot)
+	touch_ring = dot
+
+	# Direction line: thin white line from origin to current touch
+	touch_line = Line2D.new()
+	touch_line.name = "TouchLine"
+	touch_line.width = 2.0
+	touch_line.default_color = Color(1.0, 1.0, 1.0, 0.3)
+	touch_line.add_point(pos)
+	touch_line.add_point(pos)
+	ui_layer.add_child(touch_line)
+
+
+func _update_touch_line(current_pos: Vector2) -> void:
+	## Update the direction indicator line endpoint during drag.
+	if touch_line and is_instance_valid(touch_line) and touch_line.get_point_count() >= 2:
+		touch_line.set_point_position(1, current_pos)
+
+
+func _hide_touch_indicator() -> void:
+	## Fade out and remove touch feedback visuals.
+	if touch_ring and is_instance_valid(touch_ring):
+		var ring_ref := touch_ring
+		var tween := create_tween()
+		tween.tween_property(ring_ref, "modulate:a", 0.0, 0.3)
+		tween.tween_callback(ring_ref.queue_free)
+		touch_ring = null
+
+	if touch_line and is_instance_valid(touch_line):
+		var line_ref := touch_line
+		var tween := create_tween()
+		tween.tween_property(line_ref, "modulate:a", 0.0, 0.15)
+		tween.tween_callback(line_ref.queue_free)
+		touch_line = null
+
+
+# =============================================================================
 # PUBLIC API
 # =============================================================================
 
@@ -374,3 +461,11 @@ func get_momentum() -> float:
 
 func is_touch_device() -> bool:
 	return DisplayServer.is_touchscreen_available()
+
+
+## Trigger a haptic pulse on supported devices (iOS Taptic Engine, Android vibration).
+## Short-circuits on non-touch devices to avoid unnecessary calls.
+func haptic(duration_ms: int = 50) -> void:
+	if not DisplayServer.is_touchscreen_available():
+		return
+	Input.vibrate_handheld(duration_ms)

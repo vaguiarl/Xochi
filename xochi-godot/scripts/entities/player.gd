@@ -215,6 +215,7 @@ func _physics_process(delta: float) -> void:
 	_handle_attack()
 	_update_luchador(delta)
 	_apply_touch_momentum()
+	_handle_platform_drop()
 	_detect_ledge_grab()
 	_corner_correction()
 	_update_animation()
@@ -420,6 +421,8 @@ func _handle_jumping() -> void:
 			jump_buffer_timer = 0.0
 			coyote_timer = 0.0
 			AudioManager.play_sfx("jump")
+			if touch_input:
+				touch_input.haptic(50)  # Light pulse on jump
 
 			# Apply horizontal velocity from touch swipe
 			if using_touch and absf(touch_input.swipe_velocity_x) > 30.0:
@@ -574,6 +577,39 @@ func _apply_touch_momentum() -> void:
 
 
 # =============================================================================
+# PLATFORM DROP-THROUGH
+# =============================================================================
+
+func _handle_platform_drop() -> void:
+	## Drop through one-way platforms when pressing down (or swipe-down on touch).
+	if not is_on_floor():
+		return
+
+	var using_touch: bool = touch_input != null and touch_input.is_touch_device()
+	var down_pressed: bool
+	if using_touch:
+		down_pressed = touch_input.down
+	else:
+		down_pressed = Input.is_action_pressed("ui_down")
+
+	if not down_pressed:
+		return
+
+	# Check if standing on a one-way platform (StaticBody2D with one_way_collision)
+	for i in get_slide_collision_count():
+		var collision := get_slide_collision(i)
+		var collider := collision.get_collider()
+		if collider is StaticBody2D:
+			# Briefly disable collision with this platform
+			var original_mask: int = collision_mask
+			collision_mask = 0
+			global_position.y += 2.0  # Nudge through
+			await get_tree().create_timer(0.2).timeout
+			collision_mask = original_mask
+			return
+
+
+# =============================================================================
 # LUCHADOR POWER-UP
 # =============================================================================
 
@@ -685,10 +721,10 @@ func _update_hanging(delta: float) -> void:
 		_enter_climbing_state()
 		return
 
-	# Allow dropping by pressing down
+	# Allow dropping by pressing down (or swipe-down on touch)
 	var down_pressed: bool
 	if using_touch:
-		down_pressed = false  # Touch controls don't have explicit down
+		down_pressed = touch_input.down
 	else:
 		down_pressed = Input.is_action_pressed("ui_down")
 
@@ -739,6 +775,8 @@ func hit(damage: int = 1) -> void:
 		is_invincible = true
 		velocity.y = HIT_KNOCKBACK_Y
 		AudioManager.play_sfx("hurt")
+		if touch_input:
+			touch_input.haptic(200)  # Strong pulse on damage
 
 		# Invincibility lasts INVINCIBILITY_DURATION seconds.
 		await get_tree().create_timer(INVINCIBILITY_DURATION).timeout
@@ -751,6 +789,8 @@ func die() -> void:
 	is_dead = true
 	velocity = Vector2.ZERO
 	AudioManager.play_sfx("hurt")
+	if touch_input:
+		touch_input.haptic(200)  # Strong pulse on death
 	Events.player_died.emit()
 
 
@@ -777,3 +817,5 @@ func activate_elote_invincibility(duration: float = 10.0) -> void:
 ## the GameScene's stomp-detection logic.
 func stomp_bounce() -> void:
 	velocity.y = STOMP_BOUNCE_VELOCITY
+	if touch_input:
+		touch_input.haptic(100)  # Medium pulse on stomp

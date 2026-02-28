@@ -139,10 +139,23 @@ func activate(duration: float = 15.0) -> void:
 # ROLLING ATTACK -- DOUBLE-TAP ATTACK IN AIR
 # =============================================================================
 
-## Detect double-tap of the attack button. If two presses occur within
-## DOUBLE_TAP_WINDOW and the player is airborne, start a rolling attack.
+## Detect double-tap of the attack button (keyboard) or double-hold (touch).
+## If two presses occur within DOUBLE_TAP_WINDOW and the player is airborne,
+## start a rolling attack.
 func _check_roll_input() -> void:
+	var attack_pressed: bool = false
+
+	# Check keyboard/gamepad
 	if Input.is_action_just_pressed("attack"):
+		attack_pressed = true
+
+	# Check touch input (player.touch_input is set by GameScene)
+	if not attack_pressed and player.get("touch_input") != null:
+		var ti = player.touch_input
+		if ti != null and ti.is_touch_device() and ti.attack:
+			attack_pressed = true
+
+	if attack_pressed:
 		var now: float = Time.get_ticks_msec() / 1000.0
 		if now - last_z_press_time < DOUBLE_TAP_WINDOW:
 			# Double tap detected -- start roll if airborne and not already rolling
