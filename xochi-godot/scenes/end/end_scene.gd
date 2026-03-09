@@ -12,6 +12,8 @@ var menu_button: Button
 var baby_sprites: Array[Node] = []
 var xochi_sprite: Sprite2D = null
 var confetti_particles: Array[Node] = []
+var _tracked_tweens: Array[Tween] = []
+var _is_cleaning_up: bool = false
 
 # Animation state for confetti (sinusoidal sway)
 var confetti_data: Array[Dictionary] = []
@@ -33,6 +35,8 @@ const CONFETTI_COLORS: Array[Color] = [
 # Confetti shape types
 enum ConfettiShape { DIAMOND, RECT_WIDE, RECT_TALL, SMALL_SQUARE }
 
+const BABY_SPRITE_SHADER: Shader = preload("res://assets/shaders/baby_sprite_clean.gdshader")
+
 
 func _ready() -> void:
 	# Dark background with warm tint
@@ -46,6 +50,10 @@ func _ready() -> void:
 
 	# Build UI
 	_create_ui()
+
+
+func _exit_tree() -> void:
+	_cleanup_for_exit()
 
 
 func _process(delta: float) -> void:
@@ -151,7 +159,7 @@ func _create_ui() -> void:
 	add_child(title)
 
 	# Pulse animation on title
-	var title_tween := create_tween()
+	var title_tween := _make_tween()
 	title_tween.set_loops()
 	title_tween.set_ease(Tween.EASE_IN_OUT)
 	title_tween.set_trans(Tween.TRANS_SINE)
@@ -208,7 +216,7 @@ func _create_baby_parade() -> void:
 	## Babies march across the screen with bouncy walk animation, staggered entrance,
 	## and slightly varied sizes.
 	var ui_scale: float = ViewportManager.get_ui_scale()
-	var baby_count: int = clampi(GameState.rescued_babies.size(), 1, 10)
+	var baby_count: int = maxi(GameState.rescued_babies.size(), 1)
 	var baby_tex: Texture2D = load("res://assets/sprites/collectibles/baby_axolotl.png")
 
 	# Parade Y position (design space y=170, centered in parade area)
@@ -216,15 +224,16 @@ func _create_baby_parade() -> void:
 
 	# Calculate spacing so babies spread across most of the screen width
 	var viewport_w: float = ViewportManager.viewport_size.x
-	var total_parade_width: float = viewport_w * 0.6
+	var total_parade_width: float = viewport_w * 0.9
 	var spacing: float = total_parade_width / maxf(baby_count, 1)
 	var start_x: float = (viewport_w - total_parade_width) / 2.0 + spacing / 2.0
 
 	for i in range(baby_count):
 		var baby := Sprite2D.new()
 		baby.texture = baby_tex
-		# Slightly random scale for variety (target ~40px tall at ui_scale 1.0)
-		var base_scale: float = (40.0 * ui_scale) / baby_tex.get_height()
+		_apply_baby_cleanup(baby)
+		# Slightly random scale for variety (target ~160px tall at ui_scale 1.0)
+		var base_scale: float = (160.0 * ui_scale) / baby_tex.get_height()
 		var scale_variation: float = randf_range(0.85, 1.15)
 		var final_scale: float = base_scale * scale_variation
 		baby.scale = Vector2(final_scale, final_scale)
@@ -244,17 +253,17 @@ func _create_baby_parade() -> void:
 
 		# Staggered entrance: each baby slides in after a delay
 		var entrance_delay: float = 0.3 + i * 0.25
-		var entrance_tween := create_tween()
+		var entrance_tween := _make_tween()
 		entrance_tween.tween_interval(entrance_delay)
 		entrance_tween.tween_property(baby, "modulate:a", 1.0, 0.3)
 		entrance_tween.parallel().tween_property(baby, "position:x", target_x, 0.8).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
 
 		# Create a looping bounce + rotation after entrance completes
 		var bounce_delay: float = entrance_delay + 0.8
-		var bounce_tween := create_tween()
+		var bounce_tween := _make_tween()
 		bounce_tween.tween_interval(bounce_delay)
 		bounce_tween.tween_callback(func():
-			var loop_tween := create_tween()
+			var loop_tween := _make_tween()
 			loop_tween.set_loops()
 			loop_tween.set_ease(Tween.EASE_IN_OUT)
 			loop_tween.set_trans(Tween.TRANS_SINE)
@@ -264,7 +273,7 @@ func _create_baby_parade() -> void:
 			loop_tween.tween_property(baby, "position:y", parade_y - bob_amount, bob_speed)
 			loop_tween.tween_property(baby, "position:y", parade_y, bob_speed)
 			# Slight rotation wiggle (parallel)
-			var rot_tween := create_tween()
+			var rot_tween := _make_tween()
 			rot_tween.set_loops()
 			rot_tween.set_ease(Tween.EASE_IN_OUT)
 			rot_tween.set_trans(Tween.TRANS_SINE)
@@ -299,7 +308,7 @@ func _create_xochi_celebration() -> void:
 	add_child(xochi_sprite)
 
 	# Entrance animation
-	var entrance := create_tween()
+	var entrance := _make_tween()
 	entrance.set_ease(Tween.EASE_OUT)
 	entrance.set_trans(Tween.TRANS_BACK)
 	entrance.tween_interval(0.5)
@@ -307,10 +316,10 @@ func _create_xochi_celebration() -> void:
 	entrance.parallel().tween_property(xochi_sprite, "scale", Vector2(xochi_scale, xochi_scale), 0.6)
 
 	# Breathing animation (gentle scale pulse) after entrance
-	var breathe := create_tween()
+	var breathe := _make_tween()
 	breathe.tween_interval(1.2)
 	breathe.tween_callback(func():
-		var loop := create_tween()
+		var loop := _make_tween()
 		loop.set_loops()
 		loop.set_ease(Tween.EASE_IN_OUT)
 		loop.set_trans(Tween.TRANS_SINE)
@@ -321,10 +330,10 @@ func _create_xochi_celebration() -> void:
 	)
 
 	# Gentle hovering (slight vertical bob)
-	var hover := create_tween()
+	var hover := _make_tween()
 	hover.tween_interval(1.2)
 	hover.tween_callback(func():
-		var loop := create_tween()
+		var loop := _make_tween()
 		loop.set_loops()
 		loop.set_ease(Tween.EASE_IN_OUT)
 		loop.set_trans(Tween.TRANS_SINE)
@@ -375,10 +384,12 @@ func _create_stats() -> void:
 	add_child(stats_title)
 
 	# Individual stats with warm colors
+	var total_stars: int = LevelData.get_total_star_count(GameState.total_levels)
+	var total_babies: int = LevelData.get_total_baby_count(GameState.total_levels)
 	var stats: Array[Dictionary] = [
 		{"text": "Final Score: %d" % GameState.score, "color": Color("ffe66d")},
-		{"text": "Stars Collected: %d/30" % GameState.stars.size(), "color": Color("ffaa00")},
-		{"text": "Babies Rescued: %d/10" % GameState.rescued_babies.size(), "color": Color("ff6b9d")},
+		{"text": "Stars Collected: %d/%d" % [GameState.stars.size(), total_stars], "color": Color("ffaa00")},
+		{"text": "Babies Rescued: %d/%d" % [GameState.rescued_babies.size(), total_babies], "color": Color("ff6b9d")},
 		{"text": "Difficulty: %s" % GameState.difficulty.capitalize(), "color": Color("4ecdc4")},
 	]
 
@@ -477,17 +488,47 @@ func _on_play_again() -> void:
 	GameState.reset_game()
 
 	# Stop music
-	AudioManager.stop_music()
+	_cleanup_for_exit()
 
 	# Start from beginning with story
-	SceneManager.change_scene("res://scenes/story/story_scene.tscn")
+	SceneManager.change_scene(
+		"res://scenes/story/story_scene.tscn",
+		0.5,
+		{"type": "intro", "next_level": 1}
+	)
+
+
+func _apply_baby_cleanup(sprite: Sprite2D) -> void:
+	var material := ShaderMaterial.new()
+	material.shader = BABY_SPRITE_SHADER
+	sprite.material = material
 
 
 func _on_menu() -> void:
 	AudioManager.play_sfx("menu_select")
 
-	# Stop music
-	AudioManager.stop_music()
+	_cleanup_for_exit()
 
 	# Return to menu
 	SceneManager.change_scene("res://scenes/menu/menu_scene.tscn")
+
+
+func _prepare_headless_exit() -> void:
+	_cleanup_for_exit()
+
+
+func _make_tween() -> Tween:
+	var tween := create_tween()
+	_tracked_tweens.append(tween)
+	return tween
+
+
+func _cleanup_for_exit() -> void:
+	if _is_cleaning_up:
+		return
+	_is_cleaning_up = true
+	for tween in _tracked_tweens:
+		if tween and tween.is_valid():
+			tween.kill()
+	_tracked_tweens.clear()
+	AudioManager.stop_music()

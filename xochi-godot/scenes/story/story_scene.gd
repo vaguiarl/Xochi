@@ -17,17 +17,36 @@ var next_level: int = 1
 var slides: Array[Dictionary] = []
 var current_slide: int = 0
 var typewriter_timer: Timer = null
+var _tracked_tweens: Array[Tween] = []
 
 
 func _ready() -> void:
 	# Dark background
 	RenderingServer.set_default_clear_color(Color("1a1a2e"))
 
-	# Get story type from scene parameters
-	# TODO: This will be passed via init() when called from SceneManager
+	var scene_data := SceneManager.consume_scene_data("res://scenes/story/story_scene.tscn")
+	if not scene_data.is_empty():
+		init(scene_data)
+
 	_create_ui()
 	_load_story()
 	_show_slide(0)
+
+
+func _exit_tree() -> void:
+	_cleanup_for_exit()
+
+
+func _cleanup_for_exit() -> void:
+	if typewriter_timer and is_instance_valid(typewriter_timer):
+		typewriter_timer.stop()
+		typewriter_timer.queue_free()
+		typewriter_timer = null
+
+	for tween in _tracked_tweens:
+		if tween and tween.is_valid():
+			tween.kill()
+	_tracked_tweens.clear()
 
 
 func init(data: Dictionary) -> void:
@@ -70,7 +89,8 @@ func _create_ui() -> void:
 	add_child(continue_text)
 
 	# Create sparkle decorations (will be positioned around text)
-	_create_sparkles()
+	if not _is_headless_autoplay():
+		_create_sparkles()
 
 
 func _create_sparkles() -> void:
@@ -93,13 +113,13 @@ func _create_sparkles() -> void:
 		sparkles.append(sparkle)
 
 		# Twinkling animation
-		var tween := create_tween()
+		var tween := _make_tween()
 		tween.set_loops()
+		tween.tween_interval(i * 0.1)
 		tween.tween_property(sparkle, "modulate:a", 0.2, 1.0)
 		tween.parallel().tween_property(sparkle, "scale", Vector2(1.5, 1.5), 1.0)
 		tween.tween_property(sparkle, "modulate:a", 0.6, 1.0)
 		tween.parallel().tween_property(sparkle, "scale", Vector2.ONE, 1.0)
-		tween.set_delay(i * 0.1)
 
 
 func _load_story() -> void:
@@ -323,7 +343,7 @@ func _show_slide(index: int) -> void:
 
 	# Fade in subtitle after delay
 	if slide.get("subtitle", "") != "":
-		var subtitle_tween := create_tween()
+		var subtitle_tween := _make_tween()
 		subtitle_tween.tween_interval(0.5)
 		subtitle_tween.tween_property(subtitle_text, "modulate:a", 1.0, 0.8)
 
@@ -366,7 +386,7 @@ func _next_slide() -> void:
 		_finish_story()
 	else:
 		# Transition to next slide with fade
-		var fade_tween := create_tween()
+		var fade_tween := _make_tween()
 		fade_tween.tween_property(story_text, "modulate:a", 0.0, 0.3)
 		fade_tween.parallel().tween_property(subtitle_text, "modulate:a", 0.0, 0.3)
 		fade_tween.tween_callback(func():
@@ -381,9 +401,13 @@ func _finish_story() -> void:
 
 	if last_slide.get("is_ending", false):
 		# Go to EndScene
+		_cleanup_for_exit()
 		SceneManager.change_scene("res://scenes/end/end_scene.tscn")
 	else:
 		# Go to GameScene with the next level
+		_cleanup_for_exit()
+		GameState.current_level = next_level
+		GameState.save_game()
 		SceneManager.change_scene("res://scenes/game/game_scene.tscn")
 
 
@@ -391,3 +415,13 @@ func _input(event: InputEvent) -> void:
 	# Advance on click, tap, or space
 	if event.is_action_pressed("ui_accept") or (event is InputEventMouseButton and event.pressed) or (event is InputEventScreenTouch and event.pressed):
 		_next_slide()
+
+
+func _make_tween() -> Tween:
+	var tween := create_tween()
+	_tracked_tweens.append(tween)
+	return tween
+
+
+func _is_headless_autoplay() -> bool:
+	return "--autoplay" in OS.get_cmdline_user_args()

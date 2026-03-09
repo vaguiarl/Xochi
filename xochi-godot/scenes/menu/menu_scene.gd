@@ -17,12 +17,14 @@ var difficulty_buttons: Array[Button] = []
 var world_buttons: Array[Button] = []
 var world_tooltip: Label = null
 var controls_overlay: Control = null
+var _resize_reload_pending: bool = false
 
 # Animation
 var stars: Array[Node] = []
 var particles: Array[Node] = []
 var title_tween: Tween = null
 var xochi_tween: Tween = null
+var _tracked_tweens: Array[Tween] = []
 
 # Constants
 const STAR_COUNT: int = 30
@@ -53,6 +55,15 @@ func _ready() -> void:
 
 	# Connect to viewport changes for responsive layout
 	ViewportManager.viewport_resized.connect(_on_viewport_resized)
+
+
+func _exit_tree() -> void:
+	if ViewportManager.viewport_resized.is_connected(_on_viewport_resized):
+		ViewportManager.viewport_resized.disconnect(_on_viewport_resized)
+	for tween in _tracked_tweens:
+		if tween and tween.is_valid():
+			tween.kill()
+	_tracked_tweens.clear()
 
 
 func _create_gradient_background() -> void:
@@ -89,7 +100,7 @@ func _create_stars() -> void:
 		stars.append(star)
 
 		# Twinkling animation
-		var tween := create_tween()
+		var tween := _make_tween()
 		tween.set_loops()
 		tween.tween_property(star, "modulate:a", 0.1, randf_range(0.5, 1.5))
 		tween.tween_property(star, "modulate:a", randf_range(0.2, 0.8), randf_range(0.5, 1.5))
@@ -111,7 +122,7 @@ func _create_particles() -> void:
 		particles.append(particle)
 
 		# Rising/fading animation
-		var tween := create_tween()
+		var tween := _make_tween()
 		tween.set_loops()
 		var duration := randf_range(3.0, 5.0)
 		tween.tween_property(particle, "position:y", particle.position.y - 120, duration)
@@ -161,7 +172,7 @@ func _create_ui() -> void:
 	add_child(title_label)
 
 	# Title pulse animation
-	title_tween = create_tween()
+	title_tween = _make_tween()
 	title_tween.set_loops()
 	title_tween.set_ease(Tween.EASE_IN_OUT)
 	title_tween.set_trans(Tween.TRANS_SINE)
@@ -178,7 +189,7 @@ func _create_ui() -> void:
 	glow.modulate.a = 0.3
 	add_child(glow)
 
-	var glow_tween := create_tween()
+	var glow_tween := _make_tween()
 	glow_tween.set_loops()
 	glow_tween.tween_property(glow, "scale", Vector2(1.2, 1.2), 1.0)
 	glow_tween.parallel().tween_property(glow, "modulate:a", 0.1, 1.0)
@@ -201,7 +212,7 @@ func _create_ui() -> void:
 	add_child(xochi_preview)
 
 	# Bobbing animation
-	xochi_tween = create_tween()
+	xochi_tween = _make_tween()
 	xochi_tween.set_loops()
 	xochi_tween.set_ease(Tween.EASE_IN_OUT)
 	xochi_tween.set_trans(Tween.TRANS_SINE)
@@ -209,7 +220,7 @@ func _create_ui() -> void:
 	xochi_tween.tween_property(xochi_preview, "position:y", preview_y, 0.8)
 
 	# Subtle breathing scale animation
-	var breath_tween := create_tween()
+	var breath_tween := _make_tween()
 	breath_tween.set_loops()
 	breath_tween.set_ease(Tween.EASE_IN_OUT)
 	breath_tween.set_trans(Tween.TRANS_SINE)
@@ -270,10 +281,13 @@ func _create_scoreboard() -> void:
 	add_child(high_score_label)
 
 	# Progress text
+	var total_stars: int = LevelData.get_total_star_count(GameState.total_levels)
+	var total_babies: int = LevelData.get_total_baby_count(GameState.total_levels)
 	var progress_label := _make_centered_label(
-		"Level %d/%d | Stars: %d/30 | Rescued: %d/10" % [
+		"Level %d/%d | Stars: %d/%d | Rescued: %d/%d" % [
 			GameState.current_level, GameState.total_levels,
-			GameState.stars.size(), GameState.rescued_babies.size()
+			GameState.stars.size(), total_stars,
+			GameState.rescued_babies.size(), total_babies
 		], 240, 11, Color("88aacc")
 	)
 	add_child(progress_label)
@@ -537,13 +551,24 @@ func _create_circle(pos: Vector2, radius: float, color: Color) -> ColorRect:
 
 func _on_play_pressed() -> void:
 	AudioManager.play_sfx("menu_select")
-	SceneManager.change_scene("res://scenes/game/game_scene.tscn")
+	if _should_show_intro_story():
+		SceneManager.change_scene(
+			"res://scenes/story/story_scene.tscn",
+			0.5,
+			{"type": "intro", "next_level": 1}
+		)
+	else:
+		SceneManager.change_scene("res://scenes/game/game_scene.tscn")
 
 
 func _on_new_game_pressed() -> void:
 	AudioManager.play_sfx("menu_select")
 	GameState.reset_game()
-	SceneManager.change_scene("res://scenes/game/game_scene.tscn")
+	SceneManager.change_scene(
+		"res://scenes/story/story_scene.tscn",
+		0.5,
+		{"type": "intro", "next_level": 1}
+	)
 
 
 func _on_controls_pressed() -> void:
@@ -736,4 +761,29 @@ func _input(event: InputEvent) -> void:
 
 func _on_viewport_resized(new_size: Vector2) -> void:
 	## Rebuild UI on viewport resize for responsive layout.
-	pass
+	if _resize_reload_pending or new_size == Vector2.ZERO:
+		return
+	_resize_reload_pending = true
+	call_deferred("_reload_after_resize")
+
+
+func _reload_after_resize() -> void:
+	if is_inside_tree():
+		get_tree().reload_current_scene()
+	else:
+		_resize_reload_pending = false
+
+
+func _make_tween() -> Tween:
+	var tween := create_tween()
+	_tracked_tweens.append(tween)
+	return tween
+
+
+func _should_show_intro_story() -> bool:
+	return (
+		GameState.current_level <= 1
+		and GameState.score == 0
+		and GameState.stars.is_empty()
+		and GameState.rescued_babies.is_empty()
+	)

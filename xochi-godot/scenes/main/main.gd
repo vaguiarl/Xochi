@@ -9,9 +9,15 @@ extends Node
 const SHOW_MENU_ON_START: bool = true  # Show menu with world selection on startup
 ## Set to true to use test level, false to use real Level 1
 const USE_TEST_LEVEL: bool = false  # Changed to false for real level
+const AUTOPLAY_MANAGER_SCRIPT: Script = preload("res://scripts/testing/autoplay_manager.gd")
 
 
 func _ready() -> void:
+	if _autoplay_enabled():
+		var autoplay_manager: Node = AUTOPLAY_MANAGER_SCRIPT.new()
+		autoplay_manager.name = "AutoplayManager"
+		get_tree().root.add_child.call_deferred(autoplay_manager)
+
 	if SHOW_MENU_ON_START:
 		get_tree().change_scene_to_file.call_deferred("res://scenes/menu/menu_scene.tscn")
 	elif USE_TEST_LEVEL:
@@ -21,3 +27,12 @@ func _ready() -> void:
 		# Boot into the real game scene (Level 1 with trajineras!)
 		GameState.current_level = 1
 		get_tree().change_scene_to_file.call_deferred("res://scenes/game/game_scene.tscn")
+
+
+func _autoplay_enabled() -> bool:
+	var args: PackedStringArray
+	if OS.has_method("get_cmdline_user_args"):
+		args = OS.get_cmdline_user_args()
+	else:
+		args = OS.get_cmdline_args()
+	return "--autoplay" in args

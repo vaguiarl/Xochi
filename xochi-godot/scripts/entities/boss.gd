@@ -150,6 +150,8 @@ var _dark_rain_warnings_shown: bool = false
 
 ## RNG for attack selection and taunts
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
+var _tracked_tweens: Array[Tween] = []
+var _tracked_timers: Array[Timer] = []
 
 
 # =============================================================================
@@ -246,6 +248,16 @@ func _ready() -> void:
 	modulate.a = 0.0
 
 	add_to_group("boss")
+
+
+func _exit_tree() -> void:
+	_cleanup_async_resources()
+	_remove_taunt_bubble()
+	_remove_action_label()
+	_remove_telegraph_label()
+	if health_bar_layer != null and is_instance_valid(health_bar_layer):
+		health_bar_layer.queue_free()
+		health_bar_layer = null
 
 
 func _physics_process(delta: float) -> void:
@@ -364,7 +376,7 @@ func _check_phase_transition() -> void:
 func play_intro(callback: Callable) -> void:
 	modulate.a = 0.0
 
-	await get_tree().create_timer(0.5).timeout
+	await _make_delay(0.5)
 
 	# -- Show personality intro instead of generic text --
 	var intro_text: String
@@ -385,14 +397,14 @@ func play_intro(callback: Callable) -> void:
 	intro_label.z_index = 100
 	add_child(intro_label)
 
-	var fade_in_tween := create_tween()
+	var fade_in_tween := _track_tween(create_tween())
 	fade_in_tween.tween_property(self, "modulate:a", 1.0, 0.5)
 
 	_create_health_bar()
 
-	await get_tree().create_timer(2.0).timeout
+	await _make_delay(2.0)
 
-	var text_fade := create_tween()
+	var text_fade := _track_tween(create_tween())
 	text_fade.tween_property(intro_label, "modulate:a", 0.0, 0.3)
 	await text_fade.finished
 	intro_label.queue_free()
@@ -446,7 +458,7 @@ func _create_health_bar() -> void:
 	container.add_child(health_bar_fill)
 
 	container.modulate.a = 0.0
-	var fade_tween := create_tween()
+	var fade_tween := _track_tween(create_tween())
 	fade_tween.tween_property(container, "modulate:a", 1.0, 1.0)
 
 
@@ -800,7 +812,7 @@ func _spawn_dark_rain_warnings() -> void:
 		parent_node.add_child(marker)
 
 		# Flash and fade
-		var tween := parent_node.create_tween()
+		var tween := _track_tween(parent_node.create_tween())
 		tween.tween_property(marker, "modulate:a", 0.2, 0.15)
 		tween.tween_property(marker, "modulate:a", 1.0, 0.15)
 		tween.tween_property(marker, "modulate:a", 0.2, 0.15)
@@ -1037,7 +1049,7 @@ func take_damage(amount: int = 1) -> void:
 
 	is_invincible = true
 
-	var flash_tween := create_tween()
+	var flash_tween := _track_tween(create_tween())
 	flash_tween.tween_property(self, "modulate", Color.WHITE, 0.05)
 	flash_tween.tween_interval(0.1)
 
@@ -1095,7 +1107,7 @@ func defeat_sequence() -> void:
 		defeat_text = _pick_taunt("defeat")
 	_show_action_text(defeat_text, COLOR_MAGENTA)
 
-	var flash_tween := create_tween()
+	var flash_tween := _track_tween(create_tween())
 	for i in 10:
 		if i % 2 == 0:
 			flash_tween.tween_property(self, "modulate", Color.WHITE, 0.05)
@@ -1109,7 +1121,7 @@ func defeat_sequence() -> void:
 	# Clean up any remaining boss projectiles
 	_cleanup_boss_projectiles()
 
-	var fade_tween := create_tween()
+	var fade_tween := _track_tween(create_tween())
 	fade_tween.tween_property(self, "modulate:a", 0.0, 0.5)
 	await fade_tween.finished
 
@@ -1129,7 +1141,7 @@ func defeat_sequence() -> void:
 
 	Events.boss_defeated.emit()
 
-	await get_tree().create_timer(1.5).timeout
+	await _make_delay(1.5)
 	_spawn_baby_axolotl()
 
 
@@ -1185,7 +1197,7 @@ func _spawn_baby_axolotl() -> void:
 	collectibles_node.add_child(marker)
 
 	marker.scale = Vector2.ZERO
-	var pop_tween := create_tween()
+	var pop_tween := _track_tween(create_tween())
 	pop_tween.tween_property(marker, "scale", Vector2.ONE, 0.3).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
 
 
@@ -1256,7 +1268,7 @@ func _show_taunt(text: String) -> void:
 	add_child(_taunt_bubble)
 
 	# Auto-fade after 2 seconds
-	var fade_tween := create_tween()
+	var fade_tween := _track_tween(create_tween())
 	fade_tween.tween_interval(1.5)
 	fade_tween.tween_property(_taunt_bubble, "modulate:a", 0.0, 0.5)
 	fade_tween.tween_callback(func():
@@ -1330,7 +1342,7 @@ func _show_floating_text(text: String, color: Color, pos: Vector2) -> void:
 	label.z_index = 100
 	parent_node.add_child(label)
 
-	var tween := parent_node.create_tween()
+	var tween := _track_tween(parent_node.create_tween())
 	tween.set_parallel(true)
 	tween.tween_property(label, "position:y", pos.y - 60.0, 1.0)
 	tween.tween_property(label, "modulate:a", 0.0, 1.0)
@@ -1348,7 +1360,7 @@ func _spawn_mace_swing_visual() -> void:
 	arc.z_index = 50
 	add_child(arc)
 
-	var tween := create_tween()
+	var tween := _track_tween(create_tween())
 	tween.tween_property(arc, "modulate:a", 0.0, 0.3)
 	tween.tween_callback(arc.queue_free)
 
@@ -1372,14 +1384,14 @@ func _spawn_shockwave() -> void:
 	wave_right.z_index = 50
 	parent_node.add_child(wave_right)
 
-	var tween_left := parent_node.create_tween()
+	var tween_left := _track_tween(parent_node.create_tween())
 	tween_left.set_parallel(true)
 	tween_left.tween_property(wave_left, "position:x", global_position.x - 150.0, 0.4)
 	tween_left.tween_property(wave_left, "size:x", 80.0, 0.4)
 	tween_left.tween_property(wave_left, "modulate:a", 0.0, 0.4)
 	tween_left.chain().tween_callback(wave_left.queue_free)
 
-	var tween_right := parent_node.create_tween()
+	var tween_right := _track_tween(parent_node.create_tween())
 	tween_right.set_parallel(true)
 	tween_right.tween_property(wave_right, "position:x", global_position.x + 80.0, 0.4)
 	tween_right.tween_property(wave_right, "size:x", 80.0, 0.4)
@@ -1409,8 +1421,41 @@ func _spawn_defeat_particles() -> void:
 		var speed: float = rng.randf_range(80.0, 200.0)
 		var end_pos: Vector2 = particle.position + Vector2(cos(angle), sin(angle)) * speed
 
-		var tween := parent_node.create_tween()
+		var tween := _track_tween(parent_node.create_tween())
 		tween.set_parallel(true)
 		tween.tween_property(particle, "position", end_pos, 0.6).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
 		tween.tween_property(particle, "modulate:a", 0.0, 0.6)
 		tween.chain().tween_callback(particle.queue_free)
+
+
+func _track_tween(tween: Tween) -> Tween:
+	_tracked_tweens.append(tween)
+	return tween
+
+
+func _make_delay(duration: float) -> Signal:
+	var timer := Timer.new()
+	timer.one_shot = true
+	timer.wait_time = duration
+	add_child(timer)
+	_tracked_timers.append(timer)
+	timer.timeout.connect(func():
+		_tracked_timers.erase(timer)
+		if is_instance_valid(timer):
+			timer.queue_free()
+	, CONNECT_ONE_SHOT)
+	timer.start()
+	return timer.timeout
+
+
+func _cleanup_async_resources() -> void:
+	for tween in _tracked_tweens:
+		if tween and tween.is_valid():
+			tween.kill()
+	_tracked_tweens.clear()
+
+	for timer in _tracked_timers:
+		if timer and is_instance_valid(timer):
+			timer.stop()
+			timer.queue_free()
+	_tracked_timers.clear()

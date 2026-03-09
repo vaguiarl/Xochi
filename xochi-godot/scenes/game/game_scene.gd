@@ -98,6 +98,8 @@ const WATER_WAVE_AMPLITUDE: float = 3.0
 ## Water surface wave speed (radians per second).
 const WATER_WAVE_SPEED: float = 1.5
 
+const BABY_SPRITE_SHADER: Shader = preload("res://assets/shaders/baby_sprite_clean.gdshader")
+
 
 # =============================================================================
 # PRELOADED ASSETS
@@ -120,6 +122,31 @@ func _get_trajinera_texture() -> Texture2D:
 	if _trajinera_textures.is_empty():
 		return null
 	return _trajinera_textures[randi() % _trajinera_textures.size()]
+
+
+func _is_baby_rescued(level_id: int) -> bool:
+	## Supports both current int IDs and older string IDs in saved progress.
+	return (
+		level_id in GameState.rescued_babies
+		or ("baby-%d" % level_id) in GameState.rescued_babies
+	)
+
+
+func _configure_baby_sprite(sprite: Sprite2D, target_height: float) -> void:
+	## Applies shared cleanup material and target sizing for baby sprites.
+	if sprite.texture == null:
+		sprite.texture = load("res://assets/sprites/collectibles/baby_axolotl.png")
+
+	if sprite.texture:
+		var scale_factor: float = target_height / sprite.texture.get_height()
+		sprite.scale = Vector2(scale_factor, scale_factor)
+	else:
+		sprite.scale = Vector2(0.096, 0.096)
+
+	sprite.centered = true
+	var material := ShaderMaterial.new()
+	material.shader = BABY_SPRITE_SHADER
+	sprite.material = material
 
 
 # =============================================================================
@@ -159,6 +186,12 @@ var level_stars_total: int = 0
 var celebration_active: bool = false
 var celebration_skipped: bool = false
 var celebration_layer: CanvasLayer = null
+var _celebration_tweens: Array[Tween] = []
+var _celebration_timers: Array[Timer] = []
+var _runtime_tweens: Array[Tween] = []
+var _runtime_timers: Array[Timer] = []
+var _world_intro_layer: CanvasLayer = null
+var _game_over_nodes: Array[Node] = []
 
 
 # =============================================================================
@@ -308,6 +341,8 @@ func _input(event: InputEvent) -> void:
 
 func _exit_tree() -> void:
 	## Clean up signal connections when the scene is freed.
+	_cleanup_celebration_resources()
+	_cleanup_runtime_resources()
 	if Events.player_died.is_connected(_on_player_died):
 		Events.player_died.disconnect(_on_player_died)
 	if Events.level_completed.is_connected(_on_level_completed_signal):
@@ -320,6 +355,10 @@ func _exit_tree() -> void:
 		Events.flower_collected.disconnect(_on_flower_collected_for_level)
 	if Events.elote_collected.is_connected(_on_elote_collected_for_level):
 		Events.elote_collected.disconnect(_on_elote_collected_for_level)
+	if ViewportManager.orientation_changed.is_connected(_on_orientation_changed):
+		ViewportManager.orientation_changed.disconnect(_on_orientation_changed)
+	if ViewportManager.viewport_resized.is_connected(_on_viewport_resized):
+		ViewportManager.viewport_resized.disconnect(_on_viewport_resized)
 
 
 # =============================================================================
@@ -1269,8 +1308,9 @@ func _create_collectibles() -> void:
 		_create_powerup(pu_data)
 
 	# Baby axolotl -- the level goal
+	var is_boss_level: bool = level_data.get("is_boss_level", false)
 	var baby_data = level_data.get("baby_position", null)
-	if baby_data != null:
+	if baby_data != null and (not is_boss_level or _is_baby_rescued(level_num)):
 		_create_baby(baby_data)
 
 	# Record totals for celebration stats
@@ -1420,14 +1460,7 @@ func _create_baby(data) -> void:
 	# Sprite (new cleaned art, ~468x500 → scale to ~24px tall)
 	var sprite := Sprite2D.new()
 	sprite.name = "Sprite"
-	sprite.texture = load("res://assets/sprites/collectibles/baby_axolotl.png")
-	var baby_height: float = 24.0
-	if sprite.texture:
-		var scale_factor: float = baby_height / sprite.texture.get_height()
-		sprite.scale = Vector2(scale_factor, scale_factor)
-	else:
-		sprite.scale = Vector2(0.048, 0.048)
-	sprite.centered = true
+	_configure_baby_sprite(sprite, 96.0)
 	marker.add_child(sprite)
 
 	# Sparkle ring (outer glow that pulses)
@@ -1950,8 +1983,12 @@ func _complete_level() -> void:
 
 	# Trigger existing particle celebration VFX
 	var baby_node: Node2D = collectibles_node.get_node_or_null("BabyAxolotl")
-	if baby_node and collectible_system:
+	if baby_node and collectible_system and not _is_headless_autoplay():
 		collectible_system.celebrate_baby_rescue(baby_node.global_position)
+
+	if _is_headless_autoplay():
+		_proceed_after_celebration()
+		return
 
 	# Start the full celebration sequence instead of instant transition
 	_start_celebration_sequence()
@@ -2148,8 +2185,7 @@ func _setup_boss() -> void:
 	## that level has not already been rescued. Connects defeat signal so
 	## the baby axolotl spawns when the boss is killed.
 	var is_boss_level: bool = (level_num == 5 or level_num == 10)
-	var baby_id: String = "baby-%d" % level_num
-	if not is_boss_level or baby_id in GameState.rescued_babies:
+	if not is_boss_level or _is_baby_rescued(level_num):
 		return
 
 	# Spawn position: 300 px right of the player spawn, 100 px up
@@ -2276,10 +2312,12 @@ func _show_world_intro() -> void:
 	var world_subtitle: String = world_data.get("subtitle", "")
 
 	# Create a temporary CanvasLayer for the intro
+	_cleanup_world_intro()
 	var intro_layer := CanvasLayer.new()
 	intro_layer.name = "WorldIntro"
 	intro_layer.layer = 20
 	add_child(intro_layer)
+	_world_intro_layer = intro_layer
 
 	# Wrap everything in a Control so we can animate modulate (CanvasLayer has no modulate)
 	var intro_container := Control.new()
@@ -2342,20 +2380,22 @@ func _show_world_intro() -> void:
 	intro_container.modulate.a = 0.0
 
 	# Fade in
-	var tween_in := create_tween()
+	var tween_in := _make_runtime_tween()
 	tween_in.tween_property(intro_container, "modulate:a", 1.0, WORLD_INTRO_FADE_TIME)
 	await tween_in.finished
 
 	# Hold
-	await get_tree().create_timer(WORLD_INTRO_DURATION).timeout
+	await _make_runtime_delay(WORLD_INTRO_DURATION)
+	if not is_instance_valid(intro_container):
+		return
 
 	# Fade out
-	var tween_out := create_tween()
+	var tween_out := _make_runtime_tween()
 	tween_out.tween_property(intro_container, "modulate:a", 0.0, WORLD_INTRO_FADE_TIME)
 	await tween_out.finished
 
 	# Clean up
-	intro_layer.queue_free()
+	_cleanup_world_intro()
 
 
 # =============================================================================
@@ -2368,18 +2408,19 @@ func _on_player_died() -> void:
 
 	if GameState.lives <= 0:
 		# Game over - show message, wait for X to restart
-		await get_tree().create_timer(0.8).timeout
+		await _make_runtime_delay(0.8)
 		_show_game_over_text()
 		# X key will trigger restart (handled in _input)
 	else:
 		# INSTANT SCENE RELOAD - clean restart like original xochi 1.0
-		await get_tree().create_timer(0.8).timeout
+		await _make_runtime_delay(0.8)
 		get_tree().reload_current_scene()
 
 
 func _show_game_over_text() -> void:
 	## Shows "TRY AGAIN" text in center of screen.
 	## Pure xochi 1.0 style - minimal, instant retry!
+	_cleanup_game_over_overlay()
 
 	var retry_label := Label.new()
 	retry_label.text = "TRY AGAIN"
@@ -2402,6 +2443,7 @@ func _show_game_over_text() -> void:
 	# Add to HUD layer
 	if hud_layer:
 		hud_layer.add_child(retry_label)
+		_game_over_nodes.append(retry_label)
 
 	# Instruction text below
 	var hint_label := Label.new()
@@ -2414,9 +2456,10 @@ func _show_game_over_text() -> void:
 	hint_label.z_index = 100
 	if hud_layer:
 		hud_layer.add_child(hint_label)
+		_game_over_nodes.append(hint_label)
 
 	# Pulse animation
-	var tween := create_tween()
+	var tween := _make_runtime_tween()
 	tween.set_loops()
 	tween.tween_property(retry_label, "scale", Vector2(1.15, 1.15), 0.4)
 	tween.tween_property(retry_label, "scale", Vector2(1.0, 1.0), 0.4)
@@ -2442,7 +2485,7 @@ func _respawn_player() -> void:
 	player.is_invincible = true
 
 	# Brief invincibility after respawn
-	await get_tree().create_timer(Player.INVINCIBILITY_DURATION).timeout
+	await _make_runtime_delay(Player.INVINCIBILITY_DURATION)
 	if player and not player.is_dead:
 		player.is_invincible = false
 		player.sprite.modulate = Color.WHITE
@@ -2480,43 +2523,43 @@ func _start_celebration_sequence() -> void:
 	_animate_water_cleaning(2.0)
 
 	# Phase 2: Flowers growing (0.5s)
-	await get_tree().create_timer(0.5).timeout
+	await _make_celebration_delay(0.5)
 	if celebration_skipped:
 		return
 	_animate_flowers_growing(1.5)
 
 	# Phase 3: Overlay appears (2.0s)
-	await get_tree().create_timer(1.5).timeout
+	await _make_celebration_delay(1.5)
 	if celebration_skipped:
 		return
 	_create_celebration_overlay()
 
 	# Phase 4: Dance starts (2.5s)
-	await get_tree().create_timer(0.5).timeout
+	await _make_celebration_delay(0.5)
 	if celebration_skipped:
 		return
 	_animate_celebration_dance()
 
 	# Phase 5: Stats display (4.0s)
-	await get_tree().create_timer(1.5).timeout
+	await _make_celebration_delay(1.5)
 	if celebration_skipped:
 		return
 	_show_celebration_stats()
 
 	# Phase 6: Eco message (4.5s)
-	await get_tree().create_timer(0.5).timeout
+	await _make_celebration_delay(0.5)
 	if celebration_skipped:
 		return
 	_show_ecological_message()
 
 	# Phase 7: Skip hint (7.0s)
-	await get_tree().create_timer(2.5).timeout
+	await _make_celebration_delay(2.5)
 	if celebration_skipped:
 		return
 	_show_skip_hint()
 
 	# Phase 8: Auto-proceed (10.0s)
-	await get_tree().create_timer(3.0).timeout
+	await _make_celebration_delay(3.0)
 	if celebration_skipped:
 		return
 	_proceed_after_celebration()
@@ -2540,13 +2583,13 @@ func _animate_water_cleaning(duration: float) -> void:
 		target.s = clampf(target.s * 1.2, 0.0, 1.0)
 		target.v = clampf(target.v * 1.15, 0.0, 1.0)
 
-		var tween := create_tween()
+		var tween := _make_celebration_tween()
 		tween.tween_property(child, "color", target, duration).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
 
 	# Make foam pure white-cyan
 	var foam: ColorRect = water_node.get_meta("foam_line", null)
 	if foam:
-		var foam_tween := create_tween()
+		var foam_tween := _make_celebration_tween()
 		foam_tween.tween_property(foam, "color", Color(0.85, 1.0, 1.0, 0.9), duration).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
 
 
@@ -2585,7 +2628,7 @@ func _animate_flowers_growing(duration: float) -> void:
 			if child.size.x >= 3.0 and child.size.x <= 5.0 and child.size.y >= 3.0 and child.size.y <= 5.0:
 				var is_flower_color: bool = (child.color.r > 0.8 and child.color.g > 0.3 and child.color.b < 0.3)
 				if is_flower_color:
-					var tween := create_tween()
+					var tween := _make_celebration_tween()
 					tween.tween_property(child, "size", Vector2(8.0, 8.0), duration * 0.6).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK).set_delay(delay_offset)
 
 		# Spawn 2-4 new flowers per platform
@@ -2604,7 +2647,7 @@ func _animate_flowers_growing(duration: float) -> void:
 			platform.add_child(flower)
 
 			var target_size: float = randf_range(5.0, 7.0)
-			var tween := create_tween()
+			var tween := _make_celebration_tween()
 			tween.tween_property(flower, "size", Vector2(target_size, target_size), duration * 0.7).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK).set_delay(delay_offset + i * 0.1)
 
 		delay_offset += 0.05
@@ -2635,7 +2678,7 @@ func _create_celebration_overlay() -> void:
 	container.add_child(bg)
 
 	# Fade in the background
-	var tween := create_tween()
+	var tween := _make_celebration_tween()
 	tween.tween_property(bg, "color:a", 0.35, 0.5).set_ease(Tween.EASE_IN_OUT)
 
 
@@ -2669,24 +2712,20 @@ func _animate_celebration_dance() -> void:
 	container.add_child(xochi_sprite)
 
 	# Baby sprite (right side)
-	var baby_tex = load("res://assets/sprites/collectibles/baby_axolotl.png")
 	var baby_sprite := Sprite2D.new()
 	baby_sprite.name = "BabyDance"
-	if baby_tex:
-		baby_sprite.texture = baby_tex
-		var s: float = 30.0 / baby_tex.get_height()
-		baby_sprite.scale = Vector2(s, s)
+	_configure_baby_sprite(baby_sprite, 120.0)
 	baby_sprite.position = Vector2(viewport_size.x + 100.0, dance_y)  # Start off-screen right
 	container.add_child(baby_sprite)
 
 	# Bounce Xochi in from left
 	var xochi_target_x: float = center_x - 40.0
-	var tween_xochi := create_tween()
+	var tween_xochi := _make_celebration_tween()
 	tween_xochi.tween_property(xochi_sprite, "position:x", xochi_target_x, 0.6).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
 
 	# Bounce baby in from right with delay
 	var baby_target_x: float = center_x + 40.0
-	var tween_baby := create_tween()
+	var tween_baby := _make_celebration_tween()
 	tween_baby.tween_property(baby_sprite, "position:x", baby_target_x, 0.6).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK).set_delay(0.2)
 
 	# Start dance loops after entrance
@@ -2703,7 +2742,7 @@ func _start_dance_loops(xochi: Sprite2D, baby: Sprite2D, xochi_x: float, baby_x:
 		return
 
 	# Xochi dance loop: side-to-side + bounce + wiggle
-	var xochi_tween := create_tween().set_loops()
+	var xochi_tween := _make_celebration_tween().set_loops()
 	# Step right
 	xochi_tween.tween_property(xochi, "position", Vector2(xochi_x + 15.0, base_y - 8.0), 0.3).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_SINE)
 	xochi_tween.tween_property(xochi, "rotation_degrees", 8.0, 0.15)
@@ -2718,7 +2757,7 @@ func _start_dance_loops(xochi: Sprite2D, baby: Sprite2D, xochi_x: float, baby_x:
 	xochi_tween.tween_property(xochi, "rotation_degrees", 0.0, 0.1)
 
 	# Baby dance loop: same pattern but smaller + delayed
-	var baby_tween := create_tween().set_loops()
+	var baby_tween := _make_celebration_tween().set_loops()
 	baby_tween.tween_interval(0.15)  # Slight offset from Xochi
 	baby_tween.tween_property(baby, "position", Vector2(baby_x - 10.0, base_y - 5.0), 0.25).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_SINE)
 	baby_tween.tween_property(baby, "rotation_degrees", -12.0, 0.12)
@@ -2761,7 +2800,7 @@ func _spawn_celebration_confetti(container: Control, viewport_size: Vector2) -> 
 		var end_y: float = viewport_size.y + 20.0
 		var sway_x: float = randf_range(-50.0, 50.0)
 
-		var tween := create_tween()
+		var tween := _make_celebration_tween()
 		tween.set_parallel(true)
 		tween.tween_property(confetti, "position:y", end_y, fall_duration).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD).set_delay(randf_range(0.0, 2.0))
 		tween.tween_property(confetti, "position:x", start_x + sway_x, fall_duration).set_delay(randf_range(0.0, 2.0))
@@ -2797,7 +2836,7 @@ func _show_celebration_stats() -> void:
 	container.add_child(title)
 
 	# Fade in title
-	var title_tween := create_tween()
+	var title_tween := _make_celebration_tween()
 	title_tween.tween_property(title, "modulate:a", 1.0, 0.4).set_ease(Tween.EASE_OUT)
 
 	# Stats panel
@@ -2834,10 +2873,10 @@ func _show_celebration_stats() -> void:
 	container.add_child(stars_label)
 
 	# Staggered fade-in for stats
-	var flowers_tween := create_tween()
+	var flowers_tween := _make_celebration_tween()
 	flowers_tween.tween_property(flowers_label, "modulate:a", 1.0, 0.3).set_ease(Tween.EASE_OUT).set_delay(0.3)
 
-	var stars_tween := create_tween()
+	var stars_tween := _make_celebration_tween()
 	stars_tween.tween_property(stars_label, "modulate:a", 1.0, 0.3).set_ease(Tween.EASE_OUT).set_delay(0.6)
 
 
@@ -2880,7 +2919,7 @@ func _show_ecological_message() -> void:
 	msg_label.modulate.a = 0.0
 	container.add_child(msg_label)
 
-	var tween := create_tween()
+	var tween := _make_celebration_tween()
 	tween.tween_property(msg_label, "modulate:a", 1.0, 0.5).set_ease(Tween.EASE_OUT)
 
 
@@ -2908,7 +2947,7 @@ func _show_skip_hint() -> void:
 	container.add_child(hint)
 
 	# Gentle pulse animation
-	var tween := create_tween().set_loops()
+	var tween := _make_celebration_tween().set_loops()
 	tween.tween_property(hint, "modulate:a", 0.4, 0.8).set_ease(Tween.EASE_IN_OUT)
 	tween.tween_property(hint, "modulate:a", 1.0, 0.8).set_ease(Tween.EASE_IN_OUT)
 
@@ -2921,10 +2960,7 @@ func _skip_celebration() -> void:
 	celebration_skipped = true
 	celebration_active = false
 
-	# Clean up overlay
-	if celebration_layer and is_instance_valid(celebration_layer):
-		celebration_layer.queue_free()
-		celebration_layer = null
+	_cleanup_celebration_resources()
 
 	_proceed_after_celebration()
 
@@ -2939,12 +2975,117 @@ func _proceed_after_celebration() -> void:
 		# Game won!
 		Events.game_won.emit()
 		GameState.save_game()
-		SceneManager.change_scene("res://scenes/end/end_scene.tscn")
+		SceneManager.change_scene(
+			"res://scenes/story/story_scene.tscn",
+			0.5,
+			{"type": "ending", "next_level": GameState.total_levels}
+		)
 	else:
-		# Advance to next level
-		GameState.current_level = level_num + 1
+		var next_level: int = level_num + 1
+		GameState.current_level = next_level
 		GameState.save_game()
-		SceneManager.change_scene("res://scenes/game/game_scene.tscn")
+
+		if GameState.is_first_level_of_world(next_level):
+			var story_type: String = "world%d" % GameState.get_world_for_level(next_level)
+			SceneManager.change_scene(
+				"res://scenes/story/story_scene.tscn",
+				0.5,
+				{"type": story_type, "next_level": next_level}
+			)
+		else:
+			SceneManager.change_scene("res://scenes/game/game_scene.tscn")
+
+
+func _make_celebration_tween() -> Tween:
+	var tween := create_tween()
+	_celebration_tweens.append(tween)
+	return tween
+
+
+func _make_celebration_delay(duration: float) -> Signal:
+	var timer := Timer.new()
+	timer.one_shot = true
+	timer.wait_time = duration
+	add_child(timer)
+	_celebration_timers.append(timer)
+	timer.timeout.connect(func():
+		_celebration_timers.erase(timer)
+		if is_instance_valid(timer):
+			timer.queue_free()
+	, CONNECT_ONE_SHOT)
+	timer.start()
+	return timer.timeout
+
+
+func _cleanup_celebration_resources() -> void:
+	for tween in _celebration_tweens:
+		if tween and tween.is_valid():
+			tween.kill()
+	_celebration_tweens.clear()
+
+	for timer in _celebration_timers:
+		if timer and is_instance_valid(timer):
+			timer.stop()
+			timer.queue_free()
+	_celebration_timers.clear()
+
+	if celebration_layer and is_instance_valid(celebration_layer):
+		celebration_layer.queue_free()
+		celebration_layer = null
+
+
+func _make_runtime_tween() -> Tween:
+	var tween := create_tween()
+	_runtime_tweens.append(tween)
+	return tween
+
+
+func _make_runtime_delay(duration: float) -> Signal:
+	var timer := Timer.new()
+	timer.one_shot = true
+	timer.wait_time = duration
+	add_child(timer)
+	_runtime_timers.append(timer)
+	timer.timeout.connect(func():
+		_runtime_timers.erase(timer)
+		if is_instance_valid(timer):
+			timer.queue_free()
+	, CONNECT_ONE_SHOT)
+	timer.start()
+	return timer.timeout
+
+
+func _cleanup_world_intro() -> void:
+	if _world_intro_layer and is_instance_valid(_world_intro_layer):
+		_world_intro_layer.queue_free()
+	_world_intro_layer = null
+
+
+func _cleanup_game_over_overlay() -> void:
+	for node in _game_over_nodes:
+		if node and is_instance_valid(node):
+			node.queue_free()
+	_game_over_nodes.clear()
+
+
+func _cleanup_runtime_resources() -> void:
+	for tween in _runtime_tweens:
+		if tween and tween.is_valid():
+			tween.kill()
+	_runtime_tweens.clear()
+
+	for timer in _runtime_timers:
+		if timer and is_instance_valid(timer):
+			timer.stop()
+			timer.queue_free()
+	_runtime_timers.clear()
+
+	_cleanup_world_intro()
+	_cleanup_game_over_overlay()
+
+
+func _is_headless_autoplay() -> bool:
+	return "--autoplay" in OS.get_cmdline_user_args()
 
 
 # =============================================================================

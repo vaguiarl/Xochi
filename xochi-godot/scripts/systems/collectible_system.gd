@@ -112,6 +112,7 @@ var _elote_trail_active: bool = false
 
 ## Whether the luchador mask has been spawned for this level.
 var _luchador_spawned: bool = false
+var _tracked_tweens: Array[Tween] = []
 
 
 # =============================================================================
@@ -413,7 +414,10 @@ func _spawn_luchador_mask() -> void:
 	marker.set_meta("bob_offset", randf() * TAU)
 
 	# Golden star sprite for luchador mask
-	var tex = load("res://assets/sprites/collectibles/luchador_star.png")
+	var tex: Texture2D = null
+	var tex_path := "res://assets/sprites/collectibles/luchador_star.png"
+	if ResourceLoader.exists(tex_path):
+		tex = load(tex_path)
 	if tex:
 		var sprite := Sprite2D.new()
 		sprite.texture = tex
@@ -483,7 +487,7 @@ func _show_floating_text(pos: Vector2, text: String, color: Color) -> void:
 	scene.add_child(label)
 
 	# Tween: rise upward and fade out simultaneously
-	var tween := scene.create_tween()
+	var tween := _make_tween(scene)
 	tween.set_parallel(true)
 	tween.tween_property(label, "position:y", pos.y - 15.0 - FLOAT_TEXT_RISE, FLOAT_TEXT_DURATION)
 	tween.tween_property(label, "modulate:a", 0.0, FLOAT_TEXT_DURATION)
@@ -529,7 +533,7 @@ func _show_big_text(text: String, color: Color) -> void:
 	_text_canvas.add_child(label)
 
 	# Tween: scale up to 1.3x while fading out over 1.0 second
-	var tween := create_tween()
+	var tween := _make_tween()
 	tween.set_parallel(true)
 	tween.tween_property(label, "scale", Vector2(BIG_TEXT_SCALE, BIG_TEXT_SCALE), BIG_TEXT_DURATION).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
 	tween.tween_property(label, "modulate:a", 0.0, BIG_TEXT_DURATION).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
@@ -568,7 +572,7 @@ func _create_particle_burst(pos: Vector2, count: int, color: Color, radius: floa
 		var target_y: float = pos.y + sin(angle) * dist
 
 		# Tween: fly outward and fade
-		var tween := scene.create_tween()
+		var tween := _make_tween(scene)
 		tween.set_parallel(true)
 		tween.tween_property(particle, "position:x", target_x - 2.0, PARTICLE_DURATION).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
 		tween.tween_property(particle, "position:y", target_y - 2.0, PARTICLE_DURATION).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
@@ -645,7 +649,7 @@ func _on_elote_trail_tick() -> void:
 		scene.add_child(particle)
 
 		# Particles fall downward 30 px and fade out
-		var tween := scene.create_tween()
+		var tween := _make_tween(scene)
 		tween.set_parallel(true)
 		tween.tween_property(particle, "position:y", particle.position.y + 30.0, 0.5)
 		tween.tween_property(particle, "modulate:a", 0.0, 0.5)
@@ -658,3 +662,15 @@ func _on_elote_trail_tick() -> void:
 
 func _exit_tree() -> void:
 	_stop_elote_trail()
+	for tween in _tracked_tweens:
+		if tween and tween.is_valid():
+			tween.kill()
+	_tracked_tweens.clear()
+	if _text_canvas and is_instance_valid(_text_canvas):
+		_text_canvas.queue_free()
+
+
+func _make_tween(owner: Node = self) -> Tween:
+	var tween := owner.create_tween()
+	_tracked_tweens.append(tween)
+	return tween

@@ -18,6 +18,7 @@ var is_playing: bool = false
 
 const CROSSFADE_DURATION: float = 1.0  # 1 second crossfade
 var _crossfade_player: AudioStreamPlayer = null
+var _music_tweens: Array[Tween] = []
 
 # SFX pool for overlapping sounds
 var sfx_players: Array[AudioStreamPlayer] = []
@@ -122,7 +123,7 @@ func play_music(track_key: String) -> void:
 		_crossfade_player.volume_db = current_music.volume_db
 		_crossfade_player.play(current_music.get_playback_position())
 
-		var fade_out := create_tween()
+		var fade_out := _track_music_tween(create_tween())
 		fade_out.tween_property(_crossfade_player, "volume_db", -80.0, CROSSFADE_DURATION)
 		fade_out.tween_callback(_crossfade_player.stop)
 
@@ -130,7 +131,7 @@ func play_music(track_key: String) -> void:
 		current_music.volume_db = -80.0
 		current_music.play()
 
-		var fade_in := create_tween()
+		var fade_in := _track_music_tween(create_tween())
 		fade_in.tween_property(current_music, "volume_db", linear_to_db(0.4), CROSSFADE_DURATION)
 	else:
 		stop_music()
@@ -157,10 +158,43 @@ func play_for_level(level_num: int, world_num: int) -> void:
 
 
 func stop_music() -> void:
+	_kill_music_tweens()
+	if _crossfade_player:
+		_crossfade_player.stop()
+		_crossfade_player.stream = null
 	if current_music and current_music.playing:
 		current_music.stop()
+	if current_music:
+		current_music.stream = null
 	is_playing = false
 	current_track = ""
+
+
+func release_audio_resources() -> void:
+	stop_music()
+	for player in sfx_players:
+		if player.playing:
+			player.stop()
+		player.stream = null
+	music_tracks.clear()
+	sfx_tracks.clear()
+
+
+func _track_music_tween(tween: Tween) -> Tween:
+	_music_tweens.append(tween)
+	return tween
+
+
+func _kill_music_tweens() -> void:
+	for tween in _music_tweens:
+		if tween and tween.is_valid():
+			tween.kill()
+	_music_tweens.clear()
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_PREDELETE:
+		release_audio_resources()
 
 
 # =============================================================================

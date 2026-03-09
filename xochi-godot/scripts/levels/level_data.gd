@@ -49,6 +49,27 @@ static func get_level_data(level_num: int) -> Dictionary:
 	return data
 
 
+static func get_total_star_count(total_levels: int = 11) -> int:
+	## Counts all star collectibles across the handcrafted level set.
+	var static_levels := _get_static_levels()
+	var capped_levels: int = clampi(total_levels, 0, static_levels.size())
+	var total: int = 0
+	for i in range(capped_levels):
+		total += static_levels[i].get("stars", []).size()
+	return total
+
+
+static func get_total_baby_count(total_levels: int = 11) -> int:
+	## Counts all baby rescue goals across the handcrafted level set.
+	var static_levels := _get_static_levels()
+	var capped_levels: int = clampi(total_levels, 0, static_levels.size())
+	var total: int = 0
+	for i in range(capped_levels):
+		if static_levels[i].get("baby_position", null) != null:
+			total += 1
+	return total
+
+
 # ===========================================================================
 # Helper: Enrich static level data with computed fields
 # ===========================================================================

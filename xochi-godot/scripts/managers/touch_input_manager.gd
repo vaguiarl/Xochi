@@ -90,7 +90,6 @@ var ui_layer: CanvasLayer = null
 
 ## Touch feedback visuals
 var touch_ring: ColorRect = null
-var touch_line: Line2D = null
 
 # =============================================================================
 # SETUP
@@ -229,12 +228,9 @@ func _input(event: InputEvent) -> void:
 		primary_touch.current_y = event.position.y
 		primary_touch.last_move_time = now
 
-		# Update swipe direction line
-		_update_touch_line(event.position)
-
-		var dx: float = event.position.x - primary_touch.origin_x
-		var dy: float = event.position.y - primary_touch.origin_y
-		var distance: float = sqrt(dx*dx + dy*dy)
+			var dx: float = event.position.x - primary_touch.origin_x
+			var dy: float = event.position.y - primary_touch.origin_y
+			var distance: float = sqrt(dx*dx + dy*dy)
 
 		if distance > SWIPE_MIN_DISTANCE:
 			# Clear hold timer - this is a swipe
@@ -391,36 +387,21 @@ func _show_super_jump_effect() -> void:
 # =============================================================================
 
 func _show_touch_indicator(pos: Vector2) -> void:
-	## Spawn a small white dot at the touch origin for discoverability.
+	## Spawn a subtle touch marker at the touch origin for discoverability.
 	if ui_layer == null:
 		return
 
 	# Clean up previous indicator
 	_hide_touch_indicator()
 
-	# White dot at touch origin (20x20, centered, 50% alpha)
+	# Soft touch dot at origin.
 	var dot := ColorRect.new()
 	dot.name = "TouchRing"
 	dot.size = Vector2(20, 20)
 	dot.position = pos - Vector2(10, 10)
-	dot.color = Color(1.0, 1.0, 1.0, 0.5)
+	dot.color = Color(1.0, 0.9, 0.95, 0.45)
 	ui_layer.add_child(dot)
 	touch_ring = dot
-
-	# Direction line: thin white line from origin to current touch
-	touch_line = Line2D.new()
-	touch_line.name = "TouchLine"
-	touch_line.width = 2.0
-	touch_line.default_color = Color(1.0, 1.0, 1.0, 0.3)
-	touch_line.add_point(pos)
-	touch_line.add_point(pos)
-	ui_layer.add_child(touch_line)
-
-
-func _update_touch_line(current_pos: Vector2) -> void:
-	## Update the direction indicator line endpoint during drag.
-	if touch_line and is_instance_valid(touch_line) and touch_line.get_point_count() >= 2:
-		touch_line.set_point_position(1, current_pos)
 
 
 func _hide_touch_indicator() -> void:
@@ -431,13 +412,6 @@ func _hide_touch_indicator() -> void:
 		tween.tween_property(ring_ref, "modulate:a", 0.0, 0.3)
 		tween.tween_callback(ring_ref.queue_free)
 		touch_ring = null
-
-	if touch_line and is_instance_valid(touch_line):
-		var line_ref := touch_line
-		var tween := create_tween()
-		tween.tween_property(line_ref, "modulate:a", 0.0, 0.15)
-		tween.tween_callback(line_ref.queue_free)
-		touch_line = null
 
 
 # =============================================================================

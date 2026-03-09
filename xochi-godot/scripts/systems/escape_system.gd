@@ -84,6 +84,7 @@ var warning_rect: ColorRect = null
 
 ## Tween that drives the warning strip pulse animation.
 var _warning_tween: Tween = null
+var _tracked_tweens: Array[Tween] = []
 
 
 # =============================================================================
@@ -144,7 +145,7 @@ func _create_visuals() -> void:
 	flood_canvas.add_child(warning_rect)
 
 	# Pulse the warning strip alpha between 0.2 and 1.0 continuously
-	_warning_tween = create_tween().set_loops()
+	_warning_tween = _make_tween().set_loops()
 	_warning_tween.tween_property(warning_rect, "modulate:a", 0.2, 0.2)
 	_warning_tween.tween_property(warning_rect, "modulate:a", 1.0, 0.2)
 
@@ -188,7 +189,7 @@ func _show_run_text() -> void:
 	run_canvas.add_child(run_label)
 
 	# Animate: scale up 1.3x while fading to transparent over 1.5 s
-	var tween := create_tween()
+	var tween := _make_tween()
 	tween.set_parallel(true)
 	tween.tween_property(run_label, "scale", Vector2(1.3, 1.3), 1.5).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
 	tween.tween_property(run_label, "modulate:a", 0.0, 1.5).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
@@ -296,7 +297,7 @@ func _show_caught_text() -> void:
 	label.z_index = 100
 	get_parent().add_child(label)
 
-	var tween := create_tween()
+	var tween := _make_tween()
 	tween.set_parallel(true)
 	tween.tween_property(label, "position:y", label.position.y - 30.0, 0.6)
 	tween.tween_property(label, "modulate:a", 0.0, 0.6)
@@ -318,7 +319,7 @@ func _show_splash_text() -> void:
 	label.z_index = 100
 	get_parent().add_child(label)
 
-	var tween := create_tween()
+	var tween := _make_tween()
 	tween.set_parallel(true)
 	tween.tween_property(label, "position:y", label.position.y - 30.0, 0.6)
 	tween.tween_property(label, "modulate:a", 0.0, 0.6)
@@ -359,3 +360,13 @@ func get_flood_x() -> float:
 func _exit_tree() -> void:
 	if _warning_tween and _warning_tween.is_valid():
 		_warning_tween.kill()
+	for tween in _tracked_tweens:
+		if tween and tween.is_valid():
+			tween.kill()
+	_tracked_tweens.clear()
+
+
+func _make_tween() -> Tween:
+	var tween := create_tween()
+	_tracked_tweens.append(tween)
+	return tween
