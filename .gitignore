@@ -9,7 +9,7 @@
 .vscode/
 *.swp
 
-# Node (xochi-web)
+# Node / legacy web app leftovers
 node_modules/
 
 # Claude Code

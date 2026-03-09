@@ -1,6 +1,6 @@
 extends Node
 class_name TouchInputManager
-## One-hand touch control system - EXACT port from xochi-web GameScene.js
+## One-hand touch control system ported from the earlier web prototype
 ##
 ## This is the "phone wizard" touch control system that works beautifully.
 ## Port of setupTouchControls() from GameScene.js lines 830-1012.

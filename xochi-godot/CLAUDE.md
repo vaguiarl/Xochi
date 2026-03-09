@@ -3,7 +3,7 @@
 ## Project Context
 Xochi is a 2D platformer inspired by DKC, set in Mesoamerican mythology. The player controls a warrior navigating through 11 levels across 6 worlds, fighting enemies, collecting cempasuchil flowers, and rescuing baby axolotls.
 
-Rebuilt from the original JavaScript/Phaser web version (`xochi-web/game.js`, 7,883 lines) into Godot 4 with GDScript.
+Rebuilt from an earlier JavaScript/Phaser web version into Godot 4 with GDScript. The Godot project is now the only active game code in this repo.
 
 ## Tech Stack
 - Godot 4.3+ with GDScript (no TypeScript, no C#)
@@ -50,4 +50,4 @@ assets/           - sprites/, audio/music/, audio/sfx/, fonts/
 ## Environment
 - macOS (Darwin)
 - Godot editor for visual testing — Claude cannot run Godot directly
-- Assets from xochi-web can be copied over (sprites, audio)
+- Use current Godot assets first; source art lives in `../nanoart`
