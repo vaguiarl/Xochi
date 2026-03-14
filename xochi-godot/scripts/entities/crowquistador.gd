@@ -158,6 +158,7 @@ var _player_ref: Node2D = null
 ## Sword rest position in rig-local coords (set during rig build)
 var sword_rest_pos: Vector2 = Vector2(120, 200)
 var sword_rest_rot: float = 0.3
+var stomp_vulnerable: bool = false
 
 
 # =============================================================================
@@ -300,6 +301,7 @@ func setup(data: Dictionary):
 	base_y = data.get("y", position.y)
 	amplitude = data.get("amplitude", 40.0)
 	level_width = data.get("level_width", 2000.0)
+	stomp_vulnerable = data.get("stomp_vulnerable", false)
 	state = State.PATROL
 	state_timer = 0.0
 	cooldown_timer = 0.0
@@ -637,6 +639,9 @@ func _should_parry() -> bool:
 ## blocks the stomp and bounces the player away instead of dying.
 func hit_by_stomp():
 	if not alive:
+		return
+	if stomp_vulnerable:
+		super.hit_by_stomp()
 		return
 
 	if state == State.PARRY:

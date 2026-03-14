@@ -48,6 +48,8 @@ const DARK_RAIN_BOLT_COUNT: int = 5
 const DARK_RAIN_BOLT_SPEED: float = 300.0
 const DARK_RAIN_STAGGER: float = 0.3
 const DARK_RAIN_WARNING_TIME: float = 0.5
+const ARENA_WALL_MARGIN: float = 28.0
+const ARENA_FALL_RECOVERY_BUFFER: float = 180.0
 
 
 # =============================================================================
@@ -126,6 +128,9 @@ var baby_position: Vector2 = Vector2.ZERO
 
 var sprite: Sprite2D = null
 var collision: CollisionShape2D = null
+var arena_left: float = -INF
+var arena_right: float = INF
+var arena_floor_y: float = INF
 
 
 # =============================================================================
@@ -244,8 +249,8 @@ func _ready() -> void:
 	collision.shape = shape
 	add_child(collision)
 
-	modulate = TINT_DARK
-	modulate.a = 0.0
+	_set_boss_tint(TINT_DARK)
+	_set_boss_alpha(0.0)
 
 	add_to_group("boss")
 
@@ -276,16 +281,54 @@ func _physics_process(delta: float) -> void:
 		_run_state_machine(delta)
 
 	move_and_slide()
+	_enforce_arena_bounds()
+
+
+func _set_boss_tint(color: Color) -> void:
+	if sprite == null or not is_instance_valid(sprite):
+		return
+	var target := color
+	target.a = sprite.modulate.a
+	sprite.modulate = target
+
+
+func _set_boss_alpha(alpha: float) -> void:
+	if sprite == null or not is_instance_valid(sprite):
+		return
+	var target := sprite.modulate
+	target.a = alpha
+	sprite.modulate = target
+
+
+func _get_boss_half_height() -> float:
+	if collision != null and collision.shape is RectangleShape2D:
+		return collision.shape.size.y * 0.5
+	return 25.0
+
+
+func _enforce_arena_bounds() -> void:
+	if arena_right > arena_left + ARENA_WALL_MARGIN * 2.0:
+		var clamped_x := clampf(global_position.x, arena_left + ARENA_WALL_MARGIN, arena_right - ARENA_WALL_MARGIN)
+		if not is_equal_approx(clamped_x, global_position.x):
+			global_position.x = clamped_x
+			velocity.x = 0.0
+
+	if arena_floor_y < INF and global_position.y > arena_floor_y + ARENA_FALL_RECOVERY_BUFFER:
+		global_position.y = arena_floor_y - _get_boss_half_height() - 2.0
+		velocity = Vector2.ZERO
 
 
 # =============================================================================
 # SETUP
 # =============================================================================
 
-func setup(p_level_num: int, p_player: CharacterBody2D, spawn_pos: Vector2) -> void:
+func setup(p_level_num: int, p_player: CharacterBody2D, spawn_pos: Vector2, arena_data: Dictionary = {}) -> void:
 	level_num = p_level_num
 	player_ref = p_player
 	position = spawn_pos
+	arena_left = float(arena_data.get("left", -INF))
+	arena_right = float(arena_data.get("right", INF))
+	arena_floor_y = float(arena_data.get("floor_y", INF))
 
 	# Phase 1 base timings (will be adjusted by _apply_phase_timings)
 	if level_num >= 10:
@@ -374,7 +417,8 @@ func _check_phase_transition() -> void:
 # =============================================================================
 
 func play_intro(callback: Callable) -> void:
-	modulate.a = 0.0
+	_set_boss_tint(TINT_DARK)
+	_set_boss_alpha(0.0)
 
 	await _make_delay(0.5)
 
@@ -398,7 +442,7 @@ func play_intro(callback: Callable) -> void:
 	add_child(intro_label)
 
 	var fade_in_tween := _track_tween(create_tween())
-	fade_in_tween.tween_property(self, "modulate:a", 1.0, 0.5)
+	fade_in_tween.tween_property(sprite, "modulate:a", 1.0, 0.5)
 
 	_create_health_bar()
 
@@ -412,7 +456,8 @@ func play_intro(callback: Callable) -> void:
 	state = "APPROACH"
 	state_timer = 0.0
 	ai_active = true
-	modulate = TINT_DARK
+	_set_boss_tint(TINT_DARK)
+	_set_boss_alpha(1.0)
 
 	if callback.is_valid():
 		callback.call()
@@ -523,7 +568,7 @@ func _state_approach(_delta: float) -> void:
 		velocity.y = APPROACH_JUMP_VELOCITY
 
 	if not is_invincible:
-		modulate = TINT_DARK
+		_set_boss_tint(TINT_DARK)
 
 	# -- Approach taunt (max once per 3 cycles, respecting cooldown) --
 	approach_cycles_since_taunt += 1
@@ -545,9 +590,9 @@ func _state_telegraph(delta: float) -> void:
 	_telegraph_flash_timer += delta
 	var flash_cycle: int = int(_telegraph_flash_timer / 0.1)
 	if flash_cycle % 2 == 0:
-		modulate = TINT_TELEGRAPH_YELLOW
+		_set_boss_tint(TINT_TELEGRAPH_YELLOW)
 	else:
-		modulate = TINT_TELEGRAPH_RED
+		_set_boss_tint(TINT_TELEGRAPH_RED)
 
 	if state_timer >= telegraph_time:
 		_remove_telegraph_label()
@@ -623,7 +668,7 @@ func _choose_attack() -> String:
 # =============================================================================
 
 func _state_attack(_delta: float) -> void:
-	modulate = TINT_ATTACK
+	_set_boss_tint(TINT_ATTACK)
 
 	if player_ref == null or not is_instance_valid(player_ref):
 		return
@@ -687,7 +732,7 @@ func _state_shadow_bolt(delta: float) -> void:
 		# Charge-up phase: boss glows brighter
 		_shadow_bolt_charge_timer += delta
 		var charge_ratio: float = _shadow_bolt_charge_timer / SHADOW_BOLT_CHARGE_TIME
-		modulate = TINT_DARK.lerp(Color(0.6, 0.0, 0.6), charge_ratio)
+		_set_boss_tint(TINT_DARK.lerp(Color(0.6, 0.0, 0.6), charge_ratio))
 
 		if not _shadow_bolt_fired and _shadow_bolt_charge_timer < SHADOW_BOLT_CHARGE_TIME:
 			if not is_instance_valid(action_label):
@@ -700,7 +745,7 @@ func _state_shadow_bolt(delta: float) -> void:
 		_show_action_text("SHADOW BOLT!", COLOR_MAGENTA)
 		_spawn_shadow_bolt()
 		AudioManager.play_sfx("stomp")
-		modulate = TINT_ATTACK
+		_set_boss_tint(TINT_ATTACK)
 
 	# After firing, wait briefly then recover
 	if _shadow_bolt_fired and state_timer >= SHADOW_BOLT_CHARGE_TIME + 0.3:
@@ -772,7 +817,7 @@ func _state_dark_rain(delta: float) -> void:
 	if velocity.y > 50.0:
 		velocity.y = 50.0
 
-	modulate = TINT_PHASE_TRANSITION
+	_set_boss_tint(TINT_PHASE_TRANSITION)
 
 	# Show warning markers on ground before bolts arrive
 	if not _dark_rain_warnings_shown and state_timer >= 0.3:
@@ -872,12 +917,12 @@ func _state_recover(delta: float) -> void:
 	if time_remaining < 0.5:
 		var flash_cycle: int = int(state_timer / 0.1)
 		if flash_cycle % 2 == 0:
-			modulate = TINT_RECOVER
+			_set_boss_tint(TINT_RECOVER)
 		else:
-			modulate = TINT_RECOVER_LIGHT
+			_set_boss_tint(TINT_RECOVER_LIGHT)
 	else:
 		if not is_invincible:
-			modulate = TINT_RECOVER
+			_set_boss_tint(TINT_RECOVER)
 
 	if state_timer >= effective_recover_time:
 		rotation_degrees = 0.0
@@ -898,7 +943,7 @@ func _state_taunt(_delta: float) -> void:
 	velocity.x = 0.0
 
 	if not is_invincible:
-		modulate = TINT_DARK
+		_set_boss_tint(TINT_DARK)
 
 	# Taunt lasts 1.5s, NOT vulnerable (distinct from RECOVER)
 	if state_timer >= 1.5:
@@ -919,9 +964,9 @@ func _state_phase_transition(_delta: float) -> void:
 	# Flash effect
 	var flash_cycle: int = int(state_timer / 0.08)
 	if flash_cycle % 2 == 0:
-		modulate = Color.WHITE
+		_set_boss_tint(Color.WHITE)
 	else:
-		modulate = TINT_PHASE_TRANSITION
+		_set_boss_tint(TINT_PHASE_TRANSITION)
 
 	# Show phase taunt at start
 	if state_timer < 0.1:
@@ -976,7 +1021,7 @@ func _enter_state(new_state: String) -> void:
 	# -- Set up new state --
 	match new_state:
 		"APPROACH":
-			modulate = TINT_DARK
+			_set_boss_tint(TINT_DARK)
 			# Maybe show approach taunt
 			if approach_cycles_since_taunt >= 3 and taunt_cooldown <= 0.0:
 				if _rng.randf() < 0.4:
@@ -986,12 +1031,12 @@ func _enter_state(new_state: String) -> void:
 			_telegraph_flash_timer = 0.0
 			_show_telegraph_label()
 		"ATTACK":
-			modulate = TINT_ATTACK
+			_set_boss_tint(TINT_ATTACK)
 			_shockwave_spawned = false
 			_swing_visual_spawned = false
 			_leap_launched = false
 		"RECOVER":
-			modulate = TINT_RECOVER
+			_set_boss_tint(TINT_RECOVER)
 			# Show recover taunt instead of generic "TIRED..."
 			var recover_line: String = _pick_taunt("recover")
 			_show_action_text(recover_line, Color("88ff88"))
@@ -1050,7 +1095,9 @@ func take_damage(amount: int = 1) -> void:
 	is_invincible = true
 
 	var flash_tween := _track_tween(create_tween())
-	flash_tween.tween_property(self, "modulate", Color.WHITE, 0.05)
+	var flash_color := Color.WHITE
+	flash_color.a = sprite.modulate.a
+	flash_tween.tween_property(sprite, "modulate", flash_color, 0.05)
 	flash_tween.tween_interval(0.1)
 
 	if health <= 0:
@@ -1110,9 +1157,13 @@ func defeat_sequence() -> void:
 	var flash_tween := _track_tween(create_tween())
 	for i in 10:
 		if i % 2 == 0:
-			flash_tween.tween_property(self, "modulate", Color.WHITE, 0.05)
+			var flash_color := Color.WHITE
+			flash_color.a = sprite.modulate.a
+			flash_tween.tween_property(sprite, "modulate", flash_color, 0.05)
 		else:
-			flash_tween.tween_property(self, "modulate", Color.RED, 0.05)
+			var hurt_color := Color.RED
+			hurt_color.a = sprite.modulate.a
+			flash_tween.tween_property(sprite, "modulate", hurt_color, 0.05)
 
 	await flash_tween.finished
 
@@ -1122,7 +1173,7 @@ func defeat_sequence() -> void:
 	_cleanup_boss_projectiles()
 
 	var fade_tween := _track_tween(create_tween())
-	fade_tween.tween_property(self, "modulate:a", 0.0, 0.5)
+	fade_tween.tween_property(sprite, "modulate:a", 0.0, 0.5)
 	await fade_tween.finished
 
 	GameState.score += DEFEAT_SCORE
@@ -1141,9 +1192,6 @@ func defeat_sequence() -> void:
 
 	Events.boss_defeated.emit()
 
-	await _make_delay(1.5)
-	_spawn_baby_axolotl()
-
 
 func _cleanup_boss_projectiles() -> void:
 	## Remove all shadow bolt / dark rain projectiles from the scene.
@@ -1153,53 +1201,6 @@ func _cleanup_boss_projectiles() -> void:
 	for child in parent_node.get_children():
 		if child.has_meta("is_boss_projectile"):
 			child.queue_free()
-
-
-# =============================================================================
-# BABY AXOLOTL SPAWN (post-defeat reward)
-# =============================================================================
-
-func _spawn_baby_axolotl() -> void:
-	var game_scene: Node = get_parent()
-	if game_scene == null:
-		return
-
-	var collectibles_node: Node = game_scene.get_node_or_null("Collectibles")
-	if collectibles_node == null:
-		collectibles_node = game_scene
-
-	var marker := Node2D.new()
-	marker.name = "BabyAxolotl"
-	marker.position = baby_position
-	marker.set_meta("type", "baby")
-	marker.set_meta("base_y", baby_position.y)
-	marker.set_meta("bob_offset", 0.0)
-
-	var body_rect := ColorRect.new()
-	body_rect.size = Vector2(24.0, 24.0)
-	body_rect.position = Vector2(-12.0, -12.0)
-	body_rect.color = Color("FF88AA")
-	marker.add_child(body_rect)
-
-	var face := ColorRect.new()
-	face.size = Vector2(14.0, 10.0)
-	face.position = Vector2(-7.0, -8.0)
-	face.color = Color("FFBBCC")
-	marker.add_child(face)
-
-	var sparkle := ColorRect.new()
-	sparkle.name = "Sparkle"
-	sparkle.size = Vector2(36.0, 36.0)
-	sparkle.position = Vector2(-18.0, -18.0)
-	sparkle.color = Color(1.0, 0.8, 0.9, 0.3)
-	marker.add_child(sparkle)
-
-	collectibles_node.add_child(marker)
-
-	marker.scale = Vector2.ZERO
-	var pop_tween := _track_tween(create_tween())
-	pop_tween.tween_property(marker, "scale", Vector2.ONE, 0.3).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
-
 
 # =============================================================================
 # TAUNT DISPLAY SYSTEM

@@ -241,6 +241,7 @@ func _ready() -> void:
 
 	level_num = GameState.current_level
 	level_data = LevelData.get_level_data(level_num)
+	_apply_level_resource_floor()
 
 	_create_containers()
 	_build_sky_gradient()
@@ -1959,6 +1960,14 @@ func _check_baby_pickup() -> void:
 func _complete_level() -> void:
 	## Handles level completion: saves progress, triggers celebration sequence,
 	## then transitions to the next level or the victory screen.
+	_complete_level_from_origin(null)
+
+
+func _complete_level_from_origin(celebration_origin) -> void:
+	## Shared level-complete path. Boss levels can bypass the baby pickup and
+	## still drive celebration FX from the boss defeat position.
+	if level_complete:
+		return
 
 	level_complete = true
 
@@ -1983,8 +1992,11 @@ func _complete_level() -> void:
 
 	# Trigger existing particle celebration VFX
 	var baby_node: Node2D = collectibles_node.get_node_or_null("BabyAxolotl")
-	if baby_node and collectible_system and not _is_headless_autoplay():
-		collectible_system.celebrate_baby_rescue(baby_node.global_position)
+	var rescue_origin: Variant = celebration_origin
+	if rescue_origin == null and baby_node:
+		rescue_origin = baby_node.global_position
+	if rescue_origin is Vector2 and collectible_system and not _is_headless_autoplay():
+		collectible_system.celebrate_baby_rescue(rescue_origin)
 
 	if _is_headless_autoplay():
 		_proceed_after_celebration()
@@ -2182,8 +2194,8 @@ func _setup_luchador_system() -> void:
 
 func _setup_boss() -> void:
 	## Spawn a Dark Xochi boss on boss levels (5 and 10) if the baby for
-	## that level has not already been rescued. Connects defeat signal so
-	## the baby axolotl spawns when the boss is killed.
+	## that level has not already been rescued. Boss defeat now resolves the
+	## rescue immediately instead of relying on a post-fight pickup.
 	var is_boss_level: bool = (level_num == 5 or level_num == 10)
 	if not is_boss_level or _is_baby_rescued(level_num):
 		return
@@ -2196,13 +2208,19 @@ func _setup_boss() -> void:
 	elif spawn_data is Dictionary:
 		ps = Vector2(spawn_data.get("x", 100), spawn_data.get("y", 400))
 	var spawn_pos: Vector2 = Vector2(ps.x + 300, ps.y - 100)
+	var arena_width: float = level_data.get("width", 1200.0)
+	var arena_floor_y: float = _get_boss_floor_y()
 
 	boss = DarkXochi.new()
 	boss.name = "DarkXochi"
 	add_child(boss)
-	boss.setup(level_num, player, spawn_pos)
+	boss.setup(level_num, player, spawn_pos, {
+		"left": 0.0,
+		"right": arena_width,
+		"floor_y": arena_floor_y,
+	})
 
-	# Connect defeat signal to spawn baby
+	# Boss defeat resolves the rescue and completion flow in _on_boss_defeated.
 	Events.boss_defeated.connect(_on_boss_defeated)
 
 	# Start boss intro
@@ -2250,13 +2268,22 @@ func _setup_escape_system() -> void:
 # =============================================================================
 
 func _on_boss_defeated() -> void:
-	## Spawn the baby axolotl collectible after the boss is defeated,
-	## allowing the player to complete the level.
+	## Boss levels should resolve immediately on defeat so the player cannot get
+	## soft-locked by a missing or bad rescue pickup.
+	if level_complete:
+		return
+
 	var baby_node = collectibles_node.get_node_or_null("BabyAxolotl")
 	if baby_node == null:
 		var baby_data = level_data.get("baby_position", null)
 		if baby_data:
 			_create_baby(baby_data)
+
+	if level_data.get("is_boss_level", false):
+		var boss_origin: Variant = null
+		if boss and is_instance_valid(boss):
+			boss_origin = boss.global_position + Vector2(0, -80)
+		_complete_level_from_origin(boss_origin)
 
 
 # =============================================================================
@@ -3082,6 +3109,33 @@ func _cleanup_runtime_resources() -> void:
 
 	_cleanup_world_intro()
 	_cleanup_game_over_overlay()
+
+
+func _apply_level_resource_floor() -> void:
+	## Boss levels can guarantee a minimum amount of ammo without taking away
+	## extra resources the player already earned earlier in the run.
+	var min_super_jumps: int = int(level_data.get("minimum_super_jumps", -1))
+	var min_mace_attacks: int = int(level_data.get("minimum_mace_attacks", -1))
+	if min_super_jumps >= 0:
+		GameState.super_jumps = maxi(GameState.super_jumps, min_super_jumps)
+	if min_mace_attacks >= 0:
+		GameState.mace_attacks = maxi(GameState.mace_attacks, min_mace_attacks)
+
+
+func _get_boss_floor_y() -> float:
+	## Use the widest thick platform as the arena floor reference for boss
+	## recovery if the boss gets knocked outside the fight bounds.
+	var widest_platform: float = -1.0
+	var floor_y: float = level_data.get("height", 800.0) - 50.0
+	for platform_data in level_data.get("platforms", []):
+		if not (platform_data is Dictionary):
+			continue
+		var platform_height: float = float(platform_data.get("h", 0.0))
+		var platform_width: float = float(platform_data.get("w", 0.0))
+		if platform_height > 30.0 and platform_width > widest_platform:
+			widest_platform = platform_width
+			floor_y = float(platform_data.get("y", floor_y))
+	return floor_y
 
 
 func _is_headless_autoplay() -> bool:

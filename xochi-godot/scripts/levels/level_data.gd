@@ -753,6 +753,9 @@ static func _level_5_data() -> Dictionary:
 			Vector2(600, 580),
 			Vector2(600, 160),
 		],
+		"minimum_super_jumps": 4,
+		"minimum_mace_attacks": 2,
+		"boss_crows_one_stomp": true,
 
 		"enemies": [
 			{ "x": 300.0, "y": 550.0, "type": "flying", "speed": 60.0, "dir": 1, "amplitude": 60.0 },
@@ -1287,6 +1290,9 @@ static func _level_10_data() -> Dictionary:
 			Vector2(670, 680),
 			Vector2(255, 550),
 		],
+		"minimum_super_jumps": 5,
+		"minimum_mace_attacks": 3,
+		"boss_crows_one_stomp": true,
 
 		"enemies": [
 			# 3 flying enemies patrolling the arena tiers

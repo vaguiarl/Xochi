@@ -125,7 +125,11 @@ static func spawn_enemies(level_data: Dictionary, enemies_node: Node2D):
 				"speed": enemy_data.get("speed", 80),
 				"y": enemy_data.y,
 				"amplitude": enemy_data.get("amplitude", 40.0),
-				"level_width": level_data.get("width", 2000)
+				"level_width": level_data.get("width", 2000),
+				"stomp_vulnerable": enemy_data.get(
+					"stomp_vulnerable",
+					level_data.get("boss_crows_one_stomp", false)
+				),
 			})
 			crow.add_to_group("enemies")
 			enemies_node.add_child(crow)
