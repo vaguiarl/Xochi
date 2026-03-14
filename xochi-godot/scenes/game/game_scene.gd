@@ -1202,8 +1202,8 @@ func _spawn_player() -> void:
 
 func _setup_touch_controls() -> void:
 	## Set up touch input manager if on a touch device.
-	## Only creates the manager if the device has touch capability.
-	if not DisplayServer.is_touchscreen_available():
+	## On web builds, create the manager even if touchscreen detection is flaky.
+	if not DisplayServer.is_touchscreen_available() and not OS.has_feature("web"):
 		return
 
 	if player == null:

@@ -90,6 +90,7 @@ var ui_layer: CanvasLayer = null
 
 ## Touch feedback visuals
 var touch_ring: ColorRect = null
+var touch_enabled: bool = false
 
 # =============================================================================
 # SETUP
@@ -98,9 +99,10 @@ var touch_ring: ColorRect = null
 func setup(player_ref: CharacterBody2D) -> void:
 	## Initialize touch controls for the given player.
 	player = player_ref
+	touch_enabled = DisplayServer.is_touchscreen_available()
 
-	# Only show UI on touch devices
-	if DisplayServer.is_touchscreen_available():
+	# Only create the touch UI once.
+	if touch_enabled and ui_layer == null:
 		_create_ui()
 
 
@@ -167,11 +169,21 @@ func _create_ui() -> void:
 # =============================================================================
 
 func _input(event: InputEvent) -> void:
-	if not DisplayServer.is_touchscreen_available():
+	if not (event is InputEventScreenTouch or event is InputEventScreenDrag):
+		return
+
+	if not touch_enabled:
+		touch_enabled = true
+		if ui_layer == null:
+			_create_ui()
+
+	if not is_touch_device():
 		return
 
 	# POINTER DOWN (lines 857-886)
 	if event is InputEventScreenTouch and event.pressed:
+		touch_enabled = true
+
 		# Check if touch on pause button
 		if pause_button and _is_point_in_rect(event.position, pause_button.get_global_rect()):
 			if has_node("/root/Events"):
@@ -228,9 +240,9 @@ func _input(event: InputEvent) -> void:
 		primary_touch.current_y = event.position.y
 		primary_touch.last_move_time = now
 
-			var dx: float = event.position.x - primary_touch.origin_x
-			var dy: float = event.position.y - primary_touch.origin_y
-			var distance: float = sqrt(dx*dx + dy*dy)
+		var dx: float = event.position.x - primary_touch.origin_x
+		var dy: float = event.position.y - primary_touch.origin_y
+		var distance: float = sqrt(dx*dx + dy*dy)
 
 		if distance > SWIPE_MIN_DISTANCE:
 			# Clear hold timer - this is a swipe
@@ -424,6 +436,10 @@ func get_horizontal_input() -> float:
 		return -1.0
 	elif right:
 		return 1.0
+	elif movement_state.maintain_direction < 0:
+		return -1.0
+	elif movement_state.maintain_direction > 0:
+		return 1.0
 	else:
 		return 0.0
 
@@ -434,12 +450,12 @@ func get_momentum() -> float:
 
 
 func is_touch_device() -> bool:
-	return DisplayServer.is_touchscreen_available()
+	return touch_enabled
 
 
 ## Trigger a haptic pulse on supported devices (iOS Taptic Engine, Android vibration).
 ## Short-circuits on non-touch devices to avoid unnecessary calls.
 func haptic(duration_ms: int = 50) -> void:
-	if not DisplayServer.is_touchscreen_available():
+	if not is_touch_device():
 		return
 	Input.vibrate_handheld(duration_ms)
