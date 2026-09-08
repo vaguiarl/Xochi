@@ -2,7 +2,7 @@
 
 A complete, compact platforming chapter through the floating gardens of Xochimilco. Xochi brings three little friends home after a storm and helps her frightened reflection let go. English and Spanish are included.
 
-Version **0.1.0 (1)** was successfully uploaded to TestFlight on 8 September 2026. Apple reported that the package was processing. See [upload receipt](ios/TESTFLIGHT-UPLOAD.md) and [verification record](TEST-RESULTS.md).
+Version **0.1.0 (2)** was successfully uploaded to TestFlight on 8 September 2026, restoring ordinary double jump and sharpening the enemies. Apple reported that the package was processing. See [upload receipt](ios/TESTFLIGHT-UPLOAD.md) and [verification record](TEST-RESULTS.md).
 
 This is a standalone Godot 4.7 project in the existing Xochi repository. The original `xochi-godot` campaign remains intact. The chapter uses native Godot rendering and physics, with a narrow Swift bridge for Apple speech and optional Foundation Models support.
 
@@ -19,12 +19,13 @@ godot --path xochi-ios
 | Travel | Swipe left/right and keep the finger down; release to coast | Arrows or A / D |
 | Sprint | Two swipes in the same direction | Hold Shift while moving |
 | Jump | Swipe up | Space |
+| Double jump | Swipe up again in the air; restores on landing | Space again in the air |
 | Hyper-jump | Tap; a second finger can tap while moving | X |
 | Ripple Pop | Hold for 400 ms; a second finger can hold while moving | Z |
 | Second Wind | Courage button or optional voice encouragement | C |
 | Pause / resume | Pause button | Escape |
 
-Two hyper-jumps are available per garden pocket. Courage grants one reserve jump, spent after the regular charges. Once earned, that reserve returns on every retry until the next checkpoint. Quiet Courage and voice encouragement have identical gameplay effects. Speaking is optional.
+One ordinary double jump is available each time Xochi leaves the ground and restores on landing. It does not spend a hyper-jump. Two hyper-jumps are available per garden pocket. Courage grants one reserve jump, spent after the regular charges. Once earned, that reserve returns on every retry until the next checkpoint. Quiet Courage and voice encouragement have identical gameplay effects. Speaking is optional.
 
 ## Complete chapter
 

@@ -191,9 +191,14 @@ func _check_attack_contact() -> void:
 		player.take_hit()
 
 func _ellipse(center: Vector2, radii: Vector2, color: Color) -> void:
-	draw_set_transform(center, 0.0, radii)
-	draw_circle(Vector2.ZERO, 1.0, color, true, -1.0, true)
-	draw_set_transform(Vector2.ZERO)
+	# Draw at the final size: scaling a radius-one antialiased circle also
+	# magnifies its soft edge into a blurry halo around every body part.
+	var outline := PackedVector2Array()
+	for i in 40:
+		outline.append(center + Vector2.from_angle(float(i) * TAU / 40.0) * radii)
+	draw_colored_polygon(outline, color)
+	outline.append(outline[0])
+	draw_polyline(outline, color, 1.0, true)
 
 func _draw() -> void:
 	if state == "tell":

@@ -2,6 +2,17 @@
 
 Project: Xochi: The Song Home 0.1.0, build 1. Godot 4.7 stable; native plugin and iPhone archive built with Xcode 26.6 / iOS 26.5 SDK. The minimum supported OS is iOS 26.
 
+## Build 2 feedback iteration
+
+- Restored one ordinary airborne jump after takeoff, recharged on landing or retry. It spends no hyper-jump charge. Coyote takeoffs preserve it; hyper jumps, pause and input clearing cannot refill a spent air jump.
+- Replaced scaled radius-one enemy circles with ellipses drawn at their final size, keeping a narrow antialiased edge. Enemy targeting, collision and attack timing are unchanged.
+- Expanded PlayerSpec passes at normal timing and fixed 60 fps: keyboard and repeated upward swipes, simultaneous movement touch, third-jump rejection, actual landing/retry recharge, hyper/reserve interleaving, coyote grace and landing buffers. EnemySpec also passes.
+- Full real-touch input route passes: 3/3 friends, zero deaths, ten normal jumps, two hyper jumps, three boss openings and reunion in 33.45 simulated gameplay seconds. This remains route-completion evidence, not a human difficulty rating.
+- Integration smoke passes; retry measured 0.48 seconds, with music continuity, pause, checkpoint/Courage persistence and ending assertions intact.
+- The complete iPhone Simulator build and signed Release archive both succeed. Archive: `ios/build/Xochi-0.1.0-2.xcarchive`; its app Info.plist confirms build 2.
+- Native iPhone 12 mini simulator inspection confirms the sharper crow, safe-area layout and updated opening instructions fit. Six visual fixtures also render successfully. Physical-device limitations below still apply.
+- Build logs: `ios/build/simulator-build-2.log` and `ios/build/testflight-archive-2.log`. The latest upload status is recorded in `ios/TESTFLIGHT-UPLOAD.md`.
+
 ## Gameplay and state
 
 | Check | Result and scope |

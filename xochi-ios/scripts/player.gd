@@ -9,6 +9,7 @@ signal jumped(hyper: bool)
 const WALK_SPEED := 220.0
 const RUN_SPEED := 340.0
 const JUMP_SPEED := -480.0
+const AIR_JUMP_SPEED := -440.0
 const HYPER_SPEED := -650.0
 const GRAVITY := 800.0
 const COYOTE_TIME := 0.20
@@ -52,8 +53,10 @@ var _jump_buffer := 0.0
 var _attack_cooldown := 0.0
 var _landing_squash := 0.0
 var _hyper_flash := 0.0
+var _air_jump_flash := 0.0
 var _clock := 0.0
 var _jumped_from_ground := false
+var _air_jump_available := true
 var _was_grounded := false
 var _keyboard_blocked := false
 var _touch_index := -1
@@ -105,6 +108,7 @@ func _physics_process(delta: float) -> void:
 	_attack_cooldown = maxf(0.0, _attack_cooldown - delta)
 	_landing_squash = maxf(0.0, _landing_squash - delta)
 	_hyper_flash = maxf(0.0, _hyper_flash - delta)
+	_air_jump_flash = maxf(0.0, _air_jump_flash - delta)
 	_update_trail(delta)
 	if not active:
 		queue_redraw()
@@ -114,6 +118,7 @@ func _physics_process(delta: float) -> void:
 	if grounded:
 		_coyote = COYOTE_TIME
 		_jumped_from_ground = false
+		_air_jump_available = true
 	else:
 		_coyote = maxf(0.0, _coyote - delta)
 	_advance_touch(delta)
@@ -150,10 +155,12 @@ func _physics_process(delta: float) -> void:
 		velocity.y = minf(velocity.y + GRAVITY * gravity_scale * delta, 920.0)
 	var falling_speed := velocity.y
 	move_and_slide()
-	if is_on_floor() and not _was_grounded and falling_speed > 90.0:
-		_landing_squash = 0.18
+	if is_on_floor() and not _was_grounded:
+		if falling_speed > 90.0:
+			_landing_squash = 0.18
 		_coyote = COYOTE_TIME
 		_jumped_from_ground = false
+		_air_jump_available = true
 		# A press in the final 150 ms of a fall launches on this landing frame.
 		_try_buffered_jump()
 	_was_grounded = is_on_floor() and velocity.y >= 0.0
@@ -166,12 +173,23 @@ func jump_normal() -> void:
 
 
 func _try_buffered_jump() -> void:
-	if _jump_buffer > 0.0 and _coyote > 0.0 and not _jumped_from_ground:
+	if _jump_buffer <= 0.0:
+		return
+	if _coyote > 0.0 and not _jumped_from_ground:
 		velocity.y = JUMP_SPEED
-		_jump_buffer = 0.0
-		_coyote = 0.0
-		_jumped_from_ground = true
-		jumped.emit(false)
+	elif _air_jump_available and (not is_on_floor() or velocity.y < 0.0):
+		# One second lift per flight, independent of the finite hyper-jump stock.
+		# Coyote jumps use the ground branch and preserve this airborne jump.
+		velocity.y = AIR_JUMP_SPEED
+		_air_jump_available = false
+		_air_jump_flash = 0.28
+	else:
+		# An exhausted airborne press can still buffer onto the next real landing.
+		return
+	_jump_buffer = 0.0
+	_coyote = 0.0
+	_jumped_from_ground = true
+	jumped.emit(false)
 
 
 func jump_hyper() -> void:
@@ -223,8 +241,10 @@ func reset_at(pos: Vector2, has_reserve: bool = false) -> void:
 	_jump_buffer = 0.0
 	_coyote = 0.0
 	_jumped_from_ground = false
+	_air_jump_available = true
 	_was_grounded = false
 	_hyper_flash = 0.0
+	_air_jump_flash = 0.0
 	_landing_squash = 0.0
 	_trail.clear()
 	clear_input()
@@ -428,6 +448,9 @@ func _draw() -> void:
 	for mark in _trail:
 		var alpha: float = mark["life"] / 0.3
 		draw_circle(mark["position"] - global_position, 10.0 * alpha, Color(0.55, 0.98, 0.84, alpha * 0.27))
+	if _air_jump_flash > 0.0:
+		var lift_progress := 1.0 - _air_jump_flash / 0.28
+		draw_arc(Vector2(0, -4), 10.0 + lift_progress * 24.0, 0.0, TAU, 32, Color(0.66, 0.98, 0.91, (1.0 - lift_progress) * 0.8), 2.5, true)
 	var idle := sin(visual_time * 3.6)
 	var run_phase := visual_time * (19.0 if absf(velocity.x) > 260.0 else 14.0)
 	var walk_amount := minf(absf(velocity.x) / WALK_SPEED, 1.0)

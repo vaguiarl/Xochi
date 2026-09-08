@@ -274,7 +274,7 @@ func _start(resume: bool) -> void:
 	_build_hud()
 	current_screen = "game"
 	if checkpoint == 0:
-		_toast(tr2("Swipe to move · swipe up to jump · tap to hyper-jump · hold to ripple", "Desliza para moverte · arriba: salto · toque: hipersalto · mantén: onda"),12)
+		_toast(tr2("Swipe to move · swipe up again for a double jump · tap to hyper-jump · hold to ripple", "Desliza para moverte · arriba otra vez: doble salto · toque: hipersalto · mantén: onda"),12)
 	else:
 		_toast(tr2("A fresh breath. Your friends are waiting.","Un nuevo respiro. Tus amigos te esperan."),5)
 	_persist()
@@ -553,7 +553,7 @@ func _show_intro() -> void:
 	var column = _center_card()
 	_copy(column,tr2("Before the lanterns wake","Antes de encender los faroles"),46,true)
 	_copy(column,tr2("Last night, a storm scattered the little axolotls across the canals.\nXochi promised to bring every friend home before the fiesta.\n\nSomewhere in the water, her reflection made a promise too.","Anoche, una tormenta dispersó a los ajolotitos por los canales.\nXochi prometió traerlos a todos antes de la fiesta.\n\nEn algún rincón del agua, su reflejo también hizo una promesa."),23)
-	_copy(column,tr2("Swipe and hold left / right · Double swipe to sprint\nSwipe up to jump · Tap for a hyper-jump · Hold for Ripple\n\nArrows / A D · Space · X · Z on a keyboard", "Desliza y mantén para avanzar · Dos deslizamientos para correr\nDesliza arriba para saltar · Toque: hipersalto · Mantén: onda\n\nFlechas / A D · Espacio · X · Z en teclado"),19)
+	_copy(column,tr2("Swipe and hold left / right · Double swipe to sprint\nSwipe up to jump · Swipe up again in the air for a double jump\nTap for a hyper-jump · Hold for Ripple\n\nArrows / A D · Space (again in the air) · X · Z on a keyboard", "Desliza y mantén para avanzar · Dos deslizamientos para correr\nDesliza arriba para saltar · Otra vez en el aire: doble salto\nToque: hipersalto · Mantén: onda\n\nFlechas / A D · Espacio (otra vez en el aire) · X · Z en teclado"),19)
 	column.add_child(_button(tr2("Let's bring them home","Vamos a traerlos a casa"),func(): _start(false),true))
 
 func _build_hud() -> void:

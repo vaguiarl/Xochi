@@ -7,6 +7,7 @@ var failures: Array[String] = []
 var ripple_count := 0
 var death_count := 0
 var jump_count := 0
+var normal_jump_count := 0
 
 
 func _init() -> void:
@@ -37,7 +38,10 @@ func _run() -> void:
 	world.add_child(player)
 	player.ripple.connect(func(_origin: Vector2, _direction: float): ripple_count += 1)
 	player.died.connect(func(): death_count += 1)
-	player.jumped.connect(func(_hyper: bool): jump_count += 1)
+	player.jumped.connect(func(hyper: bool):
+		jump_count += 1
+		if not hyper: normal_jump_count += 1
+	)
 	player.set_physics_process(false)
 	_test_charge_order()
 	_test_gesture_lifetime()
@@ -47,11 +51,14 @@ func _run() -> void:
 	await _test_gui_consumed_release()
 	await _test_pause_cancels_gesture()
 	player.set_physics_process(true)
+	await _test_double_jump_cycle()
+	await _test_touch_double_jump()
+	await _test_hyper_interleave()
 	await _test_coyote()
 	await _test_buffer()
 	await _test_finite_inertia()
 	if failures.is_empty():
-		print("[PlayerSpec] PASS: reserve order, stale hold, swipe sprint, multitouch actions, GUI-consumed releases, reset, one death, pause cleanup, real coyote window, landing buffer and finite inertia")
+		print("[PlayerSpec] PASS: normal double jump, landing/retry reset, hyper interleave limits, reserve order, stale hold, swipe sprint, multitouch actions, GUI-consumed releases, pause cleanup, real coyote window, landing buffer and finite inertia")
 		quit(0)
 	else:
 		for failure in failures:
@@ -74,6 +81,128 @@ func _grounded_reset() -> void:
 	player.reset_at(Vector2(200, 299), false)
 	await _ticks(8)
 	_expect(player.is_on_floor(), "test setup must make real floor contact")
+
+
+func _land(maximum_ticks := 180) -> bool:
+	for tick in range(maximum_ticks):
+		await _ticks(1)
+		if player.is_on_floor() and player.velocity.y >= 0.0:
+			return true
+	return false
+
+
+func _space() -> void:
+	var key := InputEventKey.new()
+	key.physical_keycode = KEY_SPACE
+	key.keycode = KEY_SPACE
+	key.pressed = true
+	player._unhandled_input(key)
+
+
+func _up_swipe(index: int, start: Vector2) -> void:
+	var touch := InputEventScreenTouch.new()
+	touch.index = index
+	touch.position = start
+	touch.pressed = true
+	player._unhandled_input(touch)
+	var drag := InputEventScreenDrag.new()
+	drag.index = index
+	drag.position = start + Vector2(0, -70)
+	player._unhandled_input(drag)
+	touch.pressed = false
+	touch.position = drag.position
+	player._unhandled_input(touch)
+
+
+func _test_double_jump_cycle() -> void:
+	await _grounded_reset()
+	var before := normal_jump_count
+	_space()
+	await _ticks(6)
+	_expect(normal_jump_count == before + 1 and not player.is_on_floor(), "Space must make a normal takeoff")
+	_space()
+	await _ticks(1)
+	_expect(normal_jump_count == before + 2 and player.velocity.y < -400.0, "a second Space press must make one responsive airborne jump")
+	_expect(player.hyper_charges == 2, "normal double jumping must not spend hyper charges")
+	_space()
+	await _ticks(10)
+	_expect(normal_jump_count == before + 2, "a third normal press must not add another airborne jump")
+	var landed := await _land()
+	_expect(landed, "double jump must return to a real collision surface")
+	_space()
+	await _ticks(5)
+	_space()
+	await _ticks(1)
+	_expect(normal_jump_count == before + 4, "an actual landing must restore the next ground-plus-air pair")
+	player.reset_at(Vector2(200, 299), true)
+	await _ticks(8)
+	before = normal_jump_count
+	_space()
+	await _ticks(5)
+	_space()
+	await _ticks(1)
+	_expect(normal_jump_count == before + 2 and player.hyper_charges == 2 and player.reserve_available, "retry must restore double jump and preserve the independent checkpoint hyper stock")
+
+
+func _test_touch_double_jump() -> void:
+	await _grounded_reset()
+	var before := normal_jump_count
+	_up_swipe(0, Vector2(200, 500))
+	await _ticks(5)
+	_up_swipe(0, Vector2(200, 500))
+	await _ticks(1)
+	_expect(normal_jump_count == before + 2 and player.hyper_charges == 2, "two separate upward swipes must ground-jump then air-jump without triggering a hyper tap")
+	_up_swipe(0, Vector2(200, 500))
+	await _ticks(10)
+	_expect(normal_jump_count == before + 2, "a third upward swipe must respect the air-jump limit")
+	await _grounded_reset()
+	_space()
+	await _ticks(4)
+	player._begin_touch(0, Vector2(200, 500))
+	player._drag_touch(Vector2(270, 500))
+	before = normal_jump_count
+	_up_swipe(1, Vector2(900, 500))
+	await _ticks(1)
+	_expect(normal_jump_count == before + 1 and player._touch_index == 0 and player._touch_direction == 1.0, "a secondary-finger upward swipe must air-jump while directional touch remains held")
+	_expect(player.hyper_charges == 2, "multitouch normal air-jump must leave hyper charges intact")
+	player.clear_input()
+
+
+func _test_hyper_interleave() -> void:
+	await _grounded_reset()
+	player.reserve_available = true
+	_space()
+	await _ticks(5)
+	player.jump_hyper()
+	await _ticks(5)
+	var before := normal_jump_count
+	_space()
+	await _ticks(1)
+	_expect(normal_jump_count == before + 1, "hyper must preserve the still-unused normal airborne jump")
+	before = normal_jump_count
+	player.jump_hyper()
+	await _ticks(1)
+	_space()
+	await _ticks(10)
+	_expect(normal_jump_count == before, "another hyper must not refill an already-used air jump")
+	player.jump_hyper()
+	await _ticks(1)
+	player.clear_input()
+	paused = true
+	await process_frame
+	paused = false
+	_space()
+	await _ticks(10)
+	_expect(normal_jump_count == before and player.hyper_charges == 0 and not player.reserve_available, "reserve hyper, input clearing and pause must not grant another normal air jump")
+	await _grounded_reset()
+	before = normal_jump_count
+	player.jump_hyper()
+	await _ticks(5)
+	_space()
+	await _ticks(1)
+	_space()
+	await _ticks(10)
+	_expect(normal_jump_count == before + 1, "a hyper takeoff must allow one ordinary airborne jump, never two")
 
 
 func _test_charge_order() -> void:
@@ -220,28 +349,47 @@ func _test_coyote() -> void:
 	_expect(not player.is_on_floor() and player._coyote > 0.0, "walking off must retain grace after 8 frames")
 	player.jump_normal()
 	await _ticks(1)
-	_expect(player.velocity.y < -400.0, "a normal jump inside the coyote window must launch")
+	_expect(player.velocity.y < -450.0, "a jump inside the coyote window must use the full ground-jump lift")
+	var before := normal_jump_count
+	player.jump_normal()
+	await _ticks(1)
+	_expect(normal_jump_count == before + 1, "a coyote jump must preserve the ordinary second jump")
 	await _grounded_reset()
 	player.position.x = 340
 	await _ticks(16)
-	var before := jump_count
+	before = normal_jump_count
 	player.jump_normal()
 	await _ticks(1)
-	_expect(player._coyote == 0.0 and jump_count == before, "the grace window must expire rather than allow air jumps")
+	_expect(player._coyote == 0.0 and normal_jump_count == before + 1 and player.velocity.y > -450.0, "after coyote expires, walking off must consume the single airborne jump")
+	player.jump_normal()
+	await _ticks(10)
+	_expect(normal_jump_count == before + 1, "expired coyote grace must not add a second airborne jump")
 
 
 func _test_buffer() -> void:
-	player.reset_at(Vector2(200, 279))
-	player.velocity.y = 210.0
+	await _grounded_reset()
 	player.jump_normal()
-	var before := jump_count
+	await _ticks(5)
+	player.jump_normal()
+	await _ticks(1)
+	for tick in range(180):
+		if player.velocity.y > 0.0 and player.position.y >= 276.0:
+			break
+		await _ticks(1)
+	_expect(not player.is_on_floor(), "buffer setup must still be airborne with the ordinary air jump spent")
+	player.jump_normal()
+	var before := normal_jump_count
 	await _ticks(9)
-	_expect(jump_count == before + 1 and player.velocity.y < 0.0, "a jump buffered shortly before contact must launch on landing")
-	player.reset_at(Vector2(200, 80))
+	_expect(normal_jump_count == before + 1 and player.velocity.y < 0.0, "an exhausted-air jump buffered shortly before contact must launch on landing")
+	await _grounded_reset()
 	player.jump_normal()
-	before = jump_count
-	await _ticks(55)
-	_expect(jump_count == before, "an old airborne press must expire before a much later landing")
+	await _ticks(5)
+	player.jump_normal()
+	await _ticks(1)
+	player.jump_normal()
+	before = normal_jump_count
+	var landed := await _land()
+	_expect(landed and normal_jump_count == before, "an old third press must expire before a much later landing")
 
 
 func _test_finite_inertia() -> void:
