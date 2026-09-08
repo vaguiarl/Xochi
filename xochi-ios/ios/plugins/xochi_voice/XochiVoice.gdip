@@ -1,0 +1,13 @@
+[config]
+name="XochiVoice"
+binary="XochiVoice.xcframework"
+initialization="initialize_xochi_voice"
+deinitialization="deinitialize_xochi_voice"
+[dependencies]
+linked=[]
+embedded=[]
+system=["Foundation.framework", "AVFoundation.framework", "Speech.framework", "UIKit.framework", "FoundationModels.framework"]
+linker_flags=["-ObjC", "-lc++"]
+[plist]
+NSMicrophoneUsageDescription="Cheer for Xochi to earn Second Wind. Audio is processed on your iPhone and never saved. You can always tap Courage instead."
+NSSpeechRecognitionUsageDescription="Recognize encouragement for Xochi using on-device speech only. Nothing is sent to a server."

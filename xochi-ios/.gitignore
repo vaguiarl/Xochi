@@ -1,0 +1,13 @@
+.godot/
+build/
+ios/build/
+ios/.build/
+ios/vendor/
+ios/export/
+tests/captures/
+tests/logs/
+*.xcuserstate
+xcuserdata/
+.DS_Store
+export_credentials.cfg
+!assets/*.png.import
