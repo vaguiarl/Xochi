@@ -1,6 +1,19 @@
-# MVP verification — 8 September 2026
+# MVP verification — 11 September 2026
 
-Project: Xochi: The Song Home 0.1.0, build 1. Godot 4.7 stable; native plugin and iPhone archive built with Xcode 26.6 / iOS 26.5 SDK. The minimum supported OS is iOS 26.
+Project: Xochi: The Song Home 0.1.0, build 4. Godot 4.7 stable; native plugin and iPhone archive built with Xcode 26.6 / iOS 26.5 SDK. The minimum supported OS is iOS 26.
+
+## Build 4 Apple Intelligence guidance — 11 September 2026
+
+- Exact phrase parsing remains immediate. Optional Foundation Models interpretation returns constrained directions, while the existing scene decides whether they match the current lesson and the controller handles physical movement.
+- CompanionVoiceSpec passes with a fake native bridge: typed and finalized spoken interpretation, exact fast path, unsupported states, independent typed/microphone availability, unknown-language provenance, invalid outputs, duplicate/stale results, background/locale/new-context cancellation and the six-second watchdog.
+- CompanionSceneVoiceSpec passes through the real scene/controller: a natural Spanish transcript enters interpretation without movement, preserves the real crow opening across an old microphone terminal callback and inference delay, then performs a jump to the actual bank. Model-inferred practice stays separate from exact phrases. The real typed form routes through the shared adapter; wrong AI meanings and stale paused requests cannot advance the lesson. Saves are isolated and the real save bytes remain unchanged.
+- CompanionRouteSpec still completes the eight displayed steps using real physics, with wrong-choice, retry, pause, touch takeover and continuous-song checks. Latest route duration: 20.72 simulated seconds. This is route validation, not human learning evidence.
+- LearningProgressSpec and legacy VoiceSpec pass. The learning save accepts optional separate interpreted spoken/typed counters without discarding existing version-1 progress.
+- The compact typed form keeps Send and Back beside the field and reserves space above the native keyboard. Spanish Pause and typed layouts were visually inspected. Capture fixtures now use their own temporary save and render nine screens.
+- All four final native variants compile cleanly (device/Simulator × debug/release). Complete Simulator build 4 succeeds, installs and launches. Title, guidance, capability status and compact typed layout were inspected. The form stayed above the landscape keyboard's introduction panel; interaction with the completed keyboard was interrupted by simulator computer-use errors and remains unverified.
+- Native request-shape guard: **15/15 PASS** using extracted production logic. It rejects praise, quoted stories, explanation requests, negation and sequences before inference, and admits the intended polite English/Spanish requests.
+- Final real host-model probe: **9/15 PASS, 6 timeouts**. This was one process, a fresh single-use model session per request, five seconds of preparation and the app's five-second inference limit. All nine deterministic negative cases rejected; all six inference-backed cases timed out, including all five positive directions. Natural guidance is experimental. Successful build and fallback checks do not establish model usability; a compatible physical iPhone still needs semantic and latency evaluation. Reproducer: `tests/native_companion_model_probe.py`; log: `ios/build/companion-model-prewarmed-probe.log`.
+- The final signed archive/upload command is currently waiting for macOS signing-key access. Build 4 has not been uploaded as of this record. `ios/build/testflight-build-upload-4-final.log` and the upload receipt record the next outcome.
 
 ## Build 3 companion encounter — 11 September 2026
 
@@ -12,7 +25,7 @@ Project: Xochi: The Song Home 0.1.0, build 1. Godot 4.7 stable; native plugin an
 - The earlier full traversal route still passes: 3/3 friends, zero deaths and three boss openings in 33.63 simulated seconds. Its longstanding audio/resource teardown warnings remain; the new companion route exits cleanly.
 - All four native voice-plugin variants compile (iPhone/Simulator, debug/release). The final complete Simulator app builds, installs and launches on the iPhone 12 mini simulator with iOS 26.5. The native title, introduction, lesson choice and autonomous movement were inspected. The status strip was moved above the playfield so it cannot cover Xochi's landing.
 - Seven rendered companion fixtures cover title, Spanish introduction, first lesson, boat choice, guard opening, pause and ending. These are layout fixtures, not route-completion evidence. Original Calabrija art and new crow/bridge assets were inspected; the new assets have verified real transparency.
-- The final Release export is prepared, and the archive build reached Apple's signing step. macOS requests access to the existing Apple Development signing key. The computer-use tool blocks interaction with SecurityAgent, so the keychain prompt requires the user. **Build 3 has not been uploaded.** See the current status in `ios/TESTFLIGHT-UPLOAD.md`.
+- The final signed archive completed successfully at `ios/build/Xochi-0.1.0-3.xcarchive`; `testflight-archive-3-final.log` ends with ARCHIVE SUCCEEDED. Build 3 was not uploaded and is superseded by the build 4 candidate.
 - Logs: `ios/build/simulator-build-3-final.log`, `ios/build/testflight-export-3-final.log`, `ios/build/testflight-archive-3-final.log`. Captures: `tests/captures/companion/`. Generated logs/captures/build products are excluded from Git.
 
 The physical-device checks listed below still apply, especially recognizer availability, microphone/music feedback, Spanish speech examples and varied accents. No human learning or enjoyment claim is made from these automated checks.

@@ -1,12 +1,21 @@
 # TestFlight upload receipt
 
-## Build 3 candidate — signing pending
+## Build 4 candidate — awaiting macOS signing
 
-The companion encounter is implemented and verified on the iPhone simulator. The final Release project is `ios/build/testflight/Xochi.xcodeproj`; the archive command is waiting for macOS to grant access to the existing Apple Development signing key. Computer use cannot operate the SecurityAgent prompt.
+Version 0.1.0 (4) adds experimental on-device Apple Intelligence for natural Spanish/English companion directions. Exact phrases and touch remain available without the model. Final four-variant native compilation, Simulator build and gameplay checks passed. The host model missed the five-second response deadline; physical-iPhone model validation remains outstanding.
 
-**Build 3 has not been uploaded.** After the user approves the macOS signing prompt, finish the archive at `ios/build/Xochi-0.1.0-3.xcarchive`, then export/upload with `ExportOptions.plist`. The current build log is `ios/build/testflight-archive-3-final.log`.
+**Build 4 has not been uploaded.** The active `./ios/upload_testflight.sh` command has completed release export and reached macOS access to the existing Apple Development signing key. After approval, that same command will finish the archive and automatically attempt the App Store Connect upload. Computer use cannot operate SecurityAgent; the macOS prompt needs the user.
 
-Build 3 introduces the Spanish-learning companion crossing, bounded autonomous movement and immediate touch takeover, original character identities, local spoken directions and Spanish examples, separate learning evidence, and the recovered original opening song.
+- Build/upload log: `ios/build/testflight-build-upload-4-final.log`
+- Target archive: `ios/build/Xochi-0.1.0-4.xcarchive`
+- Final simulator log: `ios/build/simulator-build-4-final.log`
+- Native plugin log: `ios/build/plugin-intelligence-build.log`
+
+Verify the eventual log contains **Upload succeeded** and **EXPORT SUCCEEDED** before treating the upload as complete. Apple processing/tester availability is a further status.
+
+## Build 3 archive
+
+The companion encounter archive completed signing successfully at `ios/build/Xochi-0.1.0-3.xcarchive`. The log `ios/build/testflight-archive-3-final.log` ends with **ARCHIVE SUCCEEDED**. Build 3 was not uploaded; build 4 includes the same encounter plus Apple Intelligence.
 
 ## Latest successful upload
 

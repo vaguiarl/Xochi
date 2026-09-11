@@ -2,9 +2,9 @@
 
 A Spanish-learning companion encounter through the floating gardens of Xochimilco. Hear an instruction, say or choose its meaning, and Xochi carries out the plan. Swipe at any moment to take over movement. The first encounter brings her friends past the Crowquistador to a small reunion.
 
-See the [latest TestFlight receipt](ios/TESTFLIGHT-UPLOAD.md) and [verification record](TEST-RESULTS.md). Version 0.1.0 build 3 introduces the companion encounter.
+See the [latest TestFlight receipt](ios/TESTFLIGHT-UPLOAD.md) and [verification record](TEST-RESULTS.md). Version 0.1.0 build 4 adds optional Apple Intelligence to the companion encounter.
 
-This is a standalone Godot 4.7 project in the existing Xochi repository. It uses native rendering and physics with a narrow Swift bridge for on-device speech recognition and authored Spanish speech examples. Common directions use deterministic parsing, without a language-model dependency. The original `xochi-godot` campaign and earlier iOS traversal chapter remain available in source.
+This is a standalone Godot 4.7 project in the existing Xochi repository. It uses native rendering and physics with a narrow Swift bridge for on-device speech recognition and authored Spanish speech examples. Common directions use deterministic parsing. On compatible devices, optional Apple Intelligence interprets a natural Spanish or English direction into the same bounded actions. The original `xochi-godot` campaign and earlier iOS traversal chapter remain available in source.
 
 ## Play
 
@@ -17,11 +17,12 @@ godot --path xochi-ios
 ## The companion crossing
 
 - Eight authored steps introduce and reuse **ven**, **espera**, **al bote**, **ahora, salta** and **al puente**. Meanings choose the next physical action; simply walking to the ending cannot skip the lesson sequence.
-- **Hear it** replays the Spanish through native speech synthesis. **Speak** listens for one short finalized direction on supported iPhones. When native recognition is unavailable, it opens a typed-guidance alternative. Touch choices remain available throughout.
+- **Hear it** replays the Spanish through native speech synthesis. **Speak** listens for one short finalized direction on supported iPhones. When native recognition is unavailable, it opens a typed-guidance alternative. Pause → **Type a plan** also works independently of microphone permission. Touch choices remain available throughout.
+- **Apple Intelligence (experimental)** interprets one natural direction at a time when its local model is available. The current Mac model probe missed the five-second deadline even with preparation; compatible-iPhone response quality and latency still need validation. Pause shows readiness. Unclear instructions and requests that exceed five seconds fall back to short phrases or choices; the script adds a six-second guard against missing native callbacks. Touch, retry, pause and a new instruction cancel pending interpretation. No transcript or model output is saved.
 - Interface language and listening language are independent. The interface supports English/Spanish; listening defaults to Spanish, with English rescue configurable from Pause.
 - Xochi makes a small safe exploration, then follows bounded walk/jump plans using real collision and the ordinary double jump. She waits before new hazards. A new swipe immediately cancels automatic steering and stale voice results.
-- Crowquistador retains his helmet, plume and little sword. He notices, investigates and returns; repeated distractions have shorter but still usable openings. An opening freezes while the player speaks and always returns if missed. Calabrija uses the original decorated flying-skull art.
-- Correct choices earn evidence only after the action completes. Hints, typed input, Spanish speaking practice and independent touch choices are recorded separately. These are practice observations, not pronunciation or fluency grades.
+- Crowquistador retains his helmet, plume and little sword. He notices, investigates and returns; repeated distractions have shorter but still usable openings. An opening freezes while the player speaks or waits for interpretation and always returns if missed. Calabrija uses the original decorated flying-skull art.
+- Correct choices earn evidence only after the action completes. Hints, typed input, exact Spanish phrase practice, model-interpreted Spanish practice and independent touch choices are recorded separately. These are practice observations, not pronunciation or fluency grades.
 - Unlimited 0.48-second Rejoin resets the unfinished step and preserves previous evidence. The original opening-world song, **Traviesa Axolotla en Xochimilco**, keeps its timeline through lessons, pause, retry and reunion; the mix softens briefly for speech.
 - Local learning progress uses its own versioned save and leaves the earlier campaign save untouched.
 
@@ -78,7 +79,7 @@ godot --headless --path . --script res://tests/full_route_spec.gd
 
 The companion route activates displayed buttons and uses real physics through all eight steps; actual touch events test takeover. It also exercises a missed crow opening, pause during Rejoin and unchanged real save files. The earlier full-route test drives actual touch events through the original chapter. Neither route teleports Xochi, grants powers or directly triggers completion. Separate setup probes isolate failure cases and are not gameplay-completion evidence.
 
-`tests/companion_capture_spec.gd` renders seven companion screens with a real display. `tests/capture_spec.gd` covers the earlier chapter. Their explicit scene setups are for layout review. Generated captures and build outputs are ignored by Git.
+`tests/companion_capture_spec.gd` renders nine companion screens with a real display. `tests/capture_spec.gd` covers the earlier chapter. Their explicit scene setups are for layout review. Generated captures and build outputs are ignored by Git.
 
 ## Files
 

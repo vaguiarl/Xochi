@@ -53,6 +53,7 @@ var retry_latencies: Array[float] = []
 var session_uses: Dictionary = {}
 var session_choices: Dictionary = {}
 var session_spoken := 0
+var session_interpreted := 0
 var status_text := ""
 var status_left := 0.0
 var listening_before := false
@@ -154,22 +155,22 @@ func _process(delta: float) -> void:
 	example_duck_time = maxf(0.0,example_duck_time-delta)
 	if playing and not finished:
 		curiosity_time += delta
-		if step == 0 and not curiosity_seen and curiosity_time > 2.0 and pending_answer.is_empty() and not controller.guiding and not player.has_manual_input() and not voice.listening and not voice.requesting:
+		if step == 0 and not curiosity_seen and curiosity_time > 2.0 and pending_answer.is_empty() and not controller.guiding and not player.has_manual_input() and not voice.listening and not voice.requesting and not voice.interpreting:
 			curiosity_seen = true
 			controller.guide_to(world.to_global(Vector2(155,555)))
 		if player.position.y > 750 or player.position.x < 25 or player.position.x > 1260:
 			if not retrying: _retry()
-		var listening_now: bool = voice.listening or voice.requesting
+		var listening_now: bool = voice.listening or voice.requesting or voice.interpreting
 		if listening_now != listening_before:
 			listening_before = listening_now
-			# Listening preserves the available opening instead of spending it.
+			# Listening and interpretation preserve the opening instead of spending it.
 			guard.set_physics_process(not listening_now)
-			if listening_now: _status(tr2("Listening in ","Escuchando en ")+("español" if voice_language=="es" else "English")+"…",20)
+			if listening_now and not voice.interpreting: _status(tr2("Listening in ","Escuchando en ")+("español" if voice_language=="es" else "English")+"…",20)
 		if music:
 			var level := -80.0 if not save.data.music else (-19.0 if listening_now or example_duck_time>0 else -9.0)
 			music.volume_db = move_toward(music.volume_db,level,delta*18)
 		if is_instance_valid(mic_button):
-			mic_button.text = tr2("Stop mic","Parar voz") if listening_now else tr2("Speak","Hablar")
+			mic_button.text = tr2("Cancel","Cancelar") if voice.interpreting else (tr2("Stop mic","Parar voz") if listening_now else tr2("Speak","Hablar"))
 		if not pending_answer.is_empty() and not retrying:
 			var lesson: Dictionary = LESSONS[step]
 			if lesson.intent == "wait":
@@ -289,6 +290,7 @@ func _start_journey() -> void:
 	session_uses.clear()
 	session_choices.clear()
 	session_spoken = 0
+	session_interpreted = 0
 	friends_arrived = false
 	retry_count = 0
 	curiosity_time = 0.0
@@ -325,7 +327,7 @@ func submit_intent(intent: String, language := "es", source := "touch", expected
 		_status(tr2("A different idea. Hear the words again—there is time.","Otra idea. Escucha de nuevo; hay tiempo."),5)
 		return false
 	_new_context()
-	pending_answer = {"intent":intent,"language":language,"source":source,"assisted":hint_used or language=="en"}
+	pending_answer = {"intent":intent,"language":language,"source":source,"assisted":hint_used or language!="es" or source.ends_with("_ai")}
 	waiting_time = 0
 	if intent == "wait":
 		controller.wait_here()
@@ -354,6 +356,7 @@ func _complete_step() -> void:
 	session_uses[intent] = true
 	if answer.source=="touch" and not answer.assisted: session_choices[intent] = true
 	if answer.source=="voice" and answer.language=="es": session_spoken += 1
+	if answer.source in ["voice_ai", "typed_ai"]: session_interpreted += 1
 	save.record(intent,answer.source,answer.language,answer.assisted)
 	save.write_save()
 	controller.wait_here()
@@ -362,12 +365,14 @@ func _complete_step() -> void:
 	else: _enter_step()
 
 func _voice_intent(intent: String, language: String, context: int) -> void:
-	submit_intent(intent,language,"typed" if voice.last_source=="typed" else "voice",context)
+	var source := "typed" if voice.last_source=="typed" else "voice"
+	if voice.last_interpreted: source += "_ai"
+	submit_intent(intent,language,source,context)
 
 func _voice_status(message: String) -> void:
 	if not playing or finished: return
 	if not voice.listening and not voice.requesting and not message.is_empty():
-		_status(message,4)
+		_status(message,7 if voice.interpreting else 4)
 
 func _manual_takeover() -> void:
 	if not playing or finished: return
@@ -421,8 +426,9 @@ func _toggle_mic() -> void:
 		return
 	pending_answer.clear()
 	for button in choice_buttons: button.disabled = false
-	if voice.listening or voice.requesting:
+	if voice.listening or voice.requesting or voice.interpreting:
 		voice.stop()
+		_status(tr2("Take your time. Give her a plan when you are ready.","Tómate tu tiempo. Dale un plan cuando quieras."),4)
 		return
 	controller.wait_here()
 	if voice.available:
@@ -446,27 +452,34 @@ func _meaning() -> void:
 	_status(LESSONS[step].meaning,6)
 
 func _type_guidance() -> void:
+	if not playing or finished or retrying or controller.guiding or not player.is_on_floor(): return
+	_new_context()
+	voice.prepare_interpretation()
+	controller.wait_here()
 	get_tree().paused = true
-	var column := _center_card(760)
-	_copy(column,tr2("Give her a plan","Dale un plan"),42,true)
-	_copy(column,tr2("Type Spanish or English. Voice recognition is available on supported iPhones.","Escribe en español o inglés. La voz funciona en iPhone compatibles."),25)
+	var column := _center_card(1100,true)
+	_copy(column,tr2("Give her a plan","Dale un plan"),34,true)
+	_copy(column,tr2("One direction in Spanish or English, such as “espera”.","Una indicación en español o inglés, como «espera»."),22)
+	var entry := HBoxContainer.new()
+	entry.add_theme_constant_override("separation",12)
+	column.add_child(entry)
 	var field := LineEdit.new()
 	field.name = "GuidanceText"
 	field.placeholder_text = tr2("e.g. espera","por ejemplo: espera")
+	field.max_length = 240
 	field.custom_minimum_size.y = 80
 	field.add_theme_font_override("font",body_font)
 	field.add_theme_font_size_override("font_size",30)
-	column.add_child(field)
+	field.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	entry.add_child(field)
 	var send := func():
-		var parser = load("res://scripts/spanish_intents.gd")
-		var result: Dictionary = parser.match_phrase(field.text)
+		var instruction := field.text
+		field.release_focus()
 		get_tree().paused = false
 		_clear_modal()
-		if result.is_empty():
-			_status(tr2("Try a short plan: ven, espera, al bote, al puente, salta.","Prueba un plan breve: ven, espera, al bote, al puente, salta."),6)
-		else: submit_intent(result.intent,result.language,"typed")
-	column.add_child(_button(tr2("Tell Xochi","Decírselo a Xochi"),send,true))
-	column.add_child(_button(tr2("Back","Volver"),func(): get_tree().paused=false; _clear_modal()))
+		voice.submit_text(instruction)
+	entry.add_child(_button(tr2("Send","Enviar"),send,true))
+	entry.add_child(_button(tr2("Back","Volver"),func(): field.release_focus(); _resume()))
 	field.text_submitted.connect(func(_text: String): send.call())
 	field.grab_focus()
 
@@ -479,15 +492,27 @@ func _pause() -> void:
 	get_tree().paused = true
 	var column := _center_card(780)
 	_copy(column,tr2("Take a breath","Toma un respiro"),48,true)
-	_copy(column,tr2("Your words and the song stay with you.","Tus palabras y la canción siguen contigo."),26)
+	voice.refresh_availability()
+	_copy(column,_intelligence_copy(),22)
 	column.add_child(_button(tr2("Keep going","Seguir"),_resume,true))
-	column.add_child(_button(tr2("Listening language: ","Idioma de voz: ")+("Español" if voice_language=="es" else "English"),func():
+	var options := HBoxContainer.new()
+	options.add_theme_constant_override("separation",10)
+	column.add_child(options)
+	var language_button := _button(tr2("Listening: ","Escuchar: ")+("Español" if voice_language=="es" else "English"),func():
 		voice_language = "en" if voice_language=="es" else "es"
 		save.data.voice_language = voice_language
 		save.write_save()
 		voice.configure(voice_language)
 		_resume()
-		_pause()))
+		_pause())
+	language_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	options.add_child(language_button)
+	var type_button := _button(tr2("Type a plan","Escribir un plan"),func():
+		_resume()
+		_type_guidance())
+	type_button.disabled = not player.is_on_floor()
+	type_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	options.add_child(type_button)
 	column.add_child(_button(tr2("Music: ","Música: ")+tr2("on" if save.data.music else "off","sí" if save.data.music else "no"),func():
 		save.data.music = not save.data.music
 		save.write_save()
@@ -495,6 +520,14 @@ func _pause() -> void:
 		_resume()
 		_pause()))
 	column.add_child(_button(tr2("Return to title","Volver al inicio"),_show_menu))
+
+func _intelligence_copy() -> String:
+	match voice.intelligence_status:
+		"available": return tr2("Apple Intelligence is ready. Give her one plan in your own words.","Apple Intelligence está listo. Dale un plan con tus propias palabras.")
+		"disabled": return tr2("Enable Apple Intelligence in Settings for natural guidance.\nShort directions and touch are ready.","Activa Apple Intelligence en Ajustes para hablar con naturalidad.\nLas indicaciones breves y el tacto están listos.")
+		"not_ready": return tr2("Apple Intelligence is getting ready.\nUse short directions or touch while it finishes.","Apple Intelligence se está preparando.\nMientras tanto, usa indicaciones breves o el tacto.")
+		"unsupported_device": return tr2("Natural guidance needs an Apple Intelligence compatible iPhone.\nShort directions and touch are ready.","Hablar con naturalidad requiere un iPhone compatible con Apple Intelligence.\nLas indicaciones breves y el tacto están listos.")
+		_: return tr2("Apple Intelligence is unavailable for this language or device.\nUse short directions such as “espera”, or touch.","Apple Intelligence no está disponible para este idioma o dispositivo.\nUsa indicaciones breves como «espera» o el tacto.")
 
 func _resume() -> void:
 	get_tree().paused = false
@@ -524,6 +557,7 @@ func _finish() -> void:
 	_copy(column,tr2("The little ones reach the fiesta.\nEven the Crowquistador pauses to listen.","Los pequeños llegan a la fiesta.\nHasta el Crowquistador se detiene para escuchar."),26)
 	_copy(column,"Ven.  Espera.  Al bote.  Salta.  Al puente.",29)
 	_copy(column,tr2("Spanish meanings chosen without a translation: ","Significados elegidos sin traducción: ")+str(session_choices.size())+" / 5\n"+tr2("Spoken Spanish practice: ","Práctica oral en español: ")+str(session_spoken),23)
+	if session_interpreted > 0: _copy(column,tr2("Natural guidance used: ","Indicaciones con interpretación: ")+str(session_interpreted),21)
 	_copy(column,tr2("Next time, try guiding her without the English meaning.","La próxima vez, intenta guiarla sin consultar el significado."),22)
 	column.add_child(_button(tr2("Another journey together","Otro viaje juntas"),_start_journey,true))
 	column.add_child(_button(tr2("Back to the garden","Volver al jardín"),_show_menu))
@@ -681,9 +715,9 @@ func _clear_modal() -> void:
 		modal.queue_free()
 	modal = null
 
-func _center_card(width := 810.0) -> VBoxContainer:
+func _center_card(width := 810.0, avoid_keyboard := false) -> VBoxContainer:
 	_make_modal()
-	var center := CenterContainer.new()
+	var center: CenterContainer = load("res://scripts/keyboard_card.gd").new() if avoid_keyboard else CenterContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	modal.add_child(center)
 	var panel := PanelContainer.new()

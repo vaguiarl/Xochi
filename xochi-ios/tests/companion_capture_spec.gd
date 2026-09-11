@@ -1,7 +1,7 @@
 extends SceneTree
 ## Presentation fixtures, deliberately separate from the physical route test.
 var game: Node
-var saved: Dictionary
+var save_path := "user://companion-capture-%s.json" % OS.get_process_id()
 const OUTPUT := "res://tests/captures/companion"
 func _initialize() -> void:
 	call_deferred("run")
@@ -12,8 +12,8 @@ func shot(filename: String) -> void:
 func run() -> void:
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUTPUT))
 	game = load("res://companion.tscn").instantiate()
+	game.save.save_path = save_path
 	root.add_child(game)
-	saved = game.save.data.duplicate(true)
 	game.locale = "en"
 	game._show_menu()
 	await shot("01-title")
@@ -40,12 +40,21 @@ func run() -> void:
 	game._pause()
 	await shot("06-pause")
 	game._resume()
+	game.locale = "es"
+	game._pause()
+	await shot("08-pause-es")
+	game._resume()
+	game._type_guidance()
+	await shot("09-type-es")
+	game._resume()
+	game.locale = "en"
 	game._finish()
 	await shot("07-ending")
-	game.save.data = saved
-	game.save.write_save()
+
 	game.queue_free()
 	await process_frame
 	await process_frame
-	print("[CompanionCapture] PASS: seven screens rendered")
+	for suffix in ["", ".bak", ".tmp"]:
+		if FileAccess.file_exists(save_path+suffix): DirAccess.remove_absolute(ProjectSettings.globalize_path(save_path+suffix))
+	print("[CompanionCapture] PASS: nine screens rendered")
 	quit()

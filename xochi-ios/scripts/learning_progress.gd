@@ -3,7 +3,7 @@ extends RefCounted
 const PATH := "user://companion-learning-v1.json"
 const INTENTS := ["come", "wait", "boat", "bridge", "jump"]
 var save_path := PATH
-var data := {"version":1, "locale":"en", "voice_language":"es", "music":true, "completed":false, "used_intents":[], "independent_choices":[], "spoken_practice":0, "typed_practice":0}
+var data := {"version":1, "locale":"en", "voice_language":"es", "music":true, "completed":false, "used_intents":[], "independent_choices":[], "spoken_practice":0, "typed_practice":0, "interpreted_spoken_practice":0, "interpreted_typed_practice":0}
 
 func _init(path: String = PATH) -> void:
 	save_path = path
@@ -22,7 +22,7 @@ func read_save() -> void:
 			if value.get(key) is Array:
 				for intent in value[key]:
 					if intent in INTENTS and intent not in data[key]: data[key].append(intent)
-		for key in ["spoken_practice", "typed_practice"]:
+		for key in ["spoken_practice", "typed_practice", "interpreted_spoken_practice", "interpreted_typed_practice"]:
 			var amount = value.get(key, 0)
 			if (amount is float or amount is int) and amount >= 0 and amount <= 100000 and amount == floor(amount): data[key] = int(amount)
 		return
@@ -34,6 +34,9 @@ func record(intent: String, source: String, language: String, assisted: bool) ->
 		data.independent_choices.append(intent)
 	if source == "voice" and language == "es": data.spoken_practice += 1
 	if source == "typed" and language == "es": data.typed_practice += 1
+	# Model-inferred language is kept separate from exact phrase evidence.
+	if source == "voice_ai" and language == "es": data.interpreted_spoken_practice += 1
+	if source == "typed_ai" and language == "es": data.interpreted_typed_practice += 1
 
 func write_save() -> bool:
 	var directory = DirAccess.open(save_path.get_base_dir())

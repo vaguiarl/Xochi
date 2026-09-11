@@ -5,13 +5,20 @@ extends SceneTree
 
 class NativeDouble extends RefCounted:
 	signal transcript(text: String, language: String, final: bool, checkpoint: int, attempt: int, session: int)
+	signal interpretation(intent: String, language: String, checkpoint: int, attempt: int, session: int)
 	signal status(state: int, message: String, checkpoint: int, attempt: int, session: int)
 	var requests: Array[Dictionary] = []
 	var examples: Array[String] = []
+	var interpretations: Array[Dictionary] = []
 	var stops := 0
 	func supported_locale(locale: String) -> bool: return locale in ["es", "en"]
 	func begin_transcribing(locale: String, cp: int, attempt: int, session: int) -> void:
 		requests.append({"locale":locale, "cp":cp, "attempt":attempt, "session":session})
+	func intelligence_status(_locale: String) -> String: return "available"
+	func interpret_intent(text: String, locale: String, cp: int, attempt: int, session: int) -> void:
+		interpretations.append({"text":text, "locale":locale, "cp":cp, "attempt":attempt, "session":session})
+	func decide(request: Dictionary, intent: String, language := "es") -> void:
+		interpretation.emit(intent, language, request.cp, request.attempt, request.session)
 	func stop_listening() -> void: stops += 1
 	func speak_example(text: String) -> void: examples.append(text)
 	func send(request: Dictionary, text: String, final := true) -> void:
@@ -62,6 +69,7 @@ func _run() -> void:
 		return
 	await _manual_takeover_rejects_old_voice()
 	await _typed_practice_stays_distinct()
+	await _typed_dialog_and_stale_interpretation()
 	await _pause_requires_fresh_grounded_opt_in()
 	await _finish()
 
@@ -78,8 +86,14 @@ func _frozen_opening_accepts_jump() -> void:
 	native.send(request, "Ahora, salta.", false)
 	_expect(game.pending_answer.is_empty() and not game.controller.guiding, "partial speech must not start the real jump")
 	var generation_before: int = game.generation
-	native.send(request, "Ahora, salta.")
-	_expect(game.pending_answer.get("source") == "voice" and game.pending_answer.get("intent") == "jump", "authored Spanish teaching utterance must reach the scene as a spoken jump")
+	native.send(request, "¿Puedes saltar hasta la otra orilla?")
+	_expect(game.voice.interpreting and native.interpretations.size() == 1 and game.pending_answer.is_empty(), "natural final transcript must wait for interpretation without moving")
+	var interpretation_request: Dictionary = native.interpretations.back()
+	native.send_state(request, 0)
+	await _ticks(45)
+	_expect(game.voice.interpreting and game.guard.can_cross() and not game.guard.is_physics_processing() and is_equal_approx(game.guard.state_time, opening_time), "old microphone terminal status and model latency must preserve the real guard opening")
+	native.decide(interpretation_request, "jump")
+	_expect(game.pending_answer.get("source") == "voice_ai" and game.pending_answer.get("intent") == "jump", "interpreted Spanish direction must reach the scene with model provenance")
 	_expect(game.controller.guiding and game.guard.is_physics_processing() and game.generation > generation_before, "accepted voice must restore guard physics before starting the grounded jump")
 	_expect(game.session_spoken == 0 and game.save.data.spoken_practice == 0, "recognition alone must not award completed spoken practice")
 	var jump_generation: int = game.generation
@@ -102,7 +116,7 @@ func _frozen_opening_accepts_jump() -> void:
 		if game.step != 5: break
 		await _ticks(1)
 	_expect(game.step == 6 and game.player.is_on_floor() and game.player.position.distance_to(game.LESSONS[5].target) < 24, "spoken jump must finish through real bank collision, without teleport or direct completion")
-	_expect(game.retry_count == 0 and game.session_spoken == 1 and game.save.data.spoken_practice == 1, "one physically completed Spanish utterance must earn exactly one spoken practice")
+	_expect(game.retry_count == 0 and game.session_spoken == 0 and game.save.data.spoken_practice == 0 and game.session_interpreted == 1 and game.save.data.interpreted_spoken_practice == 1, "physically completed model guidance must stay separate from exact spoken Spanish practice")
 
 func _manual_takeover_rejects_old_voice() -> void:
 	game.mic_button.pressed.emit()
@@ -141,6 +155,28 @@ func _typed_practice_stays_distinct() -> void:
 		await _ticks(1)
 	_expect(game.step == 7 and game.save.data.typed_practice == typed_before + 1, "typed Spanish wait must complete through grounded time and record typed practice")
 	_expect(game.session_spoken == spoken_before and game.save.data.spoken_practice == spoken_before and game.session_choices.is_empty(), "typed practice must never count as spoken practice or independent meaning choice")
+
+func _typed_dialog_and_stale_interpretation() -> void:
+	game._type_guidance()
+	_expect(paused and is_instance_valid(game.modal), "typed guidance must open a paused form even with a working microphone")
+	var field: LineEdit = game.modal.find_child("GuidanceText", true, false)
+	field.text = "Quédate aquí un momentito"
+	field.text_submitted.emit(field.text)
+	_expect(not paused and game.voice.interpreting and not is_instance_valid(game.modal), "actual typed form submission must use the shared asynchronous interpreter")
+	var typed_request: Dictionary = native.interpretations.back()
+	native.decide(typed_request, "wait")
+	_expect(game.step == 7 and game.pending_answer.is_empty() and not game.controller.guiding, "plausible but wrong AI intent cannot bypass the current Spanish lesson")
+	var evidence: Dictionary = game.save.data.duplicate(true)
+	game.voice.submit_text("Camina hasta ese puente, Xochi")
+	var old_request: Dictionary = native.interpretations.back()
+	await _ticks(2)
+	_expect(game.voice.interpreting and not game.guard.is_physics_processing(), "typed interpretation also preserves guard timing")
+	game._pause()
+	_expect(not game.voice.interpreting and paused, "pause must cancel interpretation immediately")
+	native.decide(old_request, "bridge")
+	game._resume()
+	await _ticks(2)
+	_expect(game.pending_answer.is_empty() and not game.controller.guiding and game.save.data == evidence, "stale model result after pause cannot walk or award learning evidence")
 
 func _pause_requires_fresh_grounded_opt_in() -> void:
 	game.mic_button.pressed.emit()
@@ -217,7 +253,7 @@ func _finish() -> void:
 		if not test_save.is_empty() and FileAccess.file_exists(test_save + suffix):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(test_save + suffix))
 	if failures.is_empty():
-		print("[CompanionSceneVoiceSpec] PASS: fixture stage-5 frozen opening → spoken jump → real landing; stale touch generation rejected; Hear/Speak preserve guided jump; typed practice distinct; pause and airborne microphone guarded; isolated save unchanged. Fake native only; not a full-route or device-speech test.")
+		print("[CompanionSceneVoiceSpec] PASS: fixture stage-5 frozen opening → interpreted spoken jump → real landing; shared typed form, wrong AI meaning and paused inference; stale touch generation rejected; Hear/Speak preserve guided jump; typed practice distinct; pause and airborne microphone guarded; isolated save unchanged. Fake native only; not a full-route or device-speech test.")
 		quit(0)
 	else:
 		for failure in failures: push_error("[CompanionSceneVoiceSpec] " + failure)
