@@ -15,6 +15,8 @@ Project: Xochi: The Song Home 0.1.0, build 4. Godot 4.7 stable; native plugin an
 - Final real host-model probe: **9/15 PASS, 6 timeouts**. This was one process, a fresh single-use model session per request, five seconds of preparation and the app's five-second inference limit. All nine deterministic negative cases rejected; all six inference-backed cases timed out, including all five positive directions. Natural guidance is experimental. Successful build and fallback checks do not establish model usability; a compatible physical iPhone still needs semantic and latency evaluation. Reproducer: `tests/native_companion_model_probe.py`; log: `ios/build/companion-model-prewarmed-probe.log`.
 - The final archive signed successfully after macOS approval. Version **0.1.0 (4) uploaded successfully on 11 September 2026 at 16:39:29 local time (America/Vancouver)**. Apple reported that the package was processing. `ios/build/testflight-build-upload-4-final.log` confirms ARCHIVE SUCCEEDED, Upload succeeded and EXPORT SUCCEEDED. Processing completion and tester-group availability remain unverified; see the upload receipt.
 
+- Post-upload tooling correction: `upload_testflight.sh` now resolves version/build from Xcode build settings rather than the templated Info.plist. The actual build settings produce `0.1.0 4`, a placeholder build number is rejected, and `bash -n` passes. The successfully uploaded archive was preserved under its correct versioned filename; no rebuild or duplicate upload was needed.
+
 ## Build 3 companion encounter — 11 September 2026
 
 - The default scene is now `companion.tscn`: eight Spanish-guided steps from the introduction to a reunion at the Crowquistador crossing. The original traversal chapter remains at `main.tscn`.

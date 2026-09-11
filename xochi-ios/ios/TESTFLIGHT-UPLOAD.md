@@ -14,6 +14,8 @@
 - Final simulator log: `ios/build/simulator-build-4-final.log`
 - Native plugin log: `ios/build/plugin-intelligence-build.log`
 
+The original upload script named the archive with unresolved Xcode placeholders. After confirming its embedded version/build, the archive was renamed locally to the versioned path above. The upload script now reads resolved build settings and rejects unresolved values before archiving.
+
 The macOS signing approval completed the archive, and the queued command automatically uploaded it. The log confirms **ARCHIVE SUCCEEDED**, followed by:
 
 ```text
