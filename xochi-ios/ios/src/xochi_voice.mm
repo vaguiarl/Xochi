@@ -5,6 +5,11 @@
 static XochiVoice *instance = nullptr;
 void XochiVoice::_bind_methods() {
     ClassDB::bind_method(D_METHOD("supported"), &XochiVoice::supported);
+    ClassDB::bind_method(D_METHOD("supported_locale", "locale"), &XochiVoice::supported_locale);
+    ClassDB::bind_method(D_METHOD("begin_transcribing", "locale", "checkpoint", "attempt", "session"), &XochiVoice::begin_transcribing);
+    ClassDB::bind_method(D_METHOD("speak_example", "text"), &XochiVoice::speak_example);
+    ClassDB::bind_method(D_METHOD("deliver_transcript", "text", "language", "final", "checkpoint", "attempt", "session"), &XochiVoice::deliver_transcript);
+    ADD_SIGNAL(MethodInfo("transcript", PropertyInfo(Variant::STRING, "text"), PropertyInfo(Variant::STRING, "language"), PropertyInfo(Variant::BOOL, "final"), PropertyInfo(Variant::INT, "checkpoint"), PropertyInfo(Variant::INT, "attempt"), PropertyInfo(Variant::INT, "session")));
     ClassDB::bind_method(D_METHOD("begin_listening", "locale", "checkpoint", "attempt", "session"), &XochiVoice::begin_listening);
     ClassDB::bind_method(D_METHOD("stop_listening"), &XochiVoice::stop_listening);
     ClassDB::bind_method(D_METHOD("deliver_cheer", "checkpoint", "attempt", "session"), &XochiVoice::deliver_cheer);
@@ -13,6 +18,9 @@ void XochiVoice::_bind_methods() {
     ADD_SIGNAL(MethodInfo("status", PropertyInfo(Variant::INT, "state"), PropertyInfo(Variant::STRING, "message"), PropertyInfo(Variant::INT, "checkpoint"), PropertyInfo(Variant::INT, "attempt"), PropertyInfo(Variant::INT, "session")));
 }
 XochiVoice::XochiVoice() {
+    [XochiVoiceService shared].onTranscript = ^(NSString *text, NSString *language, BOOL final, NSInteger checkpoint, NSInteger attempt, NSInteger session) {
+        if (instance) instance->call_deferred("deliver_transcript", String::utf8([text UTF8String]), String::utf8([language UTF8String]), bool(final), int(checkpoint), int(attempt), int(session));
+    };
     [XochiVoiceService shared].onCheer = ^(NSInteger checkpoint, NSInteger attempt, NSInteger session) {
         if (instance) instance->call_deferred("deliver_cheer", int(checkpoint), int(attempt), int(session));
     };
@@ -20,12 +28,22 @@ XochiVoice::XochiVoice() {
         if (instance) instance->call_deferred("deliver_status", int(state), String::utf8([message UTF8String]), int(checkpoint), int(attempt), int(session));
     };
 }
-XochiVoice::~XochiVoice() { [[XochiVoiceService shared] stopListening]; [XochiVoiceService shared].onCheer = nil; [XochiVoiceService shared].onStatus = nil; }
+XochiVoice::~XochiVoice() { [[XochiVoiceService shared] stopListening]; [XochiVoiceService shared].onCheer = nil; [XochiVoiceService shared].onStatus = nil; [XochiVoiceService shared].onTranscript = nil; }
 bool XochiVoice::supported() { return [[XochiVoiceService shared] supported]; }
 void XochiVoice::begin_listening(const String &locale, int checkpoint, int attempt, int session) {
     NSString *language = [NSString stringWithUTF8String:locale.utf8().get_data()];
     dispatch_async(dispatch_get_main_queue(), ^{ [[XochiVoiceService shared] beginListening:language checkpoint:checkpoint attempt:attempt session:session]; });
 }
+bool XochiVoice::supported_locale(const String &locale) { return [[XochiVoiceService shared] supportedLocale:[NSString stringWithUTF8String:locale.utf8().get_data()]]; }
+void XochiVoice::begin_transcribing(const String &locale, int checkpoint, int attempt, int session) {
+    NSString *language = [NSString stringWithUTF8String:locale.utf8().get_data()];
+    dispatch_async(dispatch_get_main_queue(), ^{ [[XochiVoiceService shared] beginTranscribing:language checkpoint:checkpoint attempt:attempt session:session]; });
+}
+void XochiVoice::speak_example(const String &text) {
+    NSString *phrase = [NSString stringWithUTF8String:text.utf8().get_data()];
+    dispatch_async(dispatch_get_main_queue(), ^{ [[XochiVoiceService shared] speakExample:phrase]; });
+}
+void XochiVoice::deliver_transcript(const String &text, const String &language, bool final, int checkpoint, int attempt, int session) { emit_signal("transcript", text, language, final, checkpoint, attempt, session); }
 void XochiVoice::stop_listening() { dispatch_async(dispatch_get_main_queue(), ^{ [[XochiVoiceService shared] stopListening]; }); }
 void XochiVoice::deliver_cheer(int checkpoint, int attempt, int session) { emit_signal("cheer", checkpoint, attempt, session); }
 void XochiVoice::deliver_status(int state, const String &message, int checkpoint, int attempt, int session) { emit_signal("status", state, message, checkpoint, attempt, session); }

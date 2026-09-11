@@ -6,8 +6,10 @@ ios/vendor/
 ios/export/
 tests/captures/
 tests/logs/
+tests/*.log
 *.xcuserstate
 xcuserdata/
 .DS_Store
 export_credentials.cfg
 !assets/*.png.import
+!assets/companion/*.png.import

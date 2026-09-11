@@ -9,5 +9,5 @@ embedded=[]
 system=["Foundation.framework", "AVFoundation.framework", "Speech.framework", "UIKit.framework", "FoundationModels.framework"]
 linker_flags=["-ObjC", "-lc++"]
 [plist]
-NSMicrophoneUsageDescription="Cheer for Xochi to earn Second Wind. Audio is processed on your iPhone and never saved. You can always tap Courage instead."
-NSSpeechRecognitionUsageDescription="Recognize encouragement for Xochi using on-device speech only. Nothing is sent to a server."
+NSMicrophoneUsageDescription="Use your voice to guide Xochi, practice Spanish, or cheer. This app requests on-device recognition and does not save recordings. You can use touch instead."
+NSSpeechRecognitionUsageDescription="Recognize spoken directions, Spanish practice, and encouragement on your device. This app does not send your recordings to a server. Touch controls are always available."

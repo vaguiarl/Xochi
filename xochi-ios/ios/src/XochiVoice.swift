@@ -17,6 +17,11 @@ private struct EncouragementDecision {
     @objc public static let shared = XochiVoiceService()
     @objc public var onCheer: ((Int, Int, Int) -> Void)?
     @objc public var onStatus: ((Int, String, Int, Int, Int) -> Void)?
+    @objc public var onTranscript: ((String, String, Bool, Int, Int, Int) -> Void)?
+    private let synthesizer = AVSpeechSynthesizer()
+    private var transcriptMode = false
+    private var utteranceEnd: DispatchWorkItem?
+    private var captureNotBefore: TimeInterval = 0
     private enum State: Int { case stopped, requesting, listening, unavailable, awarded }
     private let engine = AVAudioEngine()
     private var recognizer: SFSpeechRecognizer?
@@ -40,6 +45,23 @@ private struct EncouragementDecision {
         }
     }
 
+    @objc public func supportedLocale(_ locale: String) -> Bool {
+        SFSpeechRecognizer(locale: Locale(identifier: locale.hasPrefix("es") ? "es-MX" : "en-US"))?.supportsOnDeviceRecognition == true
+    }
+
+    @objc public func speakExample(_ text: String) {
+        cancelSilently()
+        let allowed = ["ven":"Ven", "espera":"Espera", "al bote":"Al bote", "al puente":"Al puente", "detras del bote":"Detrás del bote", "ahora":"Ahora", "salta":"Salta", "ahora salta":"Ahora, salta."]
+        let key = text.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: Locale(identifier: "es-MX"))
+            .components(separatedBy: CharacterSet.alphanumerics.inverted).filter { !$0.isEmpty }.joined(separator: " ")
+        guard let authored = allowed[key] else { return }
+        let utterance = AVSpeechUtterance(string: authored)
+        utterance.voice = AVSpeechSynthesisVoice(language: "es-MX") ?? AVSpeechSynthesisVoice(language: "es-ES")
+        utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 0.82
+        synthesizer.usesApplicationAudioSession = true
+        synthesizer.speak(utterance)
+    }
+
     override init() {
         super.init()
         for name in [UIApplication.willResignActiveNotification,
@@ -56,7 +78,16 @@ private struct EncouragementDecision {
     }
 
     @objc public func beginListening(_ locale: String, checkpoint: Int, attempt: Int, session: Int) {
+        begin(locale, checkpoint: checkpoint, attempt: attempt, session: session, transcription: false)
+    }
+
+    @objc public func beginTranscribing(_ locale: String, checkpoint: Int, attempt: Int, session: Int) {
+        begin(locale, checkpoint: checkpoint, attempt: attempt, session: session, transcription: true)
+    }
+
+    private func begin(_ locale: String, checkpoint: Int, attempt: Int, session: Int, transcription: Bool) {
         cancelSilently()
+        transcriptMode = transcription
         spanish = locale.hasPrefix("es")
         self.checkpoint = checkpoint
         self.attempt = attempt
@@ -87,6 +118,11 @@ private struct EncouragementDecision {
 
     private func startCapture(_ ticket: Int) {
         guard generation == ticket else { return }
+        let wait = captureNotBefore - ProcessInfo.processInfo.systemUptime
+        if wait > 0 {
+            DispatchQueue.main.asyncAfter(deadline: .now() + wait) { [weak self] in self?.startCapture(ticket) }
+            return
+        }
         guard let speech = SFSpeechRecognizer(locale: Locale(identifier: spanish ? "es-MX" : "en-US")),
               speech.isAvailable, speech.supportsOnDeviceRecognition else {
             status(.unavailable, "On-device speech unavailable. Tap Courage.", "Voz local no disponible. Toca Ánimo.")
@@ -96,7 +132,7 @@ private struct EncouragementDecision {
         let req = SFSpeechAudioBufferRecognitionRequest()
         req.requiresOnDeviceRecognition = true
         req.shouldReportPartialResults = true
-        req.contextualStrings = ["Xochi", "¡Vamos, Xochi!", "You can do it", "You've got this"]
+        req.contextualStrings = transcriptMode ? ["Xochi", "Ven", "Espera", "Al bote", "Al puente", "Detrás del bote", "Ahora", "Salta", "Ahora, salta", "Come here", "Wait", "Onto the boat", "To the bridge", "Behind the boat", "Now", "Jump"] : ["Xochi", "¡Vamos, Xochi!", "You can do it", "You've got this"]
         request = req
         do {
             // Matches Godot's initial session; never deactivate it when stopping capture.
@@ -131,7 +167,11 @@ private struct EncouragementDecision {
             }
             engine.prepare()
             try engine.start()
-            status(.listening, "Listening · cheer for Xochi", "Escuchando · anima a Xochi")
+            if transcriptMode {
+                status(.listening, "Listening · give Xochi a direction", "Escuchando · dile qué hacer a Xochi")
+            } else {
+                status(.listening, "Listening · cheer for Xochi", "Escuchando · anima a Xochi")
+            }
             let end = DispatchWorkItem { [weak self] in
                 Task { @MainActor in
                     guard let self, self.generation == ticket else { return }
@@ -151,6 +191,26 @@ private struct EncouragementDecision {
         let normalized = clean.components(separatedBy: CharacterSet.alphanumerics.inverted)
             .filter { !$0.isEmpty }.joined(separator: " ")
         guard !normalized.isEmpty, !awarded else { return }
+        if transcriptMode {
+            utteranceEnd?.cancel()
+            if final {
+                awarded = true // Terminal utterance; no second action from this session.
+                stopCapture()
+                onTranscript?(String(text.prefix(240)), spanish ? "es" : "en", true, checkpoint, attempt, sessionID)
+                status(.stopped, "Microphone off", "Micrófono apagado")
+            } else {
+                // Short authored phrases: close input after a stable pause, then wait for
+                // a finalized transcript. Provisional recognition never moves Xochi.
+                onTranscript?(String(text.prefix(240)), spanish ? "es" : "en", false, checkpoint, attempt, sessionID)
+                let end = DispatchWorkItem { [weak self] in
+                    guard let self, self.generation == ticket, !self.awarded else { return }
+                    self.finishAudioInput()
+                }
+                utteranceEnd = end
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0, execute: end)
+            }
+            return
+        }
         let phrases = ["vamos", "tu puedes", "si puedes", "dale xochi", "animo", "bien hecho",
                        "you got this", "you ve got this", "you can do it", "go xochi",
                        "come on xochi", "keep going", "i believe in you"]
@@ -188,12 +248,18 @@ private struct EncouragementDecision {
         status(.awarded, "Second Wind ready!", "¡Segundo aliento listo!")
     }
 
-    private func stopCapture() {
-        timeout?.cancel()
-        timeout = nil
+    private func finishAudioInput() {
         if engine.isRunning { engine.stop() }
         if tapped { engine.inputNode.removeTap(onBus: 0); tapped = false }
         request?.endAudio()
+    }
+
+    private func stopCapture() {
+        utteranceEnd?.cancel()
+        utteranceEnd = nil
+        timeout?.cancel()
+        timeout = nil
+        finishAudioInput()
         recognition?.cancel()
         request = nil
         recognition = nil
@@ -202,6 +268,10 @@ private struct EncouragementDecision {
 
     private func cancelSilently() {
         generation += 1
+        if synthesizer.isSpeaking {
+            synthesizer.stopSpeaking(at: .immediate)
+            captureNotBefore = ProcessInfo.processInfo.systemUptime + 0.35
+        }
         inference?.cancel()
         inference = nil
         stopCapture()

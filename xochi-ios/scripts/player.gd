@@ -5,6 +5,8 @@ extends CharacterBody2D
 signal died
 signal ripple(origin: Vector2, direction: float)
 signal jumped(hyper: bool)
+signal manual_input
+signal input_cleared
 
 const WALK_SPEED := 220.0
 const RUN_SPEED := 340.0
@@ -29,6 +31,8 @@ var reserve_available := false
 var invulnerable := 0.0
 var attack_time := 0.0
 var visual_time := 0.0
+## Optional companion steering. Real keys and owned touches always take priority.
+var guided_direction := 0.0
 var character_texture: Texture2D:
 	set(value):
 		character_texture = value
@@ -50,6 +54,7 @@ var character_atlas: Texture2D:
 var _atlas_frames: Array[AtlasTexture] = []
 var _coyote := 0.0
 var _jump_buffer := 0.0
+var _guided_jump_buffer := false
 var _attack_cooldown := 0.0
 var _landing_squash := 0.0
 var _hyper_flash := 0.0
@@ -139,6 +144,8 @@ func _physics_process(delta: float) -> void:
 	if is_zero_approx(horizontal):
 		horizontal = _touch_direction
 		running = _touch_running
+	if is_zero_approx(horizontal) and not has_manual_input():
+		horizontal = clampf(guided_direction, -1.0, 1.0)
 	if not is_zero_approx(horizontal):
 		facing = signf(horizontal)
 		velocity.x = move_toward(velocity.x, horizontal * (RUN_SPEED if running else WALK_SPEED), 1700.0 * delta)
@@ -167,9 +174,17 @@ func _physics_process(delta: float) -> void:
 	queue_redraw()
 
 
-func jump_normal() -> void:
+func jump_normal(from_guidance: bool = false) -> void:
 	if active:
 		_jump_buffer = BUFFER_TIME
+		_guided_jump_buffer = from_guidance
+
+
+func clear_guidance() -> void:
+	guided_direction = 0.0
+	if _guided_jump_buffer:
+		_jump_buffer = 0.0
+	_guided_jump_buffer = false
 
 
 func _try_buffered_jump() -> void:
@@ -187,6 +202,7 @@ func _try_buffered_jump() -> void:
 		# An exhausted airborne press can still buffer onto the next real landing.
 		return
 	_jump_buffer = 0.0
+	_guided_jump_buffer = false
 	_coyote = 0.0
 	_jumped_from_ground = true
 	jumped.emit(false)
@@ -203,6 +219,7 @@ func jump_hyper() -> void:
 		return
 	velocity.y = HYPER_SPEED
 	_jump_buffer = 0.0
+	_guided_jump_buffer = false
 	_coyote = 0.0
 	_jumped_from_ground = true
 	_hyper_flash = 0.48
@@ -254,6 +271,7 @@ func reset_at(pos: Vector2, has_reserve: bool = false) -> void:
 
 
 func clear_input() -> void:
+	clear_guidance()
 	_touch_generation += 1
 	_touch_index = -1
 	_touch_elapsed = 0.0
@@ -268,6 +286,7 @@ func clear_input() -> void:
 	_jump_buffer = 0.0
 	_keyboard_blocked = _any_game_key_pressed()
 	_end_secondary()
+	input_cleared.emit()
 
 
 func _notification(what: int) -> void:
@@ -276,10 +295,14 @@ func _notification(what: int) -> void:
 
 
 func _any_game_key_pressed() -> bool:
-	for key in [KEY_LEFT, KEY_RIGHT, KEY_A, KEY_D, KEY_SPACE, KEY_X, KEY_Z, KEY_SHIFT]:
+	for key in [KEY_LEFT, KEY_RIGHT, KEY_A, KEY_D, KEY_UP, KEY_W, KEY_SPACE, KEY_X, KEY_Z, KEY_SHIFT]:
 		if Input.is_physical_key_pressed(key):
 			return true
 	return false
+
+
+func has_manual_input() -> bool:
+	return _touch_index != -1 or _secondary_index != -1 or _any_game_key_pressed()
 
 
 func _input(event: InputEvent) -> void:
@@ -311,6 +334,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not active or get_tree().paused:
 		return
 	if event is InputEventKey and event.pressed and not event.echo and not _keyboard_blocked:
+		if event.physical_keycode in [KEY_LEFT, KEY_RIGHT, KEY_A, KEY_D, KEY_UP, KEY_W, KEY_SPACE, KEY_X, KEY_Z, KEY_SHIFT]:
+			clear_guidance()
+			manual_input.emit()
 		match event.physical_keycode:
 			KEY_SPACE, KEY_UP, KEY_W:
 				jump_normal()
@@ -321,8 +347,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event is InputEventScreenTouch:
 		if event.pressed and _touch_index == -1:
+			clear_guidance()
+			manual_input.emit()
 			_begin_touch(event.index, event.position)
 		elif event.pressed and _secondary_index == -1:
+			clear_guidance()
+			manual_input.emit()
 			_begin_secondary(event.index, event.position)
 		elif not event.pressed and event.index == _touch_index:
 			if not event.canceled and not _touch_used and _touch_elapsed < TAP_TIME and event.position.distance_to(_touch_origin) < TAP_DISTANCE:

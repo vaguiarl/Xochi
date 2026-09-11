@@ -7,6 +7,7 @@ mode="${1:-debug}"
 output="${2:-ios/build/Xochi}"
 case "$mode" in debug|release) ;; *) echo 'Usage: export_project.sh [debug|release] [output/project-name]' >&2; exit 2 ;; esac
 mkdir -p ios/build "$(dirname "$output")"
+touch ios/build/.gdignore
 if ! mkdir ios/build/.export-lock 2>/dev/null; then
   echo 'Another Godot export is active; wait until it finishes.' >&2
   exit 1

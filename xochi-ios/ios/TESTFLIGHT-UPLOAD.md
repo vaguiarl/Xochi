@@ -1,5 +1,15 @@
 # TestFlight upload receipt
 
+## Build 3 candidate — signing pending
+
+The companion encounter is implemented and verified on the iPhone simulator. The final Release project is `ios/build/testflight/Xochi.xcodeproj`; the archive command is waiting for macOS to grant access to the existing Apple Development signing key. Computer use cannot operate the SecurityAgent prompt.
+
+**Build 3 has not been uploaded.** After the user approves the macOS signing prompt, finish the archive at `ios/build/Xochi-0.1.0-3.xcarchive`, then export/upload with `ExportOptions.plist`. The current build log is `ios/build/testflight-archive-3-final.log`.
+
+Build 3 introduces the Spanish-learning companion crossing, bounded autonomous movement and immediate touch takeover, original character identities, local spoken directions and Spanish examples, separate learning evidence, and the recovered original opening song.
+
+## Latest successful upload
+
 - App: **Xochi: The Song Home**
 - Version/build: **0.1.0 (2)**
 - Bundle identifier: `com.vaguiarl.xochi.songhome`

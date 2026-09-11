@@ -1,0 +1,5 @@
+Final transparency correction, built-in imagegen tool, September 11, 2026.
+Input: /Users/victoraguiar/.codex/generated_images/01a0817d-06fe-77d0-922b-4272d6b3a1d4/exec-a4769f9b-535c-4097-89ea-a9f426165db7.png
+Output: /Users/victoraguiar/.codex/generated_images/01a0817d-06fe-77d0-922b-4272d6b3a1d4/exec-ab95ae7a-3808-4cd2-b635-85921418b99f.png
+
+Use case: background-extraction. Edit target: the attached Crowquistador character render. Remove the entire gray-and-white CHECKERBOARD BACKGROUND. It is a mistakenly painted backdrop; it must not remain in the output. Return a PNG with an ACTUAL TRANSPARENT ALPHA CHANNEL around the crow. Keep the character's appearance, pose, steel helmet, yellow plume, face, feathers, breastplate, feet, and small sword unchanged. Keep all character edges sharp and clean with no white/gray halo. No checkerboard pattern, no solid background, no floor, no scenery, no text. This is a production sprite cutout to composite into a game; all exterior background pixels must have alpha zero. Preserve exactly the full character. Transparent PNG, actual alpha, not a transparency illustration.

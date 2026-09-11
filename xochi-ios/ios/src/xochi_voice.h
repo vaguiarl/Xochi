@@ -9,6 +9,10 @@ public:
     XochiVoice();
     ~XochiVoice();
     bool supported();
+    bool supported_locale(const String &locale);
+    void begin_transcribing(const String &locale, int checkpoint, int attempt, int session);
+    void speak_example(const String &text);
+    void deliver_transcript(const String &text, const String &language, bool final, int checkpoint, int attempt, int session);
     void begin_listening(const String &locale, int checkpoint, int attempt, int session);
     void stop_listening();
     void deliver_cheer(int checkpoint, int attempt, int session);

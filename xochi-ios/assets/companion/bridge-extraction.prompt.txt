@@ -1,0 +1,6 @@
+Rejected background-extraction attempt, built-in imagegen tool, September 11, 2026.
+Input: /Users/victoraguiar/.codex/generated_images/01a0817d-06fe-77d0-922b-4272d6b3a1d4/exec-a39c32f0-31e9-4425-a4ed-2364fbf390a7.png
+Output: /Users/victoraguiar/.codex/generated_images/01a0817d-06fe-77d0-922b-4272d6b3a1d4/exec-0bb96621-13e1-41cf-ac1b-7c506a7815af.png
+Rejected: RGB output retained a painted checkerboard.
+
+Use case: background-extraction. Edit target: the attached stone bridge render. Remove the entire gray-and-white CHECKERBOARD BACKGROUND, including ALL of the checkerboard inside the arch opening. It is a mistakenly painted backdrop; it must not remain in the output. Return a PNG with an ACTUAL TRANSPARENT ALPHA CHANNEL around the bridge and through its open arch. Keep the bridge's appearance, stone blocks, golden lighting, moss, ferns, and flat top unchanged. Keep all stone and leaf edges sharp and clean with no white/gray halo. No checkerboard pattern, no solid background, no floor, no scenery, no text. This is a production sprite cutout to composite into a game; all exterior background pixels AND the open hole inside the arch must have alpha zero. Preserve exactly the full bridge. Transparent PNG, actual alpha, not a transparency illustration.

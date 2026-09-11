@@ -31,8 +31,8 @@ with info.open('wb') as stream:
 # Godot already includes localized InfoPlist strings via variant groups when exported.
 # These permission strings are also copied directly into each built app by Xcode.
 for locale, mic, speech in [
-    ('en', 'Cheer for Xochi to earn Second Wind. Audio stays on your iPhone and is never saved. You can always tap Courage instead.', 'Recognize encouragement for Xochi using on-device speech only. Nothing is sent to a server.'),
-    ('es', 'Anima a Xochi para obtener Segundo aliento. El audio se procesa en tu iPhone y nunca se guarda. También puedes tocar Ánimo.', 'Reconoce tus palabras de ánimo con voz local. No se envía nada a un servidor.'),
+    ("en", 'Use your voice to guide Xochi, practice Spanish, or cheer. This app requests on-device recognition and does not save recordings. You can use touch instead.', 'Recognize spoken directions, Spanish practice, and encouragement on your device. This app does not send your recordings to a server. Touch controls are always available.'),
+    ("es", 'Usa tu voz para guiar a Xochi, practicar español o darle ánimo. La app solicita reconocimiento local y no guarda grabaciones. También puedes usar los controles táctiles.', 'Reconoce indicaciones, práctica de español y palabras de ánimo en tu dispositivo. La app no envía tus grabaciones a un servidor. Siempre puedes usar los controles táctiles.'),
 ]:
     folder = app / f'{locale}.lproj'
     folder.mkdir(exist_ok=True)

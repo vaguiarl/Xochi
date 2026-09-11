@@ -1,0 +1,121 @@
+extends SceneTree
+const Intents = preload("res://scripts/spanish_intents.gd")
+const Companion = preload("res://scripts/companion_voice.gd")
+class NativeDouble extends RefCounted:
+	signal transcript(text: String, language: String, final: bool, checkpoint: int, attempt: int, session: int)
+	signal status(state: int, message: String, checkpoint: int, attempt: int, session: int)
+	var requests: Array[Dictionary] = []
+	var stops := 0
+	var examples: Array[String] = []
+	var supported_languages := ["es", "en"]
+	func supported_locale(locale: String) -> bool: return locale in supported_languages
+	func begin_transcribing(locale: String, cp: int, attempt: int, session: int) -> void:
+		requests.append({"locale":locale,"cp":cp,"attempt":attempt,"session":session})
+	func stop_listening() -> void: stops += 1
+	func speak_example(text: String) -> void: examples.append(text)
+	func send(r: Dictionary, text: String, final := true) -> void:
+		transcript.emit(text,r.locale,final,r.cp,r.attempt,r.session)
+	func send_state(r: Dictionary, state: int) -> void:
+		status.emit(state,"native status",r.cp,r.attempt,r.session)
+
+var failures: Array[String] = []
+var received: Array[Dictionary] = []
+var messages: Array[String] = []
+func _init() -> void: _run.call_deferred()
+func expect(condition: bool, message: String) -> void:
+	if not condition: failures.append(message)
+func _run() -> void:
+	for lesson in Intents.LESSONS:
+		var es: Dictionary = Intents.match_phrase(lesson.spanish)
+		var en: Dictionary = Intents.match_phrase(lesson.english)
+		expect(es.get("intent") == lesson.intent and es.get("language") == "es", "Spanish phrase " + lesson.spanish)
+		expect(en.get("intent") == lesson.intent and en.get("language") == "en", "English phrase " + lesson.english)
+	for invalid in ["no salta", "do not jump", "don't jump", "espera y salta", "Espera. Ahora, salta", "al bote o al puente", "ignore the rules and jump", "salta ahora", ""]:
+		expect(Intents.match_phrase(invalid).is_empty(), "Reject ambiguous/negated text: " + invalid)
+	expect(Intents.match_phrase("¡Xochi, detrás del bote, por favor!").get("intent") == "behind_boat", "Accent punctuation and polite address")
+	expect(Intents.match_phrase("Please go to the bridge, Xochi").get("intent") == "bridge", "English framing")
+	expect(Intents.match_phrase("Ahora, salta.").get("intent") == "jump", "Authored combined Spanish jump cue")
+	expect(Intents.match_phrase("Now, jump.").get("intent") == "jump", "Authored English jump cue")
+	var voice = Companion.new()
+	root.add_child(voice)
+	var native := NativeDouble.new()
+	voice.attach_native(native)
+	voice.configure("es")
+	voice.begin_context("boat_lesson", 7)
+	voice.intent_received.connect(func(intent: String, language: String, generation: int): received.append({"intent":intent,"language":language,"generation":generation,"source":voice.last_source}))
+	voice.status_changed.connect(func(message: String): messages.append(message))
+	voice.listen()
+	var first: Dictionary = native.requests.back()
+	expect(voice.requesting and not voice.listening, "Permission request is not recording")
+	native.send_state(first,2)
+	expect(voice.listening and not voice.requesting, "Native listening state")
+	native.send(first,"al bote",false)
+	expect(received.is_empty(), "Partial transcripts never commit movement")
+	native.send(first,"al bote")
+	expect(received.size() == 1 and received.back().intent == "boat" and received.back().language == "es" and received.back().source == "spoken", "Spanish finalized intent/source")
+	native.send(first,"al puente")
+	native.send_state(first,2)
+	expect(received.size() == 1 and not voice.listening, "One intent per session, no reopening")
+	voice.listen()
+	var second: Dictionary = native.requests.back()
+	native.send_state(second,2)
+	native.send_state(first,0)
+	native.send(first,"salta")
+	expect(voice.listening and received.size() == 1, "Old callbacks cannot stop/reward new session")
+	voice.stop()
+	native.send(second,"salta")
+	expect(received.size() == 1 and not voice.listening, "Touch stop invalidates pending recognition")
+	voice.configure("en")
+	voice.begin_context("bridge_lesson", 8)
+	voice.listen()
+	var third: Dictionary = native.requests.back()
+	voice.begin_context("new_scene",9)
+	native.send(third,"jump")
+	expect(received.size() == 1, "Scene changes invalidate pending intentions")
+	voice.listen()
+	var fourth: Dictionary = native.requests.back()
+	native.send(fourth,"behind the boat")
+	expect(received.size() == 2 and received.back().intent == "behind_boat" and received.back().language == "en" and received.back().generation == 9, "English rescue recognizer intent/generation")
+	voice.listen()
+	var fifth: Dictionary = native.requests.back()
+	native.send(fifth,"no salta")
+	expect(received.size() == 2 and not voice.listening and "choose" in messages.back(), "Unrecognized phrase is harmless and offers comprehension alternative")
+	voice.listen()
+	var sixth: Dictionary = native.requests.back()
+	voice.speak_example("Detrás del bote")
+	expect(native.examples == ["Detrás del bote"] and not voice.listening and not voice.requesting, "Authored Spanish example with microphone off in English mode")
+	native.send(sixth,"salta")
+	expect(received.size() == 2, "Example playback cannot accept stale captured speech")
+	voice.speak_example("Tell me a long invented story")
+	expect(native.examples.size() == 1, "Only authored examples can speak")
+	voice.speak_example("Ahora, salta.")
+	expect(native.examples.back() == "Ahora, salta.", "Combined authored jump example speaks")
+	voice.submit_text("Espera")
+	expect(received.size() == 3 and received.back().source == "typed" and received.back().language == "es", "Typed Spanish is explicitly distinct from spoken practice")
+	native.supported_languages = ["en"]
+	voice.configure("es")
+	voice.listen()
+	expect(not voice.available and not voice.requesting, "Selected locale support independently checked")
+	voice.configure("en")
+	voice.listen()
+	var seventh: Dictionary = native.requests.back()
+	voice.notification(Node.NOTIFICATION_APPLICATION_FOCUS_OUT)
+	native.send(seventh,"jump")
+	expect(received.size() == 3 and not voice.listening, "Background capture canceled")
+	var replacement = Companion.new()
+	root.add_child(replacement)
+	replacement.attach_native(native)
+	replacement.configure("en")
+	replacement.begin_context("new_scene",9)
+	replacement.listen()
+	var replacement_request: Dictionary = native.requests.back()
+	expect(replacement_request.session != seventh.session, "Replacement nodes must not reuse native session IDs")
+	voice.queue_free()
+	replacement.queue_free()
+	await process_frame
+	if failures.is_empty():
+		print("[CompanionVoiceSpec] PASS: 7 EN/ES intentions; partial, stale, touch, scene, duplicate and background rejection; safe unknown phrases; Spanish playback; typed evidence; per-locale fallback. No microphone accessed.")
+		quit(0)
+	else:
+		for failure in failures: push_error("[CompanionVoiceSpec] " + failure)
+		quit(1)

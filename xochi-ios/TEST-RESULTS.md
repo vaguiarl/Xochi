@@ -2,6 +2,21 @@
 
 Project: Xochi: The Song Home 0.1.0, build 1. Godot 4.7 stable; native plugin and iPhone archive built with Xcode 26.6 / iOS 26.5 SDK. The minimum supported OS is iOS 26.
 
+## Build 3 companion encounter — 11 September 2026
+
+- The default scene is now `companion.tscn`: eight Spanish-guided steps from the introduction to a reunion at the Crowquistador crossing. The original traversal chapter remains at `main.tscn`.
+- CompanionRouteSpec passes cleanly through displayed UI buttons and real controller/physics: all eight steps, safe wrong choice, actual boat/bank landings, deferred learning credit, touch takeover, pause/Rejoin, a pause during the retry timer, returning missed crow openings, and one continuously advancing music stream. A 1420×720 viewport tests translated world coordinates. Latest route duration: 20.70 simulated seconds, including intentional waits; this is not a novice play-duration or learning-effectiveness measurement.
+- CompanionControllerSpec passes for safe walks, the authored crossing, a genuine ordinary double jump, unchanged hyper stock, real input takeover and interrupted/unsafe plans. The existing PlayerSpec also passes.
+- CompanionVoiceSpec and the existing VoiceSpec pass. CompanionSceneVoiceSpec additionally uses the real encounter/controller with a fake native service: it freezes an actual guard opening, accepts finalized “Ahora, salta.”, reaches the bank physically, rejects stale results after a swipe, protects active guided jumps, separates typed evidence, and checks microphone pause/resume. Its explicit stage fixture is not full-route evidence, and its fake microphone is not physical-device evidence.
+- CrowGuardSpec passes for committed notice/investigation/return, nonlethal crossing observation, finite repeated-trick adaptation and resets. LearningProgressSpec passes for evidence separation, save round trip and invalid-data rejection.
+- The earlier full traversal route still passes: 3/3 friends, zero deaths and three boss openings in 33.63 simulated seconds. Its longstanding audio/resource teardown warnings remain; the new companion route exits cleanly.
+- All four native voice-plugin variants compile (iPhone/Simulator, debug/release). The final complete Simulator app builds, installs and launches on the iPhone 12 mini simulator with iOS 26.5. The native title, introduction, lesson choice and autonomous movement were inspected. The status strip was moved above the playfield so it cannot cover Xochi's landing.
+- Seven rendered companion fixtures cover title, Spanish introduction, first lesson, boat choice, guard opening, pause and ending. These are layout fixtures, not route-completion evidence. Original Calabrija art and new crow/bridge assets were inspected; the new assets have verified real transparency.
+- The final Release export is prepared, and the archive build reached Apple's signing step. macOS requests access to the existing Apple Development signing key. The computer-use tool blocks interaction with SecurityAgent, so the keychain prompt requires the user. **Build 3 has not been uploaded.** See the current status in `ios/TESTFLIGHT-UPLOAD.md`.
+- Logs: `ios/build/simulator-build-3-final.log`, `ios/build/testflight-export-3-final.log`, `ios/build/testflight-archive-3-final.log`. Captures: `tests/captures/companion/`. Generated logs/captures/build products are excluded from Git.
+
+The physical-device checks listed below still apply, especially recognizer availability, microphone/music feedback, Spanish speech examples and varied accents. No human learning or enjoyment claim is made from these automated checks.
+
 ## Build 2 feedback iteration
 
 - Restored one ordinary airborne jump after takeoff, recharged on landing or retry. It spends no hyper-jump charge. Coyote takeoffs preserve it; hyper jumps, pause and input clearing cannot refill a spent air jump.

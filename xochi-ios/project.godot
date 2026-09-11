@@ -2,9 +2,9 @@ config_version=5
 
 [application]
 config/name="Xochi: The Song Home"
-run/main_scene="res://main.tscn"
+run/main_scene="res://companion.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
-config/description="A small, brave journey through the floating gardens."
+config/description="Learn Spanish by guiding Xochi through the floating gardens."
 config/version="0.1.0"
 config/icon="res://assets/app-icon.png"
 boot_splash/image="res://assets/canal-dawn.png"
