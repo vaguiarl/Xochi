@@ -1,5 +1,12 @@
 # TestFlight upload receipt
 
+## Build 5 — waiting for native signing approval
+
+The Trajinera Rescue implementation and automated checks are complete. Native Swift plugin and iPhone Simulator builds succeeded; the native opening rescue was verified through Simulator UI input. Version 0.1.0 (5) has been exported for release and the archive command is waiting at `codesign` for the macOS signing-key authorization. **Build 5 has not yet been uploaded.**
+
+The command remains running and will archive/export/upload after approval. Current log: `ios/build/testflight-build-upload-5-final.log`. The earlier build-5 attempt was intentionally stopped before upload to add a bank boundary to crow pursuit; it is not a successful archive or upload. The latest successful upload remains build 4 below.
+
+
 ## Latest successful upload — build 4
 
 - App: **Xochi: The Song Home**

@@ -251,7 +251,7 @@ func _show_menu() -> void:
 	var begin := _button(tr2("Meet Xochi","Conoce a Xochi"),_show_intro,true)
 	begin.name = "Begin"
 	column.add_child(begin)
-	var small := _label(tr2("THE CROWQUISTADOR CROSSING · A FIRST ENCOUNTER","EL CRUCE DEL CROWQUISTADOR · PRIMER ENCUENTRO"),17,GOLD)
+	var small := _label(tr2("THE TRAJINERA RESCUE · XOCHIMILCO","EL RESCATE DE LAS TRAJINERAS · XOCHIMILCO"),17,GOLD)
 	column.add_child(small)
 	var portrait := TextureRect.new()
 	portrait.texture = player.character_texture

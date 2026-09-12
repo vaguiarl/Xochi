@@ -239,7 +239,7 @@ private struct CompanionDecision {
 
     @objc public func speakExample(_ text: String) {
         cancelSilently()
-        let allowed = ["ven":"Ven", "espera":"Espera", "al bote":"Al bote", "al puente":"Al puente", "detras del bote":"Detrás del bote", "ahora":"Ahora", "salta":"Salta", "ahora salta":"Ahora, salta."]
+        let allowed = ["mira alla":"Mira allá", "ven":"Ven", "espera":"Espera", "al bote":"Al bote", "al puente":"Al puente", "detras del bote":"Detrás del bote", "ahora":"Ahora", "salta":"Salta", "ahora salta":"Ahora, salta."]
         let key = text.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: Locale(identifier: "es-MX"))
             .components(separatedBy: CharacterSet.alphanumerics.inverted).filter { !$0.isEmpty }.joined(separator: " ")
         guard let authored = allowed[key] else { return }
@@ -323,7 +323,7 @@ private struct CompanionDecision {
         let req = SFSpeechAudioBufferRecognitionRequest()
         req.requiresOnDeviceRecognition = true
         req.shouldReportPartialResults = true
-        req.contextualStrings = transcriptMode ? ["Xochi", "Ven", "Espera", "Al bote", "Al puente", "Detrás del bote", "Ahora", "Salta", "Ahora, salta", "Come here", "Wait", "Onto the boat", "To the bridge", "Behind the boat", "Now", "Jump"] : ["Xochi", "¡Vamos, Xochi!", "You can do it", "You've got this"]
+        req.contextualStrings = transcriptMode ? ["Xochi", "Mira allá", "La Lupita", "Frida", "Esperanza", "Look over there", "Ven", "Espera", "Al bote", "Al puente", "Detrás del bote", "Ahora", "Salta", "Ahora, salta", "Come here", "Wait", "Onto the boat", "To the bridge", "Behind the boat", "Now", "Jump"] : ["Xochi", "¡Vamos, Xochi!", "You can do it", "You've got this"]
         request = req
         do {
             // Matches Godot's initial session; never deactivate it when stopping capture.

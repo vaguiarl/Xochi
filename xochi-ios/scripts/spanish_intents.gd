@@ -9,8 +9,12 @@ const LESSONS := [
 	{"intent":"now", "spanish":"Ahora", "english":"Now"},
 	{"intent":"jump", "spanish":"Salta", "english":"Jump"},
 ]
-const SPOKEN_EXAMPLES := ["Ven", "Espera", "Al bote", "Al puente", "Detrás del bote", "Ahora", "Salta", "Ahora, salta."]
+const SPOKEN_EXAMPLES := ["Ven", "Espera", "Al bote", "Al puente", "Detrás del bote", "Ahora", "Salta", "Ahora, salta.", "Mira allá"]
 const ALIASES := {
+	"mira alla":["distract","es"], "look over there":["distract","en"], "ring the bell":["distract","en"], "toca la campana":["distract","es"],
+	"al bote la lupita":["lupita","es"], "go to la lupita":["lupita","en"], "a la lupita":["lupita","es"], "la lupita":["lupita","es"], "to la lupita":["lupita","en"],
+	"al bote frida":["frida","es"], "go to frida":["frida","en"], "a frida":["frida","es"], "frida":["frida","es"], "to frida":["frida","en"],
+	"al bote esperanza":["esperanza","es"], "go to esperanza":["esperanza","en"], "a esperanza":["esperanza","es"], "esperanza":["esperanza","es"], "to esperanza":["esperanza","en"],
 	"ven":["come","es"], "ven aqui":["come","es"], "ven conmigo":["come","es"],
 	"come":["come","en"], "come here":["come","en"], "come with me":["come","en"],
 	"espera":["wait","es"], "espera aqui":["wait","es"],

@@ -13,6 +13,7 @@ const ARRIVAL_DISTANCE := 5.0
 const FOOT_MARGIN := 18.0
 
 var player: CharacterBody2D
+var moving_target: Node2D
 var guiding := false
 var _target := Vector2.ZERO
 var _jump_segment := false
@@ -79,6 +80,7 @@ func cancel_guidance() -> void:
 func _end_guidance(brake: bool) -> void:
 	var was_guiding := guiding
 	guiding = false
+	moving_target = null
 	if is_instance_valid(player):
 		player.clear_guidance()
 		if was_guiding and brake and not player.has_manual_input():
@@ -111,13 +113,15 @@ func _physics_process(delta: float) -> void:
 	if not is_instance_valid(player) or not player.active or player.has_manual_input():
 		_fail("interrupted")
 		return
+	if is_instance_valid(moving_target):
+		_target = moving_target.global_position
 	_elapsed += delta
 	if _elapsed > MAX_SECONDS or player.global_position.y > _target.y + 100.0:
 		_fail("timeout" if _elapsed > MAX_SECONDS else "missed_landing")
 		return
 	var grounded := player.is_on_floor() and player.velocity.y >= 0.0
 	var remaining := _target.x - player.global_position.x
-	if grounded and absf(remaining) <= ARRIVAL_DISTANCE and absf(player.global_position.y - _target.y) < 10.0:
+	if grounded and absf(remaining) <= (75.0 if is_instance_valid(moving_target) else ARRIVAL_DISTANCE) and absf(player.global_position.y - _target.y) < 10.0:
 		cancel_guidance()
 		arrived.emit()
 		return

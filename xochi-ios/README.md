@@ -1,10 +1,12 @@
 # Xochi — La fiesta de las voces
 
-A Spanish-learning companion encounter through the floating gardens of Xochimilco. Hear an instruction, say or choose its meaning, and Xochi carries out the plan. Swipe at any moment to take over movement. The first encounter brings her friends past the Crowquistador to a small reunion.
+A Spanish-guided canal adventure: rescue two babies and Rabbitbrije, then escape aboard Esperanza. Follow Spanish clues, choose a destination and guide Xochi, or take over with touch. Physical arrivals rescue friends immediately.
 
-See the [latest TestFlight receipt](ios/TESTFLIGHT-UPLOAD.md) and [verification record](TEST-RESULTS.md). Version 0.1.0 build 4 adds optional Apple Intelligence to the companion encounter.
+Build 5 replaces the eight-step lesson gate with the Trajinera Rescue. See [gameplay details](COMPANION-ENCOUNTER.md), [verification](TEST-RESULTS.md), and [TestFlight status](ios/TESTFLIGHT-UPLOAD.md).
 
 This is a standalone Godot 4.7 project in the existing Xochi repository. It uses native rendering and physics with a narrow Swift bridge for on-device speech recognition and authored Spanish speech examples. Common directions use deterministic parsing. On compatible devices, optional Apple Intelligence interprets a natural Spanish or English direction into the same bounded actions. The original `xochi-godot` campaign and earlier iOS traversal chapter remain available in source.
+
+Run the current encounter checks with `./tests/run_rescue_checks.sh`.
 
 ## Play
 
@@ -14,32 +16,31 @@ Open `project.godot` in Godot 4.7 and press Run, or run:
 godot --path xochi-ios
 ```
 
-## The companion crossing
+## The Trajinera Rescue
 
-- Eight authored steps introduce and reuse **ven**, **espera**, **al bote**, **ahora, salta** and **al puente**. Meanings choose the next physical action; simply walking to the ending cannot skip the lesson sequence.
-- **Hear it** replays the Spanish through native speech synthesis. **Speak** listens for one short finalized direction on supported iPhones. When native recognition is unavailable, it opens a typed-guidance alternative. Pause → **Type a plan** also works independently of microphone permission. Touch choices remain available throughout.
-- **Apple Intelligence (experimental)** interprets one natural direction at a time when its local model is available. The current Mac model probe missed the five-second deadline even with preparation; compatible-iPhone response quality and latency still need validation. Pause shows readiness. Unclear instructions and requests that exceed five seconds fall back to short phrases or choices; the script adds a six-second guard against missing native callbacks. Touch, retry, pause and a new instruction cancel pending interpretation. No transcript or model output is saved.
-- Interface language and listening language are independent. The interface supports English/Spanish; listening defaults to Spanish, with English rescue configurable from Pause.
-- Xochi makes a small safe exploration, then follows bounded walk/jump plans using real collision and the ordinary double jump. She waits before new hazards. A new swipe immediately cancels automatic steering and stale voice results.
-- Crowquistador retains his helmet, plume and little sword. He notices, investigates and returns; repeated distractions have shorter but still usable openings. An opening freezes while the player speaks or waits for interpretation and always returns if missed. Calabrija uses the original decorated flying-skull art.
-- Correct choices earn evidence only after the action completes. Hints, typed input, exact Spanish phrase practice, model-interpreted Spanish practice and independent touch choices are recorded separately. These are practice observations, not pronunciation or fluency grades.
-- Unlimited 0.48-second Rejoin resets the unfinished step and preserves previous evidence. The original opening-world song, **Traviesa Axolotla en Xochimilco**, keeps its timeline through lessons, pause, retry and reunion; the mix softens briefly for speech.
-- Local learning progress uses its own versioned save and leaves the earlier campaign save untouched.
+1. Meet the baby by the first lantern: **Ven**. Walking there also rescues the baby.
+2. Board **La Lupita**, ride the canal, then choose **Jardín**. Boats wait two seconds at each end of an eight-second route.
+3. Read the crow's warning. **Espera** in reeds hides Xochi; **Mira allá** sends Calabrija to the bell. Reach Rabbitbrije to rescue him.
+4. Cross the chinampa to **Frida**, carrying the second baby. Ordinary double-jumps work; hyper-jumps are optional.
+5. Cross the final guarded bridge and board **Esperanza** with all three friends. Its departure leads to the ending. Arriving early identifies a missing friend and offers a return plan.
 
-This is a playable first encounter for testing the concept with learners. It is not a full Spanish course, and neither retention nor player enjoyment has been established by automated tests. See [the encounter notes](COMPANION-ENCOUNTER.md).
+Tap a destination marker, then **Guide**. **Speak** accepts a short Spanish or English direction at a safe refuge or aboard a boat. Pause → **Type a plan** provides the same exact-command path without a microphone. Hear replays an authored Spanish cue; `?` provides English support. Boat names can be spoken or typed directly.
 
 | Action | Touch | Keyboard |
 | --- | --- | --- |
-| Travel | Swipe left/right and keep the finger down; release to coast | Arrows or A / D |
-| Sprint | Two swipes in the same direction | Hold Shift while moving |
-| Jump | Swipe up | Space |
-| Double jump | Swipe up again in the air; restores on landing | Space again in the air |
-| Hyper-jump | Tap; a second finger can tap while moving | X |
-| Ripple Pop | Hold for 400 ms; a second finger can hold while moving | Z |
-| Guidance | Hear / Speak / two meaning choices | Type in the guidance dialog |
-| Pause / resume | Pause button | Escape |
+| Move | Swipe left/right and hold | Arrows / A, D |
+| Sprint | Two swipes in the same direction | Shift + move |
+| Jump / double jump | Swipe up, then again in the air | Space, then Space |
+| Hyper-jump | Tap open playfield | X |
+| Distract | Mira allá | Type “mira allá” / “look over there” |
+| Guide | Select marker, then Guide | Type one direction |
+| Pause | Pause | Escape |
 
-One ordinary double jump is available each time Xochi leaves the ground and restores on landing. It does not spend a hyper-jump. The companion encounter provides two hyper-jumps per retry for hands-on movement. Voice recognition errors cost no lives or progress.
+Manual touch cancels automatic steering. Destination and HUD taps are consumed before world input. The crow has a 0.75-second warning, a 255 px/s chase, sight-loss search after 1.5 seconds and repeatable four-to-three-second distractions. Followers never trigger detection or strand the party. Retries regroup at a lantern after 0.48 seconds, retaining rescued friends and the continuous Suno song, **Traviesa Axolotla en Xochimilco**.
+
+Rescue checkpoints have a separate versioned sidecar beside the learning save; old lesson completion does not complete the new adventure. Manual rescue never fabricates language evidence. Touch directions with visible help are assisted practice, not independent mastery.
+
+**Apple Intelligence remains experimental and optional.** Exact commands bypass the model. The prior host model probe missed its five-second deadline; compatible-iPhone natural-language quality and latency still need human validation. Speech and interpretation pause local boat/guard clocks only from safe planning locations. No transcript or model output is saved.
 
 ## Earlier traversal chapter
 

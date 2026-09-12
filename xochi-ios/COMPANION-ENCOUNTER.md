@@ -1,45 +1,31 @@
-# The Crowquistador crossing
+# The Trajinera Rescue — build 5
 
-Build 4 extends the first playable encounter of the approved Spanish-learning companion concept. It uses the existing native Godot project; no Swift gameplay rewrite or live LLM controls movement.
+## Why the encounter changed
 
-## Implemented loop
+Build 4 drew babies without rescue behavior, left crow perception disconnected, and required a pending lesson answer before an arrival could advance. Build 5 moves progress into real rescue events. `companion.tscn` now starts `rescue_main.gd`; the earlier lesson root remains as a UI/voice base and historical prototype.
 
-The player sees a short Spanish phrase, can hear its authored pronunciation, and either speaks/types a matching direction or chooses its meaning. Xochi walks or jumps to the chosen destination using actual physics. New hazards stop the plan. Touch can take over at any point; a new instruction replaces an unfinished manual destination, and stale spoken results cannot reclaim control.
+## The journey
 
-The sequence introduces and reuses five intentions across eight steps: come, wait, approach, take the boat, wait for the guard, jump across, wait for a friend, and gather at the bridge. Movement alone does not finish a lesson. Wrong meanings produce gentle feedback without an attack, life loss, or evidence credit. An optional English hint keeps the encounter moving.
+The welcoming quay has a nearby baby, a lantern and “Ven.” Guide or direct movement earns the same visible greeting and 1/3 counter. La Lupita connects the quay and garden with a readable eight-second route (two seconds at each end, two seconds in each direction). Guidance walks to the boarding point and waits for a dwell before jumping.
 
-The Crowquistador turns to investigate an authored distraction. The first opening lasts six seconds; repeating it produces shorter openings down to 3.8 seconds. There is always another opening. While the microphone prepares/listens or a direction is interpreted, guard simulation freezes and music keeps playing. The opening remains valid for the eventual finalized instruction. This pilot uses predictable enemy states rather than model-generated tactics.
+Rabbitbrije waits in the guarded garden. Reed refuges block perception; the crow patrols, warns for 0.75 seconds, chases at 255 px/s, searches after 1.5 seconds of lost sight, and returns. Calabrija investigates a bell on “Mira allá”; repeated bell directions shorten distraction from four to a minimum three seconds. Catching requires pursuit contact. Rescuing Rabbitbrije earns another checkpoint.
 
-## Evidence and language
+Frida carries the other baby. A chinampa offers an intermediate landing; an ordinary double-jump can make a more direct transfer. Guidance targets the moving boat's stable identity and follows its actual position. Deck collision carries Xochi. Art/canopies are decorative, with reduced opacity near the player and a clearly marked deck. La Lupita, Frida and Esperanza retain stable names and original boat illustrations.
 
-The local save distinguishes intentions used, independent meaning choices, exact Spanish spoken/typed practice and separate model-interpreted Spanish practice. Model-inferred language is not treated as exact phrase evidence. English instructions are accepted as rescue, without being counted as Spanish spoken practice. A translation hint or wrong guess marks the current choice assisted. Choosing a meaning by touch is not treated as evidence of speaking ability. A recognized utterance is practice, not proof of pronunciation or long-term recall.
+The final bridge repeats cover and distraction. Two babies and Rabbitbrije must be rescued before departure. An early arrival identifies a remaining friend; guidance supports return crossings. All three companions visibly follow, with an arcing catch-up motion over gaps rather than separate escort collision. Esperanza departs for 3.2 seconds before showing the ending.
 
-The interface language can be English or Spanish. Listening defaults to Spanish; the pause menu permits English. This avoids promising seamless bilingual recognition in one device recognizer. Speech examples always use the Spanish voice.
+## Input, language and persistence
 
-## Recovered art and music
+Select a visible marker, then Guide. Touch has immediate control; a normal upward swipe plus another gives a double-jump. Open-playfield taps keep the existing optional hyper-jump. UI and marker taps never become world taps.
 
-The crow is derived from the original Crowquistador, with transparent edges and matching soft 3D materials; the skull is the original `calaca.png`, presented under the user's Calabrija name. Generation prompts and original references are documented under `assets/companion/`.
+Core authored directions are Ven, Espera, Al bote, Salta, Al puente and Mira allá, with English equivalents and exact boat names. Native recognizer vocabulary includes the names and distraction phrase. Apple Intelligence remains the existing optional experimental fallback; it does not plan physics or drive the crow. Typed and spoken exact commands share the deterministic action path. Safe planning pauses boats and crow together while leaving the song playing. Exposed chase locations do not open speech planning.
 
-Music is `music_menu.ogg`, the original World 1/menu selection, matched by embedded Suno generation ID to **Traviesa Axolotla en Xochimilco**. It remains one continuous stream through the encounter and ending. Speech lowers its volume briefly, never rewinds it.
+The rescue sidecar (`learning-save-path.rescue`, version 1) stores earned friend IDs and an allowlisted lantern checkpoint, independently of old lesson completion and language evidence. It uses temporary-file replacement. Manual arrivals record no language evidence; touch with displayed support is assisted. Retrying takes 0.48 seconds, resets nearby boat/patrol timing and preserves earned friends and the song. New journeys resume an unfinished rescue; completed journeys restart fresh.
 
-## Deliberately outside this first encounter
+## Validation and remaining tuning
 
-This build does not establish a complete language course, long-term adaptation, pronunciation grading, or a new multi-world campaign. It does not yet implement the board's full cover/distraction puzzle, group pathfinding, open-ended conversation or unconstrained commands. A deterministic parser handles authored phrases immediately. Optional Apple Intelligence classifies other single directions into the same finite vocabulary; unsupported or conflicting instructions ask the player to try again or use a choice.
+Three independent routes cover actual screen-touch Guide buttons, direct touch movement/double-jumps, and exact Spanish/English command delivery. None of those completion routes teleports the player or forces a rescue. Separate state fixtures test warnings, pursuit, cover, distraction, catches, cancellation and retry persistence.
 
-Apple Foundation Models now powers experimental natural guidance as well as legacy cheering. It receives only an utterance, never the lesson answer, and returns constrained intent/language fields, including an explicit reject choice. The scene validates the result before any physical movement. An anchored request filter rejects praise, stories, explanations, negation and sequences before inference; the model is also instructed to reject ambiguity. Inference times out after five seconds, with a six-second adapter watchdog; stale sessions are ignored.
+The expert guided route takes about 38 simulated seconds. The proposed four-to-six-minute first-play target is not established by automation; novice comprehension, challenge, music/speech balance and enjoyment need the next TestFlight session. Full native speech recognition and on-device model quality remain physical-device checks. The iPhone simulator verifies layout and actual opening touch-to-rescue behavior.
 
-One empty model session is prepared while speaking or typing, then consumed once; no request history is reused. Model availability and locale support are checked at runtime, separately from speech recognition. Pause explains readiness and exposes typed guidance even when microphone permission is denied. Exact phrases and touch remain usable without Apple Intelligence. Microphone capture is opt-in and bounded to one finalized utterance or a 20-second ceiling; the app does not save recordings.
-
-## Next human test
-
-Use this TestFlight encounter with Spanish beginners. Observe whether they understand when Xochi needs a plan, whether touch feels immediate, whether the music makes repetition pleasant, and whether familiar language can be used without the English hint. Revisit the phrases later in a changed layout before making any retention claim.
-
-Physical iPhone checks still need real model interpretation quality and latency, varied accents, on-device voice assets, speaker/music feedback, permission denial, headset routes and interruptions. Automated tests and simulator captures do not establish these properties.
-
-## Apple implementation references
-
-The optional on-device model uses [SystemLanguageModel availability](https://developer.apple.com/documentation/foundationmodels/systemlanguagemodel) and [locale support](https://developer.apple.com/documentation/foundationmodels/systemlanguagemodel/supportslocale%28_%3A%29). [Apple lists compatible devices and setup requirements](https://support.apple.com/en-us/121115); iPhone 12 mini does not support Apple Intelligence. On-device speech recognition is a separate capability and is explicitly required by the native capture request.
-
-## Experimental model validation boundary
-
-The final native request filter passes 15/15 tests. The final single-process Mac probe used five seconds of preparation and a five-second inference deadline: nine non-guidance cases rejected correctly, while all six model-backed cases timed out, including five positive requests. This does **not** establish usable natural-language latency. The bounded fallback works, but Apple Intelligence guidance remains experimental until its actual response quality and speed are verified on a compatible iPhone. See `tests/native_companion_model_probe.py` and `TEST-RESULTS.md`.
+Original Calabrija/Crowquistador art, weapon-free Xochi, Rabbitbrije and the original repository's trajinera assets are reused. No new generated raster assets or music were substituted.

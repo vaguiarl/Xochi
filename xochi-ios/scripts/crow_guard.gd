@@ -1,148 +1,109 @@
 extends Node2D
-## A curious, self-important Crowquistador. Distraction opens a crossing;
-## a repeated trick gets a shorter, still usable opening. No lethal attacks.
-
 signal noticed
+signal caught
 signal opening_changed(open: bool)
 signal state_changed(state_name: String)
-
-const NOTICE_SECONDS := 0.65
-const RETURN_SECONDS := 1.1
-const OPENINGS := [6.0, 4.8, 3.8]
-const TRICKS := ["bell", "splash", "flower"]
+const NOTICE_SECONDS := 0.75
 const SPRITE_HEIGHT := 142.0
-
-var active := true:
-	set(value):
-		var was_open := active and state == "investigate"
-		active = value
-		var now_open := active and state == "investigate"
-		if was_open != now_open:
-			opening_changed.emit(now_open)
+var active := true
 var state := "watch"
 var mood := "watchful"
 var origin := Vector2.ZERO
 var facing := -1.0
-var texture: Texture2D:
-	set(value):
-		texture = value
-		queue_redraw()
+var texture: Texture2D
 var state_time := 0.0
 var visual_time := 0.0
-var opening_duration := 6.0
+var opening_duration := 4.0
 var trick_counts: Dictionary = {}
 var last_trick := ""
 var investigation_point := Vector2.ZERO
-var _return_from := Vector2.ZERO
-var _reported_crossing := false
+var target: Node2D
+var target_hidden := false
+var lost_time := 0.0
+var last_seen := Vector2.ZERO
+var patrol_half_width := 150.0
+var bank_min := 900.0
+var bank_max := 1750.0
 
 func _ready() -> void:
 	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
-	if texture == null and ResourceLoader.exists("res://assets/companion/crowquistador.png"):
-		texture = load("res://assets/companion/crowquistador.png")
-	queue_redraw()
+	texture = load("res://assets/companion/crowquistador.png")
 
 func configure(home: Vector2) -> void:
 	origin = home
 	reset_state()
 
 func reset_state() -> void:
-	var was_open := can_cross()
 	global_position = origin
-	state = "watch"
-	active = true
-	mood = "watchful"
-	facing = -1.0
-	state_time = 0.0
-	visual_time = 0.0
-	opening_duration = OPENINGS[0]
+	facing = -1
 	trick_counts.clear()
-	last_trick = ""
-	investigation_point = origin + Vector2(105.0, -5.0)
-	_return_from = origin
-	_reported_crossing = false
-	if was_open: opening_changed.emit(false)
-	state_changed.emit(state)
-	queue_redraw()
+	lost_time = 0
+	_enter("watch")
 
-func reset() -> void:
-	reset_state()
+func reset() -> void: reset_state()
+func set_mood(value: String) -> void: mood = value
+func can_cross() -> bool: return active and state == "investigate"
+func remaining_open_time() -> float: return maxf(0,opening_duration-state_time) if can_cross() else 0.0
 
-func set_mood(value: String) -> void:
-	# Mood is visual. It must never bypass the authoritative crossing state.
-	mood = value
-	queue_redraw()
-
-func distract(trick: String = "bell") -> bool:
-	if not active or state != "watch" or trick not in TRICKS:
-		return false
+func distract(trick := "bell") -> bool:
+	if not active: return false
 	last_trick = trick
-	var seen: int = int(trick_counts.get(trick, 0))
-	opening_duration = float(OPENINGS[mini(seen, OPENINGS.size() - 1)])
-	trick_counts[trick] = mini(seen + 1, OPENINGS.size())
-	mood = "curious" if seen == 0 else "skeptical"
-	_reported_crossing = false
-	_enter("notice")
+	var count := int(trick_counts.get(trick,0))
+	opening_duration = maxf(3,4-count*.5)
+	trick_counts[trick] = count+1
+	investigation_point = origin+Vector2(170,0)
+	_enter("investigate")
 	return true
 
-func can_cross() -> bool:
-	return active and state == "investigate"
+func observe_crossing(point: Vector2) -> bool:
+	return active and not target_hidden and absf(point.y-global_position.y)<95 and absf(point.x-global_position.x)<270 and (point.x-global_position.x)*facing>=-15
 
-func remaining_open_time() -> float:
-	return maxf(0.0, opening_duration - state_time) if can_cross() else 0.0
-
-func observe_crossing(player_position: Vector2) -> bool:
-	# Root calls this only for a character actually attempting the bridge.
-	# Seeing Xochi nearby is harmless until she commits to crossing.
-	if not active or can_cross() or _reported_crossing:
-		return false
-	if player_position.distance_to(global_position) > 230.0:
-		return false
-	_reported_crossing = true
-	mood = "surprised"
-	noticed.emit()
-	queue_redraw()
-	return true
-
-func _enter(next_state: String) -> void:
-	var was_open := can_cross()
-	state = next_state
-	state_time = 0.0
-	if can_cross() != was_open:
-		opening_changed.emit(can_cross())
+func _enter(value: String) -> void:
+	state = value
+	state_time = 0
+	mood = value
+	opening_changed.emit(can_cross())
 	state_changed.emit(state)
 	queue_redraw()
 
 func _physics_process(delta: float) -> void:
-	if not active:
-		return
-	visual_time += delta
+	if not active: return
 	state_time += delta
+	visual_time += delta
+	var sees := is_instance_valid(target) and observe_crossing(target.global_position)
+	if sees: last_seen = target.global_position
 	match state:
 		"watch":
-			global_position = origin
-			facing = -1.0
+			global_position.x += facing*55*delta
+			if absf(global_position.x-origin.x)>patrol_half_width: facing = -signf(global_position.x-origin.x)
+			if sees:
+				_enter("notice")
+				noticed.emit()
 		"notice":
-			facing = 1.0
-			if state_time >= NOTICE_SECONDS:
-				mood = "investigating"
-				_enter("investigate")
+			if not sees: _enter("search")
+			elif state_time>=NOTICE_SECONDS: _enter("chase")
+		"chase":
+			lost_time = 0 if sees else lost_time+delta
+			if lost_time>=1.5:
+				_enter("search")
+			else:
+				facing = signf(last_seen.x-global_position.x)
+				global_position.x = move_toward(global_position.x,clampf(last_seen.x,bank_min,bank_max),255*delta)
+				if is_instance_valid(target) and not target_hidden and global_position.distance_to(target.global_position)<30:
+					active = false
+					caught.emit()
+		"search":
+			if sees: _enter("notice")
+			elif state_time>2: _enter("return")
 		"investigate":
-			var travel := clampf(state_time / 1.0, 0.0, 1.0)
-			global_position = origin.lerp(investigation_point, smoothstep(0.0, 1.0, travel))
-			facing = 1.0
-			if state_time >= opening_duration:
-				_return_from = global_position
-				mood = "returning"
-				_enter("return")
+			facing = signf(investigation_point.x-global_position.x)
+			global_position.x = move_toward(global_position.x,investigation_point.x,170*delta)
+			if state_time>=opening_duration: _enter("return")
 		"return":
-			var travel := clampf(state_time / RETURN_SECONDS, 0.0, 1.0)
-			global_position = _return_from.lerp(origin, smoothstep(0.0, 1.0, travel))
-			facing = -1.0
-			if state_time >= RETURN_SECONDS:
-				mood = "watchful"
-				_reported_crossing = false
-				_enter("watch")
+			facing = signf(origin.x-global_position.x)
+			global_position.x = move_toward(global_position.x,origin.x,95*delta)
+			if sees: _enter("notice")
+			elif absf(global_position.x-origin.x)<3: _enter("watch")
 	queue_redraw()
 
 func _draw() -> void:
@@ -168,8 +129,8 @@ func _draw() -> void:
 	# These are signals above the original illustrated character, never a
 	# replacement face/body. Their meaning is identical in English and Spanish.
 	var marker := ""
-	if state == "notice": marker = "?"
-	elif mood == "surprised" or state == "return": marker = "!"
+	if state == "notice" or state == "chase": marker = "!"
+	elif state == "search": marker = "?"
 	if not marker.is_empty():
 		var font := ThemeDB.fallback_font
 		var marker_width := font.get_string_size(marker, HORIZONTAL_ALIGNMENT_LEFT, -1, 30).x

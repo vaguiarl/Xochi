@@ -1,7 +1,7 @@
 extends RefCounted
 ## The companion chapter owns a separate save; the original journey is preserved.
 const PATH := "user://companion-learning-v1.json"
-const INTENTS := ["come", "wait", "boat", "bridge", "jump"]
+const INTENTS := ["come", "wait", "boat", "bridge", "jump", "distract"]
 var save_path := PATH
 var data := {"version":1, "locale":"en", "voice_language":"es", "music":true, "completed":false, "used_intents":[], "independent_choices":[], "spoken_practice":0, "typed_practice":0, "interpreted_spoken_practice":0, "interpreted_typed_practice":0}
 

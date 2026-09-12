@@ -1,3 +1,20 @@
+# Build 5 — Trajinera Rescue (2026-09-12)
+
+- PASS `rescue_route_spec.gd`: actual InputEventScreenTouch dispatch through title, tutorial, destination/Guide/distraction buttons, moving boats, all three rescues and departure. No direct Button.pressed emission. 2,282 fixed-60-Hz frames, zero retries, hyper stock intact.
+- PASS `rescue_manual_spec.gd`: full direct-touch movement route with upward swipes/double-jumps and bell buttons. No controller guidance, teleport or forced completion. Manual first rescue records no lesson evidence.
+- PASS `rescue_command_spec.gd`: exact Spanish/English command delivery through the production voice parser, same full physical route, without a microphone/model. This proves command routing, not speech recognition accuracy.
+- PASS `rescue_state_spec.gd`: real boundary retry retains rescue/song; destination tap consumption; manual cancellation; pause; isolated perception warning/chase/search/cover fixtures; distraction duration; planning-clock freeze/resume; pursuit contact regroup.
+- PASS existing PlayerSpec, CompanionControllerSpec, CompanionVoiceSpec and LearningProgressSpec. Native Swift plugin rebuild and iPhone Simulator build succeed.
+- Native iPhone 12 mini simulator: inspected landscape tutorial/HUD and activated Guide through the Simulator UI. Xochi reached the first baby and the native counter changed from 0/3 to 1/3, with La Lupita selected next.
+- Rendered opening/garden fixtures inspected under `tests/captures/rescue-*.png` (ignored generated files).
+- Godot headless shutdown reports four leaked Ogg playback/packet resources after continuous-music tests. Verbose inspection identifies audio teardown resources, not live gameplay nodes; no runtime script errors were reported. This remains an engine/audio-exit diagnostic.
+- Earlier eight-lesson route/scene/crow tests below describe retired build-4 semantics; build-5 rescue tests above are the current encounter acceptance tests. Legacy traversal/player and voice component tests remain applicable.
+- Upload status is recorded separately in `ios/TESTFLIGHT-UPLOAD.md`; an archive or simulator success alone is not upload evidence.
+
+The automated route is an expert route, not evidence for a four-to-six-minute novice session, learning retention or enjoyment. Physical-device speech, model latency and challenge tuning remain human TestFlight checks.
+
+---
+
 # MVP verification — 11 September 2026
 
 Project: Xochi: The Song Home 0.1.0, build 4. Godot 4.7 stable; native plugin and iPhone archive built with Xcode 26.6 / iOS 26.5 SDK. The minimum supported OS is iOS 26.
