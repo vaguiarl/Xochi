@@ -63,30 +63,20 @@ Run from this directory with Godot 4.7:
 
 ```sh
 godot --headless --editor --path . --import
-godot --headless --fixed-fps 60 --path . --script res://tests/companion_route_spec.gd
-godot --headless --path . --script res://tests/companion_controller_spec.gd
-godot --headless --path . --script res://tests/companion_voice_spec.gd
-godot --headless --path . --script res://tests/companion_scene_voice_spec.gd
-godot --headless --path . --script res://tests/crow_guard_spec.gd
-godot --headless --path . --script res://tests/learning_progress_spec.gd
-godot --headless --path . --script res://tests/player_spec.gd
-godot --headless --path . --script res://tests/enemy_spec.gd
-godot --headless --path . --script res://tests/progress_spec.gd
-godot --headless --path . --script res://tests/lifecycle_spec.gd
-godot --headless --path . --script res://tests/voice_spec.gd
-godot --headless --path . res://main.tscn -- --mvp-smoke
-godot --headless --path . --script res://tests/full_route_spec.gd
+GODOT_BIN=godot ./tests/run_rescue_checks.sh
 ```
 
-The companion route activates displayed buttons and uses real physics through all eight steps; actual touch events test takeover. It also exercises a missed crow opening, pause during Rejoin and unchanged real save files. The earlier full-route test drives actual touch events through the original chapter. Neither route teleports Xochi, grants powers or directly triggers completion. Separate setup probes isolate failure cases and are not gameplay-completion evidence.
+The current rescue suite completes three routes: real screen-touch Guide buttons, direct touch movement, and exact bilingual command delivery. All use real physics without teleporting Xochi or forcing rescue/ending state. Separate state fixtures cover pursuit, hiding, catch/retry, planning clocks, save reload and input cancellation. Native speech/model quality and novice enjoyment require physical-device play.
 
-`tests/companion_capture_spec.gd` renders nine companion screens with a real display. `tests/capture_spec.gd` covers the earlier chapter. Their explicit scene setups are for layout review. Generated captures and build outputs are ignored by Git.
+`tests/rescue_capture_spec.gd` renders opening/garden layout fixtures with a real display. The older `companion_*` scene/route and crow fixtures describe the retired eight-lesson prototype. The earlier traversal chapter remains covered by `full_route_spec.gd`, `lifecycle_spec.gd`, `enemy_spec.gd`, `progress_spec.gd` and `voice_spec.gd`. Generated captures and build products are ignored.
 
 ## Files
 
 | File | Responsibility |
 | --- | --- |
-| `scripts/companion_main.gd` | Learning sequence, fixed encounter layout, UI, retry, story and music |
+| `scripts/rescue_main.gd` | World progression, route plans, camera, checkpoints, HUD and departure |
+| `scripts/trajinera.gd` / `rescue_friend.gd` | Named moving decks, rescue events and visible followers |
+| `scripts/companion_main.gd` | Shared menu, pause, native voice dialog and uninterrupted music; earlier prototype |
 | `scripts/companion_controller.gd` | Bounded, interruptible movement plans and safe landing checks |
 | `scripts/spanish_intents.gd` / `companion_voice.gd` | Authored bilingual directions, one-utterance native sessions and typed fallback |
 | `scripts/learning_progress.gd` | Separate validated learning-evidence save |
